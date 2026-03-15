@@ -8,6 +8,7 @@ export class Camera {
   private screenWidth = 0;
   private screenHeight = 0;
   private lerp = 0.15;
+  private _zoom = 1;
 
   setScreenSize(width: number, height: number): void {
     this.screenWidth = width;
@@ -19,19 +20,35 @@ export class Camera {
     this.targetY = worldY * TILE_SIZE;
   }
 
+  setZoom(z: number): void {
+    this._zoom = Math.max(0.75, Math.min(2.5, z));
+  }
+
+  get zoom(): number {
+    return this._zoom;
+  }
+
   update(): void {
-    const desiredX = -this.targetX + this.screenWidth / 2;
-    const desiredY = -this.targetY + this.screenHeight / 2;
+    this.container.scale.set(this._zoom);
+    const desiredX = -this.targetX * this._zoom + this.screenWidth / 2;
+    const desiredY = -this.targetY * this._zoom + this.screenHeight / 2;
 
     this.container.x += (desiredX - this.container.x) * this.lerp;
     this.container.y += (desiredY - this.container.y) * this.lerp;
   }
 
-  /** Get world position from screen position */
   screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
     return {
-      x: (screenX - this.container.x) / TILE_SIZE,
-      y: (screenY - this.container.y) / TILE_SIZE,
+      x: (screenX - this.container.x) / (TILE_SIZE * this._zoom),
+      y: (screenY - this.container.y) / (TILE_SIZE * this._zoom),
     };
+  }
+
+  getViewBounds(): { left: number; top: number; right: number; bottom: number } {
+    const left = -this.container.x / (TILE_SIZE * this._zoom);
+    const top = -this.container.y / (TILE_SIZE * this._zoom);
+    const right = left + this.screenWidth / (TILE_SIZE * this._zoom);
+    const bottom = top + this.screenHeight / (TILE_SIZE * this._zoom);
+    return { left, top, right, bottom };
   }
 }

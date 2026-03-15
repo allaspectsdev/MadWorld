@@ -13,7 +13,7 @@ export class HitSplatRenderer {
   private splats: HitSplat[] = [];
 
   private hitStyle = new TextStyle({
-    fontFamily: "Courier New",
+    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
     fontSize: 16,
     fontWeight: "bold",
     fill: 0xff4444,
@@ -21,7 +21,7 @@ export class HitSplatRenderer {
   });
 
   private critStyle = new TextStyle({
-    fontFamily: "Courier New",
+    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
     fontSize: 22,
     fontWeight: "bold",
     fill: 0xff0000,
@@ -29,7 +29,7 @@ export class HitSplatRenderer {
   });
 
   private missStyle = new TextStyle({
-    fontFamily: "Courier New",
+    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
     fontSize: 14,
     fill: 0x999999,
     stroke: { color: 0x000000, width: 2 },

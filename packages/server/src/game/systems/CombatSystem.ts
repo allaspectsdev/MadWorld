@@ -2,11 +2,18 @@ import { world } from "../World.js";
 import { Player } from "../entities/Player.js";
 import { Mob } from "../entities/Mob.js";
 import type { Zone } from "../Zone.js";
-import { Op, AIState, type ServerMessage } from "@madworld/shared";
+import { partyManager } from "../PartyManager.js";
+import { instanceManager } from "../InstanceManager.js";
+import { Op, AIState, PARTY_XP_RANGE, PARTY_XP_BONUS, type ServerMessage } from "@madworld/shared";
 import { combatFormulas, movementFormulas } from "@madworld/shared";
 import { levelForXp } from "@madworld/shared";
 import { SkillName } from "@madworld/shared";
 import { ITEMS } from "@madworld/shared";
+
+function* allZones(): Iterable<Zone> {
+  yield* world.zones.values();
+  yield* world.instances.values();
+}
 
 export function processCombat(): void {
   // Process player attacks
@@ -51,6 +58,11 @@ export function processCombat(): void {
 
       if (result.hit) {
         target.hp = Math.max(0, target.hp - result.damage);
+        // Track threat for bosses
+        if (target.isBoss) {
+          const current = target.threatMap.get(player.eid) ?? 0;
+          target.threatMap.set(player.eid, current + result.damage);
+        }
       }
 
       zone.broadcastToNearby(target.x, target.y, {
@@ -72,8 +84,8 @@ export function processCombat(): void {
     player.attackCooldown = 4; // 4 ticks = ~400ms
   }
 
-  // Process mob attacks
-  for (const [, zone] of world.zones) {
+  // Process mob attacks (world + instance zones)
+  for (const zone of allZones()) {
     for (const [, mob] of zone.mobs) {
       if (mob.aiState !== AIState.CHASE || mob.targetEid === null) continue;
       if (mob.attackCooldown > 0) {
@@ -127,11 +139,29 @@ export function processCombat(): void {
   }
 }
 
-function handleMobDeath(
-  mob: Mob,
-  killer: Player,
-  zone: Zone,
-): void {
+function grantXp(player: Player, skill: SkillName, xp: number): void {
+  const skillData = player.skills.get(skill);
+  if (!skillData) return;
+  const oldLevel = levelForXp(skillData.xp);
+  skillData.xp += xp;
+  const newLevel = levelForXp(skillData.xp);
+
+  player.send({
+    op: Op.S_XP_GAIN,
+    d: { skillId: skill, xp, totalXp: skillData.xp },
+  } satisfies ServerMessage);
+
+  if (newLevel > oldLevel) {
+    player.send({
+      op: Op.S_LEVEL_UP,
+      d: { skillId: skill, newLevel },
+    } satisfies ServerMessage);
+  }
+
+  player.dirty = true;
+}
+
+function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
   mob.aiState = AIState.DEAD;
   mob.respawnTimer = mob.def.respawnTicks;
   mob.dx = 0;
@@ -142,31 +172,52 @@ function handleMobDeath(
     d: { eid: mob.eid },
   } satisfies ServerMessage);
 
-  // Grant XP
-  const meleeSkill = killer.skills.get(SkillName.MELEE);
-  if (meleeSkill) {
-    meleeSkill.xp += mob.def.xpReward;
-    const newLevel = levelForXp(meleeSkill.xp);
-    killer.send({
-      op: Op.S_XP_GAIN,
-      d: { skillId: SkillName.MELEE, xp: mob.def.xpReward, totalXp: meleeSkill.xp },
-    } satisfies ServerMessage);
-    killer.dirty = true;
+  // --- Shared XP ---
+  const party = partyManager.getPartyForPlayer(killer.eid);
+  const baseXp = mob.def.xpReward;
+
+  if (party) {
+    const membersInRange = partyManager.getPartyMembersInRange(
+      party,
+      mob.x,
+      mob.y,
+      killer.zoneId,
+      PARTY_XP_RANGE,
+    );
+    const numInRange = Math.max(1, membersInRange.length);
+    const sharedXp = Math.floor((baseXp * (1 + PARTY_XP_BONUS)) / numInRange);
+
+    for (const member of membersInRange) {
+      grantXp(member, SkillName.MELEE, sharedXp);
+    }
+  } else {
+    grantXp(killer, SkillName.MELEE, baseXp);
   }
 
-  // Roll loot (drops handled later in Phase 3)
+  // --- Boss Kill ---
+  if (mob.isBoss && zone.instanceId) {
+    instanceManager.handleBossKill(zone.instanceId);
+  }
 }
 
-function handlePlayerDeath(
-  player: Player,
-  zone: Zone,
-): void {
+function handlePlayerDeath(player: Player, zone: Zone): void {
   zone.broadcastToNearby(player.x, player.y, {
     op: Op.S_DEATH,
     d: { eid: player.eid },
   } satisfies ServerMessage);
 
-  // Respawn after 3 seconds (30 ticks)
+  // In dungeon: check for wipe, don't auto-respawn
+  if (zone.instanceId) {
+    const allDead = [...zone.players.values()].every((p) => p.hp <= 0);
+    if (allDead) {
+      setTimeout(() => {
+        instanceManager.handleWipe(zone.instanceId!);
+      }, 2000);
+    }
+    return;
+  }
+
+  // Overworld: respawn after 3 seconds
   setTimeout(() => {
     player.hp = player.maxHp;
     const spawnZone = world.getZone(player.zoneId);

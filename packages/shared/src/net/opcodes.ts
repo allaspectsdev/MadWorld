@@ -8,6 +8,12 @@ export enum Op {
 
   C_ATTACK = 0x20,
   C_USE_SKILL = 0x21,
+  C_PARTY_INVITE = 0x22,
+  C_PARTY_ACCEPT = 0x23,
+  C_PARTY_DECLINE = 0x24,
+  C_PARTY_LEAVE = 0x25,
+  C_PARTY_KICK = 0x26,
+  C_DUNGEON_ENTER = 0x27,
 
   C_FISH_CAST = 0x30,
   C_FISH_REEL = 0x31,
@@ -63,6 +69,16 @@ export enum Op {
   S_TRADE_UPDATE = 0xca,
   S_TRADE_COMPLETE = 0xcb,
   S_TRADE_CANCELLED = 0xcc,
+
+  S_PARTY_INVITE = 0xd0,
+  S_PARTY_UPDATE = 0xd1,
+  S_PARTY_DISSOLVED = 0xd2,
+  S_PARTY_MEMBER_HP = 0xd3,
+  S_DUNGEON_ENTER = 0xd4,
+  S_DUNGEON_COMPLETE = 0xd5,
+  S_DUNGEON_WIPE = 0xd6,
+  S_DUNGEON_EXIT = 0xd7,
+  S_BOSS_ABILITY = 0xd8,
 
   S_TICK = 0xf0,
   S_PONG = 0xf1,

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EntityType, TileType, Appearance } from "@madworld/shared";
+import type { EntityType, TileType, Appearance, PartyMemberInfo } from "@madworld/shared";
 
 export interface RemoteEntity {
   eid: number;
@@ -7,6 +7,7 @@ export interface RemoteEntity {
   x: number;
   y: number;
   name?: string;
+  mobId?: string;
   appearance?: Appearance;
   hp?: number;
   maxHp?: number;
@@ -47,6 +48,14 @@ export interface GameState {
   zoneHeight: number;
   tiles: TileType[][] | null;
 
+  // Party
+  party: { partyId: string; members: PartyMemberInfo[]; leadEid: number } | null;
+  partyInvite: { inviterEid: number; inviterName: string; partySize: number } | null;
+
+  // Dungeon
+  inDungeon: boolean;
+  dungeonName: string | null;
+
   setConnected: (v: boolean) => void;
   setToken: (t: string) => void;
   setLocalPlayer: (p: LocalPlayer) => void;
@@ -58,6 +67,11 @@ export interface GameState {
     height: number,
     tiles: TileType[][],
   ) => void;
+
+  setParty: (party: GameState["party"]) => void;
+  setPartyInvite: (invite: GameState["partyInvite"]) => void;
+  updatePartyMemberHp: (eid: number, hp: number, maxHp: number) => void;
+  setInDungeon: (inDungeon: boolean, name?: string) => void;
 
   spawnEntity: (e: RemoteEntity) => void;
   despawnEntity: (eid: number) => void;
@@ -81,6 +95,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
   zoneHeight: 0,
   tiles: null,
 
+  party: null,
+  partyInvite: null,
+  inDungeon: false,
+  dungeonName: null,
+
   setConnected: (v) => set({ connected: v }),
   setToken: (t) => set({ token: t }),
   setLocalPlayer: (p) => set({ localPlayer: p }),
@@ -95,6 +114,18 @@ export const useGameStore = create<GameState>()((set, get) => ({
       tiles,
       entities: new Map(),
     }),
+
+  setParty: (party) => set({ party }),
+  setPartyInvite: (invite) => set({ partyInvite: invite }),
+  updatePartyMemberHp: (eid, hp, maxHp) =>
+    set((state) => {
+      if (!state.party) return {};
+      const members = state.party.members.map((m) =>
+        m.eid === eid ? { ...m, hp, maxHp } : m,
+      );
+      return { party: { ...state.party, members } };
+    }),
+  setInDungeon: (inDungeon, name) => set({ inDungeon, dungeonName: name ?? null }),
 
   spawnEntity: (e) =>
     set((state) => {

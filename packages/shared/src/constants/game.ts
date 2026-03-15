@@ -6,3 +6,6 @@ export const VIEW_RANGE_CHUNKS = 2;
 export const PLAYER_SPEED = 4; // tiles per second
 export const INVENTORY_SIZE = 28;
 export const EQUIP_SLOTS = 10;
+export const MAX_PARTY_SIZE = 5;
+export const PARTY_XP_RANGE = 15;
+export const PARTY_XP_BONUS = 0.1;

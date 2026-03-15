@@ -1,60 +1,98 @@
-import { Container, Graphics } from "pixi.js";
+import { Container, Sprite } from "pixi.js";
 import { TILE_SIZE, TileType, type TileType as TT } from "@madworld/shared";
+import {
+  getTileTextureSet,
+  tileVariantHash,
+  type TileTextureSet,
+} from "./TileTextures.js";
 
-// Color mapping for tile types
-const TILE_COLORS: Record<number, number> = {
-  [TileType.GRASS]: 0x4a7c59,
-  [TileType.DIRT]: 0x8b7355,
-  [TileType.COBBLESTONE]: 0x808080,
-  [TileType.WATER]: 0x3a6ea5,
-  [TileType.SAND]: 0xc2b280,
-  [TileType.FOREST]: 0x2d5a27,
-  [TileType.MOUNTAIN]: 0x696969,
-  [TileType.BRIDGE]: 0x8b6914,
-  [TileType.BUILDING_FLOOR]: 0xa0522d,
-  [TileType.PORTAL]: 0x9b59b6,
-};
+interface TileSprite {
+  sprite: Sprite;
+  tileType: TT;
+  textureSet: TileTextureSet;
+  variantIndex: number;
+}
 
 export class TilemapRenderer {
   readonly container = new Container();
-  private graphics = new Graphics();
-  private currentTiles: TT[][] | null = null;
+  private tiles: TileSprite[] = [];
+  private animatedTiles: TileSprite[] = [];
+  private animTimer = 0;
+  private animFrame = 0;
+  private mapWidth = 0;
+  private mapHeight = 0;
 
-  constructor() {
-    this.container.addChild(this.graphics);
-  }
+  setTiles(tileData: TT[][]): void {
+    // Clear existing
+    this.container.removeChildren();
+    this.tiles = [];
+    this.animatedTiles = [];
 
-  setTiles(tiles: TT[][]): void {
-    this.currentTiles = tiles;
-    this.render();
-  }
+    this.mapHeight = tileData.length;
+    this.mapWidth = tileData[0]?.length ?? 0;
 
-  private render(): void {
-    if (!this.currentTiles) return;
+    for (let y = 0; y < this.mapHeight; y++) {
+      for (let x = 0; x < this.mapWidth; x++) {
+        const type = tileData[y][x];
+        const textureSet = getTileTextureSet(type);
+        if (!textureSet) continue;
 
-    this.graphics.clear();
+        const hash = tileVariantHash(x, y);
+        const variantIndex = hash % textureSet.variants.length;
+        const texture = textureSet.variants[variantIndex];
 
-    for (let y = 0; y < this.currentTiles.length; y++) {
-      const row = this.currentTiles[y];
-      for (let x = 0; x < row.length; x++) {
-        const tile = row[x];
-        const color = TILE_COLORS[tile] ?? 0x333333;
-        this.graphics.rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-        this.graphics.fill(color);
+        const sprite = new Sprite(texture);
+        sprite.x = x * TILE_SIZE;
+        sprite.y = y * TILE_SIZE;
+        sprite.width = TILE_SIZE;
+        sprite.height = TILE_SIZE;
+
+        this.container.addChild(sprite);
+
+        const ts: TileSprite = { sprite, tileType: type, textureSet, variantIndex };
+        this.tiles.push(ts);
+
+        if (textureSet.frames) {
+          this.animatedTiles.push(ts);
+        }
       }
     }
+  }
 
-    // Grid lines (subtle)
-    this.graphics.setStrokeStyle({ width: 0.5, color: 0x000000, alpha: 0.1 });
-    for (let y = 0; y <= this.currentTiles.length; y++) {
-      this.graphics.moveTo(0, y * TILE_SIZE);
-      this.graphics.lineTo(this.currentTiles[0].length * TILE_SIZE, y * TILE_SIZE);
-      this.graphics.stroke();
+  update(dt: number): void {
+    // Animate water/portals
+    this.animTimer += dt;
+    if (this.animTimer >= 0.5) {
+      this.animTimer -= 0.5;
+      this.animFrame = (this.animFrame + 1) % 3;
+
+      for (const ts of this.animatedTiles) {
+        if (!ts.textureSet.frames) continue;
+        const frameVariants = ts.textureSet.frames[this.animFrame];
+        if (frameVariants) {
+          ts.sprite.texture = frameVariants[ts.variantIndex % frameVariants.length];
+        }
+      }
     }
-    for (let x = 0; x <= this.currentTiles[0].length; x++) {
-      this.graphics.moveTo(x * TILE_SIZE, 0);
-      this.graphics.lineTo(x * TILE_SIZE, this.currentTiles.length * TILE_SIZE);
-      this.graphics.stroke();
+  }
+
+  /** Cull tiles outside the viewport for performance */
+  cullViewport(left: number, top: number, right: number, bottom: number): void {
+    const margin = 2;
+    const tLeft = Math.floor(left / TILE_SIZE) - margin;
+    const tTop = Math.floor(top / TILE_SIZE) - margin;
+    const tRight = Math.ceil(right / TILE_SIZE) + margin;
+    const tBottom = Math.ceil(bottom / TILE_SIZE) + margin;
+
+    let idx = 0;
+    for (let y = 0; y < this.mapHeight; y++) {
+      for (let x = 0; x < this.mapWidth; x++) {
+        if (idx < this.tiles.length) {
+          this.tiles[idx].sprite.visible =
+            x >= tLeft && x <= tRight && y >= tTop && y <= tBottom;
+        }
+        idx++;
+      }
     }
   }
 }

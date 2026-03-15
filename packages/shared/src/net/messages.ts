@@ -2,6 +2,7 @@ import { Op } from "./opcodes.js";
 import type { EntityType } from "../types/entity.js";
 import type { TileType } from "../types/map.js";
 import type { Appearance } from "../types/player.js";
+import type { PartyMemberInfo } from "../types/party.js";
 
 // ---- Client -> Server Payloads ----
 
@@ -77,6 +78,7 @@ export interface S_EntitySpawn {
   x: number;
   y: number;
   name?: string;
+  mobId?: string;
   appearance?: Appearance;
   hp?: number;
   maxHp?: number;
@@ -173,6 +175,79 @@ export interface S_Pong {
   serverTime: number;
 }
 
+// ---- Party Payloads ----
+
+export interface C_PartyInvite {
+  targetEid: number;
+}
+
+export interface C_PartyAccept {
+  inviterEid: number;
+}
+
+export interface C_PartyDecline {
+  inviterEid: number;
+}
+
+export interface C_PartyKick {
+  targetEid: number;
+}
+
+export interface C_DungeonEnter {
+  portalId: string;
+}
+
+export interface S_PartyInvite {
+  inviterEid: number;
+  inviterName: string;
+  partySize: number;
+}
+
+export interface S_PartyUpdate {
+  partyId: string;
+  members: PartyMemberInfo[];
+  leadEid: number;
+}
+
+export interface S_PartyDissolved {
+  reason: "leader_left" | "last_member" | "kicked";
+}
+
+export interface S_PartyMemberHp {
+  eid: number;
+  hp: number;
+  maxHp: number;
+}
+
+export interface S_DungeonEnter {
+  dungeonId: string;
+  dungeonName: string;
+  instanceId: string;
+}
+
+export interface S_DungeonComplete {
+  dungeonId: string;
+  instanceId: string;
+}
+
+export interface S_DungeonWipe {
+  instanceId: string;
+}
+
+export interface S_DungeonExit {
+  returnZoneId: string;
+  returnX: number;
+  returnY: number;
+}
+
+export interface S_BossAbility {
+  bossEid: number;
+  abilityId: string;
+  targetX: number;
+  targetY: number;
+  radius: number;
+}
+
 // ---- Discriminated Unions ----
 
 export type ClientMessage =
@@ -196,6 +271,12 @@ export type ClientMessage =
   | { op: Op.C_TRADE_CANCEL; d: Record<string, never> }
   | { op: Op.C_TRADE_SET_ITEM; d: { slot: number; inventorySlot: number; quantity: number } }
   | { op: Op.C_TRADE_CONFIRM; d: Record<string, never> }
+  | { op: Op.C_PARTY_INVITE; d: C_PartyInvite }
+  | { op: Op.C_PARTY_ACCEPT; d: C_PartyAccept }
+  | { op: Op.C_PARTY_DECLINE; d: C_PartyDecline }
+  | { op: Op.C_PARTY_LEAVE; d: Record<string, never> }
+  | { op: Op.C_PARTY_KICK; d: C_PartyKick }
+  | { op: Op.C_DUNGEON_ENTER; d: C_DungeonEnter }
   | { op: Op.C_PING; d: { t: number } };
 
 export type ServerMessage =
@@ -216,5 +297,14 @@ export type ServerMessage =
   | { op: Op.S_LEVEL_UP; d: S_LevelUp }
   | { op: Op.S_CHAT_MESSAGE; d: S_ChatMessage }
   | { op: Op.S_SYSTEM_MESSAGE; d: S_SystemMessage }
+  | { op: Op.S_PARTY_INVITE; d: S_PartyInvite }
+  | { op: Op.S_PARTY_UPDATE; d: S_PartyUpdate }
+  | { op: Op.S_PARTY_DISSOLVED; d: S_PartyDissolved }
+  | { op: Op.S_PARTY_MEMBER_HP; d: S_PartyMemberHp }
+  | { op: Op.S_DUNGEON_ENTER; d: S_DungeonEnter }
+  | { op: Op.S_DUNGEON_COMPLETE; d: S_DungeonComplete }
+  | { op: Op.S_DUNGEON_WIPE; d: S_DungeonWipe }
+  | { op: Op.S_DUNGEON_EXIT; d: S_DungeonExit }
+  | { op: Op.S_BOSS_ABILITY; d: S_BossAbility }
   | { op: Op.S_TICK; d: S_Tick }
   | { op: Op.S_PONG; d: S_Pong };

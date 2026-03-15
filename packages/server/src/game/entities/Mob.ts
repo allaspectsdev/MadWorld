@@ -14,6 +14,11 @@ export class Mob extends Entity {
   idleTicks: number = 0;
   patrolTarget: { x: number; y: number } | null = null;
 
+  // Boss fields
+  isBoss: boolean;
+  abilityCooldowns: Map<string, number> = new Map();
+  threatMap: Map<number, number> = new Map();
+
   constructor(def: MobDef, zoneId: string, x: number, y: number, wanderRadius: number) {
     super(EntityType.MOB, zoneId, x, y);
     this.def = def;
@@ -22,6 +27,13 @@ export class Mob extends Entity {
     this.spawnY = y;
     this.wanderRadius = wanderRadius;
     this.speed = 2;
+    this.isBoss = def.isBoss ?? false;
+
+    if (this.isBoss && def.bossAbilities) {
+      for (const ability of def.bossAbilities) {
+        this.abilityCooldowns.set(ability.id, ability.cooldownTicks);
+      }
+    }
   }
 
   reset(): void {
@@ -35,5 +47,11 @@ export class Mob extends Entity {
     this.attackCooldown = 0;
     this.idleTicks = 0;
     this.patrolTarget = null;
+    this.threatMap.clear();
+    if (this.isBoss && this.def.bossAbilities) {
+      for (const ability of this.def.bossAbilities) {
+        this.abilityCooldowns.set(ability.id, ability.cooldownTicks);
+      }
+    }
   }
 }

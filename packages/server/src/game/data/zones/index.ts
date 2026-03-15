@@ -108,6 +108,9 @@ function createDarkwood(): ZoneDef {
   tiles[0][29] = TileType.PORTAL;
   tiles[0][30] = TileType.PORTAL;
 
+  // Dungeon portal — Goblin Warren entrance
+  tiles[38][30] = TileType.DUNGEON_PORTAL;
+
   return {
     id: "darkwood",
     name: "Darkwood Forest",
@@ -119,6 +122,7 @@ function createDarkwood(): ZoneDef {
     portals: [
       { x: 29, y: 0, targetZoneId: "greendale", targetX: 29, targetY: 58 },
       { x: 30, y: 0, targetZoneId: "greendale", targetX: 30, targetY: 58 },
+      { x: 30, y: 38, targetZoneId: "goblin_warren", targetX: 6, targetY: 20, dungeonId: "goblin_warren" },
     ],
     mobSpawns: [
       { mobId: "goblin", x: 15, y: 15, count: 4, wanderRadius: 5 },
@@ -152,6 +156,9 @@ function createFields(): ZoneDef {
   tiles[29][0] = TileType.PORTAL;
   tiles[30][0] = TileType.PORTAL;
 
+  // Dungeon portal — Crypt of Bones entrance
+  tiles[10][40] = TileType.DUNGEON_PORTAL;
+
   return {
     id: "fields",
     name: "Open Fields",
@@ -163,6 +170,7 @@ function createFields(): ZoneDef {
     portals: [
       { x: 0, y: 29, targetZoneId: "greendale", targetX: 58, targetY: 29 },
       { x: 0, y: 30, targetZoneId: "greendale", targetX: 58, targetY: 30 },
+      { x: 40, y: 10, targetZoneId: "crypt_of_bones", targetX: 6, targetY: 7, dungeonId: "crypt_of_bones" },
     ],
     mobSpawns: [
       { mobId: "cow", x: 10, y: 15, count: 4, wanderRadius: 6 },

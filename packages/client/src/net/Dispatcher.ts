@@ -1,13 +1,35 @@
-import { Op, EntityType, type ServerMessage } from "@madworld/shared";
+import { Op, EntityType, TILE_SIZE, type ServerMessage } from "@madworld/shared";
 import { useGameStore, type RemoteEntity } from "../state/GameStore.js";
 import type { HitSplatRenderer } from "../renderer/HitSplatRenderer.js";
+import type { EntityRenderer } from "../renderer/EntityRenderer.js";
+import type { ParticleSystem } from "../renderer/ParticleSystem.js";
+import type { ScreenEffects } from "../renderer/ScreenEffects.js";
+import type { TelegraphRenderer } from "../renderer/TelegraphRenderer.js";
+import type { Minimap } from "../renderer/Minimap.js";
 
 export class Dispatcher {
   private hitSplats: HitSplatRenderer;
+  private entityRenderer: EntityRenderer;
+  private particles: ParticleSystem;
+  private screenEffects: ScreenEffects;
+  private telegraphs: TelegraphRenderer;
+  private minimap: Minimap;
   private onZoneChange: (() => void) | null = null;
 
-  constructor(hitSplats: HitSplatRenderer) {
+  constructor(
+    hitSplats: HitSplatRenderer,
+    entityRenderer: EntityRenderer,
+    particles: ParticleSystem,
+    screenEffects: ScreenEffects,
+    telegraphs: TelegraphRenderer,
+    minimap: Minimap,
+  ) {
     this.hitSplats = hitSplats;
+    this.entityRenderer = entityRenderer;
+    this.particles = particles;
+    this.screenEffects = screenEffects;
+    this.telegraphs = telegraphs;
+    this.minimap = minimap;
   }
 
   setOnZoneChange(fn: () => void): void {
@@ -39,6 +61,7 @@ export class Dispatcher {
       }
 
       case Op.S_ENTER_ZONE: {
+        this.screenEffects.fadeZoneTransition();
         store.setZone(msg.d.zoneId, msg.d.name, msg.d.width, msg.d.height, msg.d.tiles);
         store.updateLocalPlayer({
           zoneId: msg.d.zoneId,
@@ -136,6 +159,25 @@ export class Dispatcher {
         }
 
         this.hitSplats.addSplat(tx, ty, msg.d.amount, msg.d.isCrit);
+
+        // Combat impact particles
+        if (msg.d.amount > 0) {
+          this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 6, {
+            tint: msg.d.isCrit ? 0xff4444 : 0xffaa44,
+            speed: 60,
+            spread: Math.PI,
+            life: 0.3,
+            gravity: 80,
+          });
+
+          // Attack animation on source
+          this.entityRenderer.triggerAttackAnim(msg.d.sourceEid);
+
+          // Screen flash if local player is the target
+          if (lp && msg.d.targetEid === lp.eid) {
+            this.screenEffects.flashDamage();
+          }
+        }
         break;
       }
 
@@ -146,8 +188,20 @@ export class Dispatcher {
           const overlay = document.getElementById("death-overlay");
           if (overlay) overlay.classList.add("active");
         }
-        // Remove dead entity sprite (will respawn)
-        store.despawnEntity(msg.d.eid);
+        // Death particles + animation
+        const deadEntity = store.entities.get(msg.d.eid);
+        if (deadEntity) {
+          this.particles.emit(deadEntity.nextX * TILE_SIZE, deadEntity.nextY * TILE_SIZE, 12, {
+            tint: 0xffffff,
+            speed: 40,
+            spread: Math.PI * 2,
+            life: 0.5,
+            scaleDecay: 1.5,
+          });
+          this.entityRenderer.triggerDeathAnim(msg.d.eid);
+        }
+        // Remove dead entity sprite after animation
+        setTimeout(() => store.despawnEntity(msg.d.eid), 300);
         break;
       }
 
@@ -174,19 +228,118 @@ export class Dispatcher {
 
       case Op.S_LEVEL_UP: {
         this.showLevelUp(msg.d.skillId, msg.d.newLevel);
+        this.screenEffects.flashLevelUp();
+        // Level-up sparkles
+        const lpLvl = store.localPlayer;
+        if (lpLvl) {
+          this.particles.emit(lpLvl.x * TILE_SIZE, lpLvl.y * TILE_SIZE, 20, {
+            texType: "star",
+            tint: 0xffd700,
+            speed: 30,
+            spread: Math.PI * 2,
+            life: 1.5,
+            gravity: -15,
+            baseScale: 0.8,
+          });
+        }
+        break;
+      }
+
+      // --- Party Messages ---
+      case Op.S_PARTY_INVITE: {
+        store.setPartyInvite({
+          inviterEid: msg.d.inviterEid,
+          inviterName: msg.d.inviterName,
+          partySize: msg.d.partySize,
+        });
+        break;
+      }
+
+      case Op.S_PARTY_UPDATE: {
+        store.setParty({
+          partyId: msg.d.partyId,
+          members: msg.d.members,
+          leadEid: msg.d.leadEid,
+        });
+        break;
+      }
+
+      case Op.S_PARTY_DISSOLVED: {
+        store.setParty(null);
+        this.showSystemMessage("Party dissolved.");
+        break;
+      }
+
+      case Op.S_PARTY_MEMBER_HP: {
+        store.updatePartyMemberHp(msg.d.eid, msg.d.hp, msg.d.maxHp);
+        break;
+      }
+
+      // --- Dungeon Messages ---
+      case Op.S_DUNGEON_ENTER: {
+        store.setInDungeon(true, msg.d.dungeonName);
+        break;
+      }
+
+      case Op.S_DUNGEON_COMPLETE: {
+        const banner = document.getElementById("dungeon-complete-banner");
+        if (banner) {
+          banner.style.display = "flex";
+          setTimeout(() => { banner.style.display = "none"; }, 5000);
+        }
+        break;
+      }
+
+      case Op.S_DUNGEON_WIPE: {
+        const wipeOverlay = document.getElementById("dungeon-wipe-overlay");
+        if (wipeOverlay) {
+          wipeOverlay.classList.add("active");
+          setTimeout(() => wipeOverlay.classList.remove("active"), 4000);
+        }
+        break;
+      }
+
+      case Op.S_DUNGEON_EXIT: {
+        store.setInDungeon(false);
+        break;
+      }
+
+      case Op.S_BOSS_ABILITY: {
+        if (msg.d.radius > 0) {
+          this.telegraphs.addTelegraph(
+            msg.d.targetX,
+            msg.d.targetY,
+            msg.d.radius,
+            1000,
+            msg.d.abilityId.includes("soul") ? 0x8800ff : 0xff0000,
+          );
+        }
+        break;
+      }
+
+      case Op.S_SYSTEM_MESSAGE: {
+        this.showSystemMessage(msg.d.message);
         break;
       }
 
       case Op.S_TICK: {
-        // Could use for time sync
         break;
       }
 
       case Op.S_PONG: {
-        // RTT measurement
         break;
       }
     }
+  }
+
+  private showSystemMessage(message: string): void {
+    const popup = document.createElement("div");
+    popup.className = "xp-popup";
+    popup.style.color = "#fff";
+    popup.textContent = message;
+    popup.style.top = "80px";
+    document.getElementById("ui-root")?.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
   }
 
   private updateHUD(): void {

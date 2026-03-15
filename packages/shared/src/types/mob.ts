@@ -26,4 +26,6 @@ export interface MobDef {
   respawnTicks: number;
   xpReward: number;
   lootTable: LootDrop[];
+  isBoss?: boolean;
+  bossAbilities?: import("./dungeon.js").BossAbilityDef[];
 }

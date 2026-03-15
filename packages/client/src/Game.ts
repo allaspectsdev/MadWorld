@@ -1,5 +1,5 @@
 import { Application } from "pixi.js";
-import { TICK_MS, PLAYER_SPEED, Op, type ClientMessage } from "@madworld/shared";
+import { PLAYER_SPEED, TILE_SIZE, EntityType, Op, type ClientMessage } from "@madworld/shared";
 import { Socket } from "./net/Socket.js";
 import { Dispatcher } from "./net/Dispatcher.js";
 import { useGameStore } from "./state/GameStore.js";
@@ -7,7 +7,16 @@ import { Camera } from "./renderer/Camera.js";
 import { TilemapRenderer } from "./renderer/TilemapRenderer.js";
 import { EntityRenderer } from "./renderer/EntityRenderer.js";
 import { HitSplatRenderer } from "./renderer/HitSplatRenderer.js";
+import { ParticleSystem } from "./renderer/ParticleSystem.js";
+import { ScreenEffects } from "./renderer/ScreenEffects.js";
+import { DayNightOverlay } from "./renderer/DayNightOverlay.js";
+import { AmbientParticles } from "./renderer/AmbientParticles.js";
+import { TelegraphRenderer } from "./renderer/TelegraphRenderer.js";
+import { Minimap } from "./renderer/Minimap.js";
 import { InputManager } from "./input/InputManager.js";
+import { initDeviceDetection, isTouchDevice } from "./input/DeviceDetection.js";
+import { PartyHUD } from "./ui/components/PartyHUD.js";
+import { PartyInviteModal } from "./ui/components/PartyInviteModal.js";
 
 export class Game {
   private app: Application;
@@ -18,6 +27,14 @@ export class Game {
   private tilemap: TilemapRenderer;
   private entities: EntityRenderer;
   private hitSplats: HitSplatRenderer;
+  private particles: ParticleSystem;
+  private screenEffects: ScreenEffects;
+  private dayNight: DayNightOverlay;
+  private ambientParticles: AmbientParticles;
+  private telegraphs: TelegraphRenderer;
+  private minimap: Minimap;
+  private partyHUD: PartyHUD;
+  private partyInviteModal: PartyInviteModal;
 
   private isRegistering = false;
 
@@ -28,27 +45,77 @@ export class Game {
     this.tilemap = new TilemapRenderer();
     this.entities = new EntityRenderer();
     this.hitSplats = new HitSplatRenderer();
-    this.dispatcher = new Dispatcher(this.hitSplats);
-    this.input = new InputManager(this.socket);
+    this.particles = new ParticleSystem();
+    this.particles.init();
+    this.screenEffects = new ScreenEffects(app);
+    this.dayNight = new DayNightOverlay(app);
+    this.ambientParticles = new AmbientParticles(this.particles);
+    this.telegraphs = new TelegraphRenderer();
+    this.minimap = new Minimap();
+    this.dispatcher = new Dispatcher(
+      this.hitSplats,
+      this.entities,
+      this.particles,
+      this.screenEffects,
+      this.telegraphs,
+      this.minimap,
+    );
+
+    initDeviceDetection();
+
+    this.input = new InputManager(
+      this.socket,
+      this.app.canvas as HTMLCanvasElement,
+      this.camera,
+      this.entities,
+    );
+
+    this.partyHUD = new PartyHUD();
+    this.partyInviteModal = new PartyInviteModal(this.socket);
 
     // Build scene graph
     this.camera.container.addChild(this.tilemap.container);
+    this.camera.container.addChild(this.telegraphs.container);
     this.camera.container.addChild(this.entities.container);
+    this.camera.container.addChild(this.particles.container);
     this.camera.container.addChild(this.hitSplats.container);
     this.entities.container.sortableChildren = true;
     app.stage.addChild(this.camera.container);
+    // ScreenEffects and DayNight add themselves to app.stage in their constructors
+
+    // Default zoom for mobile
+    if (isTouchDevice()) {
+      this.camera.setZoom(1.5);
+    }
   }
 
   start(): void {
     this.setupAuth();
     this.setupSocket();
-    this.setupClickHandler();
+    this.setupInputCallbacks();
+    this.partyHUD.start();
+    this.partyInviteModal.start();
 
     this.dispatcher.setOnZoneChange(() => {
       const state = useGameStore.getState();
       if (state.tiles) {
         this.tilemap.setTiles(state.tiles);
+        this.minimap.renderTiles(state.tiles);
         this.entities.clear();
+
+        // Detect zone type for ambient particles
+        if (state.localPlayer?.zoneId.startsWith("dungeon:")) {
+          this.ambientParticles.setZoneType("dungeon");
+        } else {
+          const zoneName = state.localPlayer?.zoneName ?? "";
+          if (zoneName.includes("Forest") || zoneName.includes("Darkwood")) {
+            this.ambientParticles.setZoneType("forest");
+          } else if (zoneName.includes("Field")) {
+            this.ambientParticles.setZoneType("default");
+          } else {
+            this.ambientParticles.setZoneType("default");
+          }
+        }
       }
     });
 
@@ -67,19 +134,24 @@ export class Game {
   private update(dt: number): void {
     const state = useGameStore.getState();
     const lp = state.localPlayer;
-    if (!lp || lp.isDead) return;
+    if (!lp || lp.isDead) {
+      // Still update visual effects while dead
+      this.screenEffects.update(dt);
+      this.dayNight.update(dt);
+      this.particles.update(dt);
+      this.telegraphs.update(dt);
+      return;
+    }
 
     // Process input and local prediction
     const move = this.input.update(dt);
     if (move) {
-      // Predict locally
       state.updateLocalPlayer({
         x: lp.x + move.dx * PLAYER_SPEED * dt,
         y: lp.y + move.dy * PLAYER_SPEED * dt,
       });
     }
 
-    // Re-read after potential update
     const current = useGameStore.getState().localPlayer;
     if (!current) return;
 
@@ -87,9 +159,12 @@ export class Game {
     this.camera.setTarget(current.x, current.y);
     this.camera.update();
 
+    // Update tilemap (animated tiles)
+    this.tilemap.update(dt);
+
     // Render local player
     this.entities.setLocalPlayer(current.eid);
-    this.entities.updateLocalPlayer(current.x, current.y);
+    this.entities.updateLocalPlayer(current.x, current.y, dt);
 
     // Render remote entities with interpolation
     const now = performance.now();
@@ -99,15 +174,49 @@ export class Game {
       const t = duration > 0 ? Math.min(elapsed / duration, 1) : 1;
       const ix = entity.prevX + (entity.nextX - entity.prevX) * t;
       const iy = entity.prevY + (entity.nextY - entity.prevY) * t;
-      this.entities.updateEntity(eid, ix, iy, entity);
+      this.entities.updateEntity(eid, ix, iy, entity, dt);
     }
 
-    // Update hit splats
+    // Update all visual systems
     this.hitSplats.update();
+    this.particles.update(dt);
+    this.screenEffects.update(dt);
+    this.dayNight.update(dt);
+    this.telegraphs.update(dt);
+    this.minimap.update(dt);
+
+    // Ambient particles
+    const bounds = this.camera.getViewBounds();
+    this.ambientParticles.setCamera(
+      bounds.left * TILE_SIZE,
+      bounds.top * TILE_SIZE,
+      (bounds.right - bounds.left) * TILE_SIZE,
+      (bounds.bottom - bounds.top) * TILE_SIZE,
+    );
+    this.ambientParticles.update(dt);
   }
 
   private setupSocket(): void {
     this.socket.onMessage((msg) => this.dispatcher.handle(msg));
+  }
+
+  private setupInputCallbacks(): void {
+    this.input.onAttack = (eid: number) => {
+      this.socket.send({
+        op: Op.C_ATTACK,
+        d: { targetEid: eid },
+      } as ClientMessage);
+    };
+
+    this.input.onPartyInvite = (eid: number) => {
+      const entity = useGameStore.getState().entities.get(eid);
+      if (entity && entity.type === EntityType.PLAYER) {
+        this.socket.send({
+          op: Op.C_PARTY_INVITE,
+          d: { targetEid: eid },
+        } as ClientMessage);
+      }
+    };
   }
 
   private setupAuth(): void {
@@ -158,9 +267,7 @@ export class Game {
           return;
         }
 
-        // Success — connect WebSocket with token
         useGameStore.getState().setToken(data.token);
-
         document.getElementById("login-screen")!.style.display = "none";
         document.getElementById("hud")!.style.display = "flex";
 
@@ -168,25 +275,6 @@ export class Game {
       } catch {
         errorDiv.textContent = "Failed to connect to server";
         submitBtn.disabled = false;
-      }
-    });
-  }
-
-  private setupClickHandler(): void {
-    this.app.canvas.addEventListener("click", (e) => {
-      const worldPos = this.camera.screenToWorld(e.clientX, e.clientY);
-      const targetEid = this.entities.getEntityAtScreen(
-        e.clientX,
-        e.clientY,
-        worldPos.x,
-        worldPos.y,
-      );
-
-      if (targetEid !== null) {
-        this.socket.send({
-          op: Op.C_ATTACK,
-          d: { targetEid },
-        } as ClientMessage);
       }
     });
   }

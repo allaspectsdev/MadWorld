@@ -5,8 +5,13 @@ import { AIState, TICK_MS, Op } from "@madworld/shared";
 import { movementFormulas } from "@madworld/shared";
 import type { Zone } from "../Zone.js";
 
+function* allZones(): Iterable<Zone> {
+  yield* world.zones.values();
+  yield* world.instances.values();
+}
+
 export function processAI(): void {
-  for (const [, zone] of world.zones) {
+  for (const zone of allZones()) {
     for (const [, mob] of zone.mobs) {
       switch (mob.aiState) {
         case AIState.IDLE:
@@ -104,11 +109,14 @@ function processChase(mob: Mob, zone: Zone): void {
     return;
   }
 
-  const distFromSpawn = movementFormulas.distance(mob.x, mob.y, mob.spawnX, mob.spawnY);
-  if (distFromSpawn > mob.def.chaseRange) {
-    mob.targetEid = null;
-    mob.aiState = AIState.RETURN;
-    return;
+  // Bosses never leash
+  if (!mob.isBoss) {
+    const distFromSpawn = movementFormulas.distance(mob.x, mob.y, mob.spawnX, mob.spawnY);
+    if (distFromSpawn > mob.def.chaseRange) {
+      mob.targetEid = null;
+      mob.aiState = AIState.RETURN;
+      return;
+    }
   }
 
   const distToTarget = movementFormulas.distance(mob.x, mob.y, target.x, target.y);

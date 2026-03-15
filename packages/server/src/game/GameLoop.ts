@@ -1,8 +1,11 @@
 import { TICK_MS, Op, type ServerMessage } from "@madworld/shared";
 import { world } from "./World.js";
+import { partyManager } from "./PartyManager.js";
 import { processMovement } from "./systems/MovementSystem.js";
 import { processAI } from "./systems/AISystem.js";
+import { processBossAI } from "./systems/BossAISystem.js";
 import { processCombat } from "./systems/CombatSystem.js";
+import { instanceManager } from "./InstanceManager.js";
 
 let currentTick = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -13,13 +16,21 @@ function tick(): void {
   // 1. Process player movement intents
   processMovement();
 
-  // 2. Run mob AI
+  // 2. Run mob AI (world + instance zones)
   processAI();
 
-  // 3. Resolve combat
+  // 3. Run boss AI (instance zones)
+  processBossAI();
+
+  // 4. Resolve combat (world + instance zones, shared XP)
   processCombat();
 
-  // 4. Send tick sync to all players
+  // 5. Sync party member HP cross-zone
+  for (const [, player] of world.playersByEid) {
+    partyManager.syncPartyMemberHp(player);
+  }
+
+  // 6. Send tick sync to all players
   const tickMsg: ServerMessage = {
     op: Op.S_TICK,
     d: { tick: currentTick, serverTime: Date.now() },
@@ -28,9 +39,14 @@ function tick(): void {
     player.send(tickMsg);
   }
 
-  // 5. Persist dirty players every 30 seconds (300 ticks)
+  // 7. Persist dirty players every 30 seconds (300 ticks)
   if (currentTick % 300 === 0) {
     persistDirtyPlayers();
+  }
+
+  // 8. Cleanup idle dungeon instances every ~60s
+  if (currentTick % 600 === 0) {
+    instanceManager.cleanupIdleInstances();
   }
 }
 

@@ -41,6 +41,17 @@ export class Player extends Entity {
   combatTarget: number | null = null;
   attackCooldown: number = 0;
 
+  // Party
+  partyId: string | null = null;
+
+  // Dungeon return position
+  returnZoneId: string | null = null;
+  returnX: number = 0;
+  returnY: number = 0;
+
+  // Party HP sync throttle
+  lastSyncedHp: number = 0;
+
   // Persistence
   dirty: boolean = false;
 

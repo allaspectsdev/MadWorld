@@ -8,6 +8,8 @@ export * from "./types/mob.js";
 export * from "./types/combat.js";
 export * from "./types/recipe.js";
 export * from "./types/quest.js";
+export * from "./types/party.js";
+export * from "./types/dungeon.js";
 
 // Constants
 export * from "./constants/game.js";

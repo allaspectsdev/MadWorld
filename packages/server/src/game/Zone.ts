@@ -12,9 +12,28 @@ export class Zone {
   readonly players = new Map<number, Player>();
   readonly mobs = new Map<number, Mob>();
 
-  constructor(def: ZoneDef) {
-    this.id = def.id;
+  // Instance dungeon fields
+  instanceId: string | null = null;
+  partyId: string | null = null;
+  isDungeon = false;
+  isComplete = false;
+
+  constructor(def: ZoneDef, instanceId?: string, partyId?: string) {
+    this.id = instanceId ? `dungeon:${instanceId}` : def.id;
     this.def = def;
+    if (instanceId) {
+      this.instanceId = instanceId;
+      this.partyId = partyId ?? null;
+      this.isDungeon = true;
+    }
+  }
+
+  resetInstance(): void {
+    for (const [, mob] of this.mobs) {
+      mob.reset();
+      this.spatial.updateEntity(mob.eid, mob.x, mob.y);
+    }
+    this.isComplete = false;
   }
 
   addEntity(entity: Entity): void {
@@ -39,7 +58,7 @@ export class Zone {
           ? { name: entity.name, appearance: entity.appearance, hp: entity.hp, maxHp: entity.maxHp }
           : {}),
         ...(entity instanceof Mob
-          ? { name: entity.def.name, hp: entity.hp, maxHp: entity.def.maxHp, level: entity.def.level }
+          ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.def.maxHp, level: entity.def.level }
           : {}),
       },
     } satisfies ServerMessage);
@@ -113,7 +132,7 @@ export class Zone {
             ? { name: entity.name, appearance: entity.appearance, hp: entity.hp, maxHp: entity.maxHp }
             : {}),
           ...(entity instanceof Mob
-            ? { name: entity.def.name, hp: entity.hp, maxHp: entity.def.maxHp, level: entity.def.level }
+            ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.def.maxHp, level: entity.def.level }
             : {}),
         },
       } satisfies ServerMessage);

@@ -1,6 +1,8 @@
 import { world } from "../World.js";
 import { Player } from "../entities/Player.js";
-import { Op, TICK_MS, type ServerMessage } from "@madworld/shared";
+import { partyManager } from "../PartyManager.js";
+import { instanceManager } from "../InstanceManager.js";
+import { Op, TICK_MS, TileType, type ServerMessage, type Portal } from "@madworld/shared";
 import { movementFormulas } from "@madworld/shared";
 
 export function processMovement(): void {
@@ -40,7 +42,11 @@ export function processMovement(): void {
         (p) => p.x === Math.floor(newX) && p.y === Math.floor(newY),
       );
       if (portal) {
-        handleZoneTransition(player, portal.targetZoneId, portal.targetX, portal.targetY);
+        if (portal.dungeonId) {
+          handleDungeonEntry(player, portal);
+        } else {
+          handleZoneTransition(player, portal.targetZoneId, portal.targetX, portal.targetY);
+        }
         continue;
       }
     }
@@ -86,4 +92,41 @@ function handleZoneTransition(
 
   newZone.addEntity(player);
   newZone.sendZoneData(player);
+}
+
+function handleDungeonEntry(player: Player, portal: Portal): void {
+  const party = partyManager.getPartyForPlayer(player.eid);
+
+  if (!party) {
+    player.send({
+      op: Op.S_SYSTEM_MESSAGE,
+      d: { message: "You must be in a party to enter a dungeon." },
+    } satisfies ServerMessage);
+    return;
+  }
+
+  if (party.leaderEid !== player.eid) {
+    player.send({
+      op: Op.S_SYSTEM_MESSAGE,
+      d: { message: "Only the party leader can enter the dungeon." },
+    } satisfies ServerMessage);
+    return;
+  }
+
+  let instance = instanceManager.getInstanceForParty(party.id);
+  if (!instance) {
+    instance = instanceManager.createInstance(party.id, portal.dungeonId!);
+  }
+
+  // Pull in all party members near the portal
+  for (const memberEid of party.members) {
+    const member = world.getPlayer(memberEid);
+    if (!member) continue;
+    if (member.zoneId !== player.zoneId) continue;
+
+    const dist = movementFormulas.distance(member.x, member.y, portal.x, portal.y);
+    if (dist > 5) continue;
+
+    instanceManager.enterInstance(member, instance.instanceId);
+  }
 }

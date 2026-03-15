@@ -1,62 +1,136 @@
-import { Op, type ClientMessage } from "@madworld/shared";
+import { EntityType, Op, type ClientMessage } from "@madworld/shared";
 import type { Socket } from "../net/Socket.js";
+import type { Camera } from "../renderer/Camera.js";
+import type { EntityRenderer } from "../renderer/EntityRenderer.js";
+import { KeyboardInput } from "./KeyboardInput.js";
+import { TouchInput } from "./TouchInput.js";
+import { VirtualJoystick } from "./VirtualJoystick.js";
+import { ActionButtons } from "./ActionButtons.js";
+import { isTouchDevice, onInputModeChange } from "./DeviceDetection.js";
+import { useGameStore } from "../state/GameStore.js";
 
 export class InputManager {
-  private keys = new Set<string>();
-  private seq = 0;
+  private keyboard: KeyboardInput;
+  private touchInput: TouchInput | null = null;
+  private joystick: VirtualJoystick | null = null;
+  private actionButtons: ActionButtons | null = null;
   private socket: Socket;
-  private moveCooldown = 0;
+  private canvas: HTMLCanvasElement;
+  private camera: Camera;
+  private entities: EntityRenderer;
+  private seq = 0;
+  private suppressMouseUntil = 0;
 
-  // Click handler for attacks
-  onEntityClick: ((eid: number) => void) | null = null;
+  onAttack: ((eid: number) => void) | null = null;
+  onPartyInvite: ((eid: number) => void) | null = null;
 
-  constructor(socket: Socket) {
+  constructor(
+    socket: Socket,
+    canvas: HTMLCanvasElement,
+    camera: Camera,
+    entities: EntityRenderer,
+  ) {
     this.socket = socket;
+    this.canvas = canvas;
+    this.camera = camera;
+    this.entities = entities;
 
-    window.addEventListener("keydown", (e) => {
-      this.keys.add(e.key.toLowerCase());
+    // Always create keyboard input
+    this.keyboard = new KeyboardInput();
+
+    // Set up mouse handlers (desktop)
+    this.setupMouseHandlers();
+
+    // Set up touch if on touch device
+    if (isTouchDevice()) {
+      this.enableTouch();
+    }
+
+    // React to device mode changes
+    onInputModeChange((isTouch) => {
+      if (isTouch && !this.touchInput) {
+        this.enableTouch();
+      }
+    });
+  }
+
+  private enableTouch(): void {
+    this.joystick = new VirtualJoystick();
+    this.touchInput = new TouchInput(this.canvas, this.camera);
+    this.actionButtons = new ActionButtons(this.socket);
+    this.actionButtons.start();
+
+    // Tap → attack entity
+    this.touchInput.onTap = (worldX, worldY, screenX, screenY) => {
+      this.suppressMouseUntil = Date.now() + 500;
+      const eid = this.entities.getEntityAtScreen(screenX, screenY, worldX, worldY, 2.5);
+      if (eid !== null) {
+        this.onAttack?.(eid);
+      }
+    };
+
+    // Long-press → invite player
+    this.touchInput.onLongPress = (worldX, worldY, screenX, screenY) => {
+      this.suppressMouseUntil = Date.now() + 500;
+      const eid = this.entities.getEntityAtScreen(screenX, screenY, worldX, worldY, 2.5);
+      if (eid !== null) {
+        const entity = useGameStore.getState().entities.get(eid);
+        if (entity && entity.type === EntityType.PLAYER) {
+          this.onPartyInvite?.(eid);
+        }
+      }
+    };
+  }
+
+  private setupMouseHandlers(): void {
+    this.canvas.addEventListener("click", (e) => {
+      if (Date.now() < this.suppressMouseUntil) return;
+      const worldPos = this.camera.screenToWorld(e.clientX, e.clientY);
+      const eid = this.entities.getEntityAtScreen(e.clientX, e.clientY, worldPos.x, worldPos.y);
+      if (eid !== null) {
+        this.onAttack?.(eid);
+      }
     });
 
-    window.addEventListener("keyup", (e) => {
-      this.keys.delete(e.key.toLowerCase());
+    this.canvas.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (Date.now() < this.suppressMouseUntil) return;
+      const worldPos = this.camera.screenToWorld(e.clientX, e.clientY);
+      const eid = this.entities.getEntityAtScreen(e.clientX, e.clientY, worldPos.x, worldPos.y);
+      if (eid !== null) {
+        this.onPartyInvite?.(eid);
+      }
     });
 
-    // Reset on blur
-    window.addEventListener("blur", () => {
-      this.keys.clear();
-    });
+    // Scroll wheel zoom
+    this.canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      this.camera.setZoom(this.camera.zoom + delta);
+    }, { passive: false });
   }
 
   update(dt: number): { dx: number; dy: number; seq: number } | null {
-    let dx = 0;
-    let dy = 0;
+    // Touch joystick takes priority
+    const touchDir = this.joystick?.getDirection();
+    const dir = touchDir ?? this.keyboard.getDirection();
 
-    if (this.keys.has("w") || this.keys.has("arrowup")) dy -= 1;
-    if (this.keys.has("s") || this.keys.has("arrowdown")) dy += 1;
-    if (this.keys.has("a") || this.keys.has("arrowleft")) dx -= 1;
-    if (this.keys.has("d") || this.keys.has("arrowright")) dx += 1;
-
-    if (dx === 0 && dy === 0) return null;
-
-    // Normalize diagonal movement
-    if (dx !== 0 && dy !== 0) {
-      const len = Math.sqrt(dx * dx + dy * dy);
-      dx /= len;
-      dy /= len;
-    }
+    if (!dir) return null;
 
     this.seq++;
-    const move = { dx, dy, seq: this.seq };
 
     this.socket.send({
       op: Op.C_MOVE,
-      d: { seq: this.seq, dx, dy, timestamp: Date.now() },
+      d: { seq: this.seq, dx: dir.dx, dy: dir.dy, timestamp: Date.now() },
     } as ClientMessage);
 
-    return move;
+    return { dx: dir.dx, dy: dir.dy, seq: this.seq };
   }
 
-  isKeyDown(key: string): boolean {
-    return this.keys.has(key.toLowerCase());
+  destroy(): void {
+    this.keyboard.destroy();
+    this.touchInput?.destroy();
+    this.joystick?.destroy();
+    this.actionButtons?.destroy();
   }
 }

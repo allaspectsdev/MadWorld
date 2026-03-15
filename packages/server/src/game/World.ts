@@ -6,6 +6,7 @@ import { ZONE_DEFS } from "./data/zones/index.js";
 
 export class World {
   readonly zones = new Map<string, Zone>();
+  readonly instances = new Map<string, Zone>();
   readonly playersByEid = new Map<number, Player>();
   readonly playersByUserId = new Map<number, Player>();
 
@@ -36,14 +37,22 @@ export class World {
   }
 
   getZone(id: string): Zone | undefined {
-    return this.zones.get(id);
+    return this.zones.get(id) ?? this.instances.get(id);
+  }
+
+  addInstance(zone: Zone): void {
+    this.instances.set(zone.id, zone);
+  }
+
+  removeInstance(id: string): void {
+    this.instances.delete(id);
   }
 
   addPlayer(player: Player): void {
     this.playersByEid.set(player.eid, player);
     this.playersByUserId.set(player.userId, player);
 
-    const zone = this.zones.get(player.zoneId);
+    const zone = this.getZone(player.zoneId);
     if (zone) {
       zone.addEntity(player);
       zone.sendZoneData(player);
@@ -51,7 +60,7 @@ export class World {
   }
 
   removePlayer(player: Player): void {
-    const zone = this.zones.get(player.zoneId);
+    const zone = this.getZone(player.zoneId);
     if (zone) {
       zone.removeEntity(player.eid);
     }

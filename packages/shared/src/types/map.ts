@@ -9,6 +9,7 @@ export enum TileType {
   BRIDGE = 7,
   BUILDING_FLOOR = 8,
   PORTAL = 9,
+  DUNGEON_PORTAL = 10,
 }
 
 export const WALKABLE_TILES = new Set<TileType>([
@@ -19,6 +20,7 @@ export const WALKABLE_TILES = new Set<TileType>([
   TileType.BRIDGE,
   TileType.BUILDING_FLOOR,
   TileType.PORTAL,
+  TileType.DUNGEON_PORTAL,
 ]);
 
 export interface ZoneDef {
@@ -39,6 +41,7 @@ export interface Portal {
   targetZoneId: string;
   targetX: number;
   targetY: number;
+  dungeonId?: string;
 }
 
 export interface MobSpawn {

@@ -1,6 +1,7 @@
 import { Op, type ClientMessage } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
 import { world } from "../game/World.js";
+import { partyManager } from "../game/PartyManager.js";
 import { verifyToken } from "../auth/jwt.js";
 import { loadPlayer } from "../services/PlayerService.js";
 import { savePlayer } from "../services/PlayerService.js";
@@ -61,6 +62,26 @@ export async function handleMessage(
     case Op.C_ATTACK:
       player.combatTarget = msg.d.targetEid;
       player.attackCooldown = 0;
+      break;
+
+    case Op.C_PARTY_INVITE:
+      partyManager.invitePlayer(player, msg.d.targetEid);
+      break;
+
+    case Op.C_PARTY_ACCEPT:
+      partyManager.acceptInvite(player, msg.d.inviterEid);
+      break;
+
+    case Op.C_PARTY_DECLINE:
+      partyManager.declineInvite(player, msg.d.inviterEid);
+      break;
+
+    case Op.C_PARTY_LEAVE:
+      partyManager.leaveParty(player);
+      break;
+
+    case Op.C_PARTY_KICK:
+      partyManager.kickMember(player, msg.d.targetEid);
       break;
 
     case Op.C_PING:
@@ -140,6 +161,9 @@ export async function handleDisconnect(ws: GameWebSocket): Promise<void> {
   const player = ws.data.player;
   if (player) {
     player.ws = null;
+    if (player.partyId) {
+      partyManager.leaveParty(player);
+    }
     await savePlayer(player).catch((err) =>
       console.error(`[Disconnect] Failed to save player ${player.name}:`, err),
     );
