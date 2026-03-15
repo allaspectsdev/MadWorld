@@ -52,6 +52,39 @@ authRoutes.post("/api/register", async (c) => {
   }
 });
 
+authRoutes.post("/api/guest", async (c) => {
+  try {
+    const guestId = Math.random().toString(36).slice(2, 8);
+    const guestEmail = `guest_${guestId}@madworld.local`;
+    const guestName = `Guest_${guestId}`;
+    const passwordHash = await Bun.password.hash(guestId);
+
+    const [user] = await db
+      .insert(users)
+      .values({ email: guestEmail, passwordHash, displayName: guestName })
+      .returning({ id: users.id });
+
+    const [player] = await db
+      .insert(players)
+      .values({ userId: user.id, name: guestName })
+      .returning({ id: players.id });
+
+    await db.insert(skills).values(
+      ALL_SKILLS.map((skillId) => ({
+        playerId: player.id,
+        skillId,
+        xp: 0,
+      })),
+    );
+
+    const token = await signToken(user.id);
+    return c.json({ token, playerId: player.id });
+  } catch (err: any) {
+    console.error("[Auth] Guest error:", err);
+    return c.json({ error: "Failed to create guest account" }, 500);
+  }
+});
+
 authRoutes.post("/api/login", async (c) => {
   const { email, password } = await c.req.json();
 

@@ -350,6 +350,41 @@ export class Game {
       errorDiv.textContent = "";
     });
 
+    const enterGame = (token: string) => {
+      useGameStore.getState().setToken(token);
+      document.getElementById("login-screen")!.style.display = "none";
+      document.getElementById("hud")!.style.display = "flex";
+      document.getElementById("skill-bar")!.style.display = "flex";
+      this.audio.resume();
+      this.socket.connect(token);
+    };
+
+    // Guest play
+    const guestBtn = document.getElementById("guest-btn");
+    if (guestBtn) {
+      guestBtn.addEventListener("click", async () => {
+        errorDiv.textContent = "";
+        guestBtn.textContent = "Joining...";
+        try {
+          const res = await fetch("/api/guest", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            errorDiv.textContent = data.error || "Failed to create guest";
+            guestBtn.textContent = "Play as Guest";
+            return;
+          }
+          enterGame(data.token);
+        } catch {
+          errorDiv.textContent = "Failed to connect to server";
+          guestBtn.textContent = "Play as Guest";
+        }
+      });
+    }
+
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       errorDiv.textContent = "";
@@ -379,15 +414,7 @@ export class Game {
           return;
         }
 
-        useGameStore.getState().setToken(data.token);
-        document.getElementById("login-screen")!.style.display = "none";
-        document.getElementById("hud")!.style.display = "flex";
-        document.getElementById("skill-bar")!.style.display = "flex";
-
-        // Resume audio context now that we have a user gesture
-        this.audio.resume();
-
-        this.socket.connect(data.token);
+        enterGame(data.token);
       } catch {
         errorDiv.textContent = "Failed to connect to server";
         submitBtn.disabled = false;
