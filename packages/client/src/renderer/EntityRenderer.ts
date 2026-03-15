@@ -26,10 +26,13 @@ interface EntitySprite {
   aura?: Graphics;
   arrow?: Graphics;
   glowRing?: Graphics;
+  targetRing?: Graphics;
+  questMarker?: Graphics;
   animState: AnimState;
   animator?: SpriteAnimator;
   isLocal: boolean;
   isBoss: boolean;
+  entityType: EntityType;
 }
 
 const nameStyle = new TextStyle({
@@ -61,9 +64,43 @@ export class EntityRenderer {
   private sprites = new Map<number, EntitySprite>();
   private localPlayerEid: number | null = null;
   private globalTimer = 0;
+  private targetEid: number | null = null;
+  private hoverEid: number | null = null;
 
   setLocalPlayer(eid: number): void {
     this.localPlayerEid = eid;
+  }
+
+  /** Show a pulsing selection ring under the targeted entity */
+  setTargetHighlight(eid: number | null): void {
+    // Hide previous ring
+    if (this.targetEid !== null && this.targetEid !== eid) {
+      const prev = this.sprites.get(this.targetEid);
+      if (prev?.targetRing) prev.targetRing.visible = false;
+    }
+    this.targetEid = eid;
+    if (eid !== null) {
+      const sprite = this.sprites.get(eid);
+      if (sprite?.targetRing) sprite.targetRing.visible = true;
+    }
+  }
+
+  /** Subtle brightness boost on hovered entity */
+  setHoverHighlight(eid: number | null): void {
+    if (this.hoverEid === eid) return;
+    // Remove old highlight
+    if (this.hoverEid !== null) {
+      const prev = this.sprites.get(this.hoverEid);
+      if (prev) prev.mainSprite.alpha = 1;
+    }
+    this.hoverEid = eid;
+    // Apply new highlight (slightly brighter)
+    if (eid !== null) {
+      const sprite = this.sprites.get(eid);
+      if (sprite && eid !== this.targetEid) {
+        sprite.mainSprite.alpha = 1.15;
+      }
+    }
   }
 
   updateEntity(eid: number, x: number, y: number, data?: RemoteEntity, dt = 0.016): void {
@@ -109,6 +146,17 @@ export class EntityRenderer {
     if (sprite.arrow) {
       sprite.arrow.y = -TILE_SIZE * 0.7 + Math.sin(this.globalTimer * 3) * 2;
       sprite.arrow.alpha = 0.7 + Math.sin(this.globalTimer * 4) * 0.3;
+    }
+
+    // Target ring pulse
+    if (sprite.targetRing && sprite.targetRing.visible) {
+      sprite.targetRing.alpha = 0.4 + Math.sin(this.globalTimer * 4) * 0.25;
+      sprite.targetRing.scale.set(1 + Math.sin(this.globalTimer * 3) * 0.06);
+    }
+
+    // NPC quest marker bob
+    if (sprite.questMarker) {
+      sprite.questMarker.y = -sprite.mainSprite.height / 2 - 16 + Math.sin(this.globalTimer * 2.5) * 2;
     }
 
     // HP bar update
@@ -194,7 +242,7 @@ export class EntityRenderer {
     screenY: number,
     worldX: number,
     worldY: number,
-    hitRadius = 1.5,
+    hitRadius = 2.0,
   ): number | null {
     let closest: number | null = null;
     let closestDist = Infinity;
@@ -331,6 +379,37 @@ export class EntityRenderer {
       animator.play("idle");
     }
 
+    // Target selection ring (hidden by default)
+    const targetRing = new Graphics();
+    const ringColor = type === EntityType.NPC ? 0xffd700 : 0xe74c3c;
+    // Dashed-style ring: draw multiple arcs
+    for (let i = 0; i < 8; i++) {
+      const a0 = (i / 8) * Math.PI * 2;
+      const a1 = a0 + (Math.PI * 2) / 12;
+      targetRing.arc(0, TILE_SIZE * 0.35, 12, a0, a1);
+      targetRing.stroke({ width: 2, color: ringColor, alpha: 0.8 });
+    }
+    targetRing.zIndex = -1;
+    targetRing.visible = false;
+    cont.addChild(targetRing);
+
+    // NPC quest/interaction marker ("!" above head)
+    let questMarker: Graphics | undefined;
+    if (isNpc) {
+      questMarker = new Graphics();
+      // "!" exclamation mark
+      questMarker.roundRect(-2, 0, 4, 8, 1);
+      questMarker.fill(0xffd700);
+      questMarker.circle(0, 11, 2);
+      questMarker.fill(0xffd700);
+      // Glow behind
+      questMarker.circle(0, 5, 7);
+      questMarker.fill({ color: 0xffd700, alpha: 0.1 });
+      questMarker.y = topY - 16;
+      questMarker.zIndex = 10;
+      cont.addChild(questMarker);
+    }
+
     const sprite: EntitySprite = {
       container: cont,
       mainSprite,
@@ -341,6 +420,9 @@ export class EntityRenderer {
       animator,
       isLocal,
       isBoss: boss,
+      entityType: type,
+      targetRing,
+      questMarker,
     };
 
     // HP bar for mobs and other players (not NPCs)

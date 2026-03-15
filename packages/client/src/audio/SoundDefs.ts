@@ -7,6 +7,9 @@ export const SOUND_DEFS: Record<string, string> = {
   player_death: "/audio/sfx/player_death.ogg",
   mob_death: "/audio/sfx/mob_death.ogg",
 
+  swing: "/audio/sfx/swing.ogg",
+  whoosh: "/audio/sfx/whoosh.ogg",
+
   // Feedback
   level_up: "/audio/sfx/level_up.ogg",
   xp_gain: "/audio/sfx/xp_tick.ogg",

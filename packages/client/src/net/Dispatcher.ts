@@ -17,6 +17,7 @@ export class Dispatcher {
   private minimap: Minimap;
   private audio: AudioManager;
   private onZoneChange: (() => void) | null = null;
+  private onEntityDeath: ((eid: number) => void) | null = null;
 
   constructor(
     hitSplats: HitSplatRenderer,
@@ -38,6 +39,10 @@ export class Dispatcher {
 
   setOnZoneChange(fn: () => void): void {
     this.onZoneChange = fn;
+  }
+
+  setOnEntityDeath(fn: (eid: number) => void): void {
+    this.onEntityDeath = fn;
   }
 
   handle(msg: ServerMessage): void {
@@ -238,6 +243,8 @@ export class Dispatcher {
           });
           this.entityRenderer.triggerDeathAnim(msg.d.eid);
         }
+        // Notify game that entity died (for clearing target)
+        this.onEntityDeath?.(msg.d.eid);
         // Remove dead entity sprite after animation
         setTimeout(() => store.despawnEntity(msg.d.eid), 300);
         break;

@@ -507,6 +507,205 @@ const DEFS: Record<string, MobVisual> = {
     },
   },
 
+  // ── NPC sprites ──
+
+  "Elder Theron": {
+    width: 26, height: 34,
+    draw(g, w, h) {
+      // Blue robe
+      g.moveTo(7, 14); g.lineTo(5, 32); g.lineTo(21, 32); g.lineTo(19, 14);
+      g.fill(0x2255aa);
+      g.moveTo(7, 14); g.lineTo(5, 32); g.lineTo(21, 32); g.lineTo(19, 14);
+      g.stroke({ width: 1, color: 0x1a3a77, alpha: 0.5 });
+      // Robe trim
+      g.rect(5, 30, 16, 2);
+      g.fill(0x4488cc);
+      // Sash
+      g.rect(10, 18, 6, 2);
+      g.fill(0xdaa520);
+      // Head
+      g.circle(w / 2, 10, 6);
+      g.fill(0xdeb887);
+      outline(g, w / 2 - 6, 4, 12, 12);
+      // Gray beard
+      g.moveTo(9, 13); g.lineTo(w / 2, 22); g.lineTo(17, 13);
+      g.fill(0xbbbbbb);
+      g.moveTo(9, 13); g.lineTo(w / 2, 22); g.lineTo(17, 13);
+      g.stroke({ width: 0.5, color: 0x999999, alpha: 0.4 });
+      // Eyes
+      g.circle(11, 9, 1.2); g.fill(0x334455);
+      g.circle(15, 9, 1.2); g.fill(0x334455);
+      // Eyebrows (bushy, gray)
+      g.rect(9, 7, 4, 1); g.fill(0xaaaaaa);
+      g.rect(13, 7, 4, 1); g.fill(0xaaaaaa);
+      // Staff (left hand)
+      g.rect(3, 6, 2, 26); g.fill(0x5c3a1e);
+      // Staff orb
+      g.circle(4, 5, 3); g.fill(0x44aaff);
+      g.circle(4, 5, 1.5); g.fill({ color: 0xccddff, alpha: 0.6 });
+      // Hands
+      g.circle(6, 20, 2); g.fill(0xdeb887);
+      g.circle(20, 20, 2); g.fill(0xdeb887);
+    },
+  },
+
+  "Merchant Lyra": {
+    width: 24, height: 30,
+    draw(g, w, h) {
+      // Green/brown dress
+      g.roundRect(6, 12, 12, 14, 3);
+      g.fill(0x3a7a3a);
+      g.roundRect(6, 12, 12, 14, 3);
+      g.stroke({ width: 1, color: 0x2a5a2a, alpha: 0.5 });
+      // Apron (light tan)
+      g.roundRect(8, 14, 8, 10, 2);
+      g.fill(0xd2b48c);
+      g.roundRect(8, 14, 8, 10, 2);
+      g.stroke({ width: 0.5, color: 0xa08060, alpha: 0.4 });
+      // Belt
+      g.rect(6, 17, 12, 2); g.fill(0x5c3a1e);
+      // Pouch on belt
+      g.roundRect(16, 16, 4, 4, 1); g.fill(0x8b6914);
+      // Head
+      g.circle(w / 2, 8, 5); g.fill(0xdeb887);
+      outline(g, w / 2 - 5, 3, 10, 10);
+      // Hair (brown, shoulder length)
+      g.arc(w / 2, 8, 5.5, Math.PI, 0); g.fill(0x6b3a1e);
+      g.rect(6, 8, 2, 6); g.fill(0x6b3a1e);
+      g.rect(16, 8, 2, 6); g.fill(0x6b3a1e);
+      // Eyes
+      g.circle(10, 7, 1.2); g.fill(0x334455);
+      g.circle(14, 7, 1.2); g.fill(0x334455);
+      // Smile
+      g.moveTo(10, 10); g.bezierCurveTo(11, 12, 13, 12, 14, 10);
+      g.stroke({ width: 0.5, color: 0x8b4513 });
+      // Arms
+      g.rect(3, 14, 3, 7); g.fill(0xdeb887);
+      g.rect(18, 14, 3, 7); g.fill(0xdeb887);
+      // Feet
+      g.rect(7, 26, 4, 2); g.fill(0x5c3a1e);
+      g.rect(13, 26, 4, 2); g.fill(0x5c3a1e);
+    },
+  },
+
+  "Smith Garrett": {
+    width: 28, height: 32,
+    draw(g, w, h) {
+      // Muscular torso
+      g.roundRect(7, 12, 14, 12, 3);
+      g.fill(0x6b4226);
+      g.roundRect(7, 12, 14, 12, 3);
+      g.stroke({ width: 1, color: 0x4a2e1a, alpha: 0.5 });
+      // Brown leather apron
+      g.roundRect(9, 14, 10, 10, 2);
+      g.fill(0x8b6914);
+      g.roundRect(9, 14, 10, 10, 2);
+      g.stroke({ width: 0.5, color: 0x5a4008, alpha: 0.4 });
+      // Apron straps
+      g.moveTo(11, 14); g.lineTo(12, 10); g.stroke({ width: 1, color: 0x5a4008 });
+      g.moveTo(17, 14); g.lineTo(16, 10); g.stroke({ width: 1, color: 0x5a4008 });
+      // Head (dark skin)
+      g.circle(w / 2, 8, 6); g.fill(0x8b5e3c);
+      outline(g, w / 2 - 6, 2, 12, 12);
+      // Short dark hair
+      g.arc(w / 2, 7, 6, Math.PI, 0); g.fill(0x1a1a1a);
+      // Eyes
+      g.circle(11, 7, 1.2); g.fill(0x111111);
+      g.circle(17, 7, 1.2); g.fill(0x111111);
+      // Strong jaw
+      g.rect(10, 11, 8, 2); g.fill(0x7b4e2c);
+      // Thick arms
+      g.rect(3, 13, 4, 9); g.fill(0x8b5e3c);
+      g.rect(21, 13, 4, 9); g.fill(0x8b5e3c);
+      // Hammer in right hand
+      g.rect(24, 8, 2, 16); g.fill(0x5c3a1e);
+      g.roundRect(22, 6, 6, 4, 1); g.fill(0x888888);
+      g.roundRect(22, 6, 6, 4, 1); g.stroke({ width: 0.5, color: 0x555555 });
+      // Legs
+      g.rect(9, 24, 4, 6); g.fill(0x4a3020);
+      g.rect(15, 24, 4, 6); g.fill(0x4a3020);
+      // Boots
+      g.rect(8, 29, 5, 2); g.fill(0x333333);
+      g.rect(15, 29, 5, 2); g.fill(0x333333);
+    },
+  },
+
+  Guard: {
+    width: 26, height: 34,
+    draw(g, w, h) {
+      // Armored torso
+      g.roundRect(7, 14, 12, 12, 3);
+      g.fill(0x888888);
+      g.roundRect(7, 14, 12, 12, 3);
+      g.stroke({ width: 1, color: 0x555555, alpha: 0.6 });
+      // Chest plate highlight
+      g.roundRect(9, 16, 8, 6, 2);
+      g.fill(0xaaaaaa);
+      // Belt
+      g.rect(7, 22, 12, 2); g.fill(0x5c3a1e);
+      g.rect(11, 22, 4, 2); g.fill(0xccaa44);
+      // Helmet
+      g.arc(w / 2, 9, 7, Math.PI, 0); g.fill(0x777777);
+      g.arc(w / 2, 9, 7, Math.PI, 0); g.stroke({ width: 0.5, color: 0x444444 });
+      // Helmet nose guard
+      g.rect(12, 6, 2, 6); g.fill(0x666666);
+      // Face slit
+      g.rect(9, 8, 8, 2); g.fill(0x1a1a1a);
+      // Eyes in slit
+      g.circle(11, 9, 0.8); g.fill(0x334455);
+      g.circle(15, 9, 0.8); g.fill(0x334455);
+      // Spear (right hand)
+      g.rect(22, 2, 2, 30); g.fill(0x5c3a1e);
+      // Spear head
+      g.moveTo(21, 2); g.lineTo(23, -2); g.lineTo(25, 2);
+      g.fill(0xaaaaaa);
+      // Shield (left arm)
+      g.roundRect(1, 16, 6, 10, 2); g.fill(0x666666);
+      g.roundRect(1, 16, 6, 10, 2); g.stroke({ width: 1, color: 0x444444 });
+      // Shield emblem (cross)
+      g.rect(3, 18, 2, 6); g.fill(0xccaa44);
+      g.rect(2, 20, 4, 2); g.fill(0xccaa44);
+      // Armored arms
+      g.rect(4, 14, 3, 8); g.fill(0x777777);
+      g.rect(19, 14, 3, 8); g.fill(0x777777);
+      // Legs (armored greaves)
+      g.rect(9, 26, 4, 6); g.fill(0x666666);
+      g.rect(13, 26, 4, 6); g.fill(0x666666);
+      // Boots
+      g.rect(8, 31, 5, 2); g.fill(0x444444);
+      g.rect(13, 31, 5, 2); g.fill(0x444444);
+    },
+  },
+
+  // ── Ground Item sprite ──
+
+  GroundItem: {
+    width: 20, height: 20,
+    draw(g, w, h) {
+      // Glow
+      g.circle(w / 2, h / 2, 9);
+      g.fill({ color: 0xffdd44, alpha: 0.12 });
+      g.circle(w / 2, h / 2, 6);
+      g.fill({ color: 0xffee88, alpha: 0.1 });
+      // Bag body
+      g.roundRect(5, 7, 10, 9, 3);
+      g.fill(0x8b6914);
+      g.roundRect(5, 7, 10, 9, 3);
+      g.stroke({ width: 1, color: 0x5a4008, alpha: 0.6 });
+      // Bag tie
+      g.moveTo(8, 7); g.lineTo(w / 2, 4); g.lineTo(12, 7);
+      g.fill(0x8b6914);
+      // String
+      g.moveTo(8, 7); g.lineTo(w / 2, 5); g.lineTo(12, 7);
+      g.stroke({ width: 0.5, color: 0x5a4008 });
+      // Sparkle
+      g.moveTo(w / 2, 1); g.lineTo(w / 2 + 1, 3); g.lineTo(w / 2, 5); g.lineTo(w / 2 - 1, 3);
+      g.fill(0xffffaa);
+      g.moveTo(w / 2 + 4, 3); g.lineTo(w / 2 + 3, 4); g.lineTo(w / 2 + 4, 5); g.lineTo(w / 2 + 5, 4);
+      g.fill({ color: 0xffffcc, alpha: 0.7 });
+    },
+  },
+
   "Lich King": {
     width: 38, height: 44, isBoss: true,
     draw(g, w, h) {
@@ -588,13 +787,32 @@ export function getMobTexture(name: string): Texture {
 
   const def = DEFS[name];
   if (!def) {
-    // Fallback: red circle with outline
+    // Fallback: gray humanoid silhouette with "?" — looks entity-shaped
     const g = new Graphics();
-    g.circle(14, 14, 12);
-    g.fill(0xe74c3c);
-    g.circle(14, 14, 12);
-    g.stroke({ width: 1, color: 0x111111, alpha: 0.5 });
-    const tex = TextureFactory.generate(g, 28, 28);
+    const fw = 24, fh = 30;
+    // Head
+    g.circle(fw / 2, 6, 5);
+    g.fill(0x666666);
+    // Body
+    g.roundRect(6, 12, 12, 10, 3);
+    g.fill(0x555555);
+    // Arms
+    g.rect(3, 13, 3, 7);
+    g.fill(0x555555);
+    g.rect(18, 13, 3, 7);
+    g.fill(0x555555);
+    // Legs
+    g.rect(7, 22, 4, 6);
+    g.fill(0x555555);
+    g.rect(13, 22, 4, 6);
+    g.fill(0x555555);
+    // Question mark
+    g.moveTo(10, 4); g.bezierCurveTo(10, 1, 16, 1, 16, 5);
+    g.bezierCurveTo(16, 7, 13, 7, 13, 9);
+    g.stroke({ width: 1.5, color: 0xeeeeee });
+    g.circle(13, 11, 0.8);
+    g.fill(0xeeeeee);
+    const tex = TextureFactory.generate(g, fw, fh);
     textureCache.set(name, tex);
     return tex;
   }

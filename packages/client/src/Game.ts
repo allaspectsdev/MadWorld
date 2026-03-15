@@ -51,6 +51,9 @@ export class Game {
   private npcDialog: NPCDialog;
 
   private isRegistering = false;
+  private currentTarget: number | null = null;
+  private autoAttackTimer = 0;
+  private static readonly AUTO_ATTACK_INTERVAL = 0.5;
 
   constructor(app: Application) {
     this.app = app;
@@ -171,6 +174,12 @@ export class Game {
       }
     });
 
+    this.dispatcher.setOnEntityDeath((eid) => {
+      if (this.currentTarget === eid) {
+        this.clearTarget();
+      }
+    });
+
     this.dispatcher.setOnZoneChange(() => {
       const state = useGameStore.getState();
       if (state.tiles) {
@@ -274,6 +283,26 @@ export class Game {
       this.entities.updateEntity(eid, ix, iy, entity, dt);
     }
 
+    // Auto-attack: keep sending C_ATTACK while target is alive
+    if (this.currentTarget !== null) {
+      const targetEntity = state.entities.get(this.currentTarget);
+      if (!targetEntity) {
+        // Target despawned or died
+        this.clearTarget();
+      } else {
+        this.autoAttackTimer += dt;
+        if (this.autoAttackTimer >= Game.AUTO_ATTACK_INTERVAL) {
+          this.autoAttackTimer -= Game.AUTO_ATTACK_INTERVAL;
+          this.audio.playSfx("swing");
+          this.entities.triggerAttackAnim(current.eid);
+          this.socket.send({
+            op: Op.C_ATTACK,
+            d: { targetEid: this.currentTarget },
+          } as ClientMessage);
+        }
+      }
+    }
+
     // Update all visual systems
     this.hitSplats.update();
     this.particles.update(dt);
@@ -312,12 +341,31 @@ export class Game {
           op: Op.C_NPC_INTERACT,
           d: { targetEid: eid },
         } as ClientMessage);
+        this.clearTarget();
         return;
       }
+
+      // Immediate client-side feedback
+      this.audio.playSfx("swing");
+      this.entities.triggerAttackAnim(
+        useGameStore.getState().localPlayer?.eid ?? 0,
+      );
+
+      // Set target and show selection ring
+      this.currentTarget = eid;
+      this.autoAttackTimer = 0;
+      this.entities.setTargetHighlight(eid);
+
+      // Send attack to server
       this.socket.send({
         op: Op.C_ATTACK,
         d: { targetEid: eid },
       } as ClientMessage);
+    };
+
+    this.input.onEmptyClick = () => {
+      this.audio.playSfx("whoosh", { volume: 0.4 });
+      this.clearTarget();
     };
 
     this.input.onPartyInvite = (eid: number) => {
@@ -329,6 +377,12 @@ export class Game {
         } as ClientMessage);
       }
     };
+  }
+
+  private clearTarget(): void {
+    this.currentTarget = null;
+    this.autoAttackTimer = 0;
+    this.entities.setTargetHighlight(null);
   }
 
   private setupAuth(): void {

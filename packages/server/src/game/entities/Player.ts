@@ -40,6 +40,7 @@ export class Player extends Entity {
   // Combat
   combatTarget: number | null = null;
   attackCooldown: number = 0;
+  lastRangeMsg: number = 0;
 
   // Party
   partyId: string | null = null;

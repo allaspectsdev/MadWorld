@@ -37,6 +37,15 @@ export function processCombat(): void {
 
     const dist = movementFormulas.distance(player.x, player.y, target.x, target.y);
     if (dist > 2) {
+      // Throttled "too far" feedback (max once per 2s)
+      const now = Date.now();
+      if (!player.lastRangeMsg || now - player.lastRangeMsg >= 2000) {
+        player.lastRangeMsg = now;
+        player.send({
+          op: Op.S_SYSTEM_MESSAGE,
+          d: { message: "Too far to attack" },
+        } satisfies ServerMessage);
+      }
       player.combatTarget = null;
       continue;
     }

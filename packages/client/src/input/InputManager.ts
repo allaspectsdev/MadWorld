@@ -25,6 +25,7 @@ export class InputManager {
 
   onAttack: ((eid: number) => void) | null = null;
   onPartyInvite: ((eid: number) => void) | null = null;
+  onEmptyClick: (() => void) | null = null;
 
   constructor(
     socket: Socket,
@@ -91,6 +92,8 @@ export class InputManager {
       const eid = this.entities.getEntityAtScreen(e.clientX, e.clientY, worldPos.x, worldPos.y);
       if (eid !== null) {
         this.onAttack?.(eid);
+      } else {
+        this.onEmptyClick?.();
       }
     });
 
@@ -102,6 +105,20 @@ export class InputManager {
       if (eid !== null) {
         this.onPartyInvite?.(eid);
       }
+    });
+
+    // Hover detection for entity highlight
+    this.canvas.addEventListener("mousemove", (e) => {
+      if (Date.now() < this.suppressMouseUntil) return;
+      const worldPos = this.camera.screenToWorld(e.clientX, e.clientY);
+      const eid = this.entities.getEntityAtScreen(e.clientX, e.clientY, worldPos.x, worldPos.y);
+      this.entities.setHoverHighlight(eid);
+      this.canvas.style.cursor = eid !== null ? "pointer" : "";
+    });
+
+    this.canvas.addEventListener("mouseleave", () => {
+      this.entities.setHoverHighlight(null);
+      this.canvas.style.cursor = "";
     });
 
     // Scroll wheel zoom
