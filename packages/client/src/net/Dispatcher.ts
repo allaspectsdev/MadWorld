@@ -44,7 +44,7 @@ export class Dispatcher {
         const lp = store.localPlayer;
         if (!lp) {
           store.setLocalPlayer({
-            eid: 0,
+            eid: msg.d.eid,
             playerId: msg.d.playerId,
             name: "",
             x: 0,
@@ -56,6 +56,9 @@ export class Dispatcher {
             zoneName: "",
             isDead: false,
           });
+        } else {
+          // Reconnect: update EID in case it changed
+          store.updateLocalPlayer({ eid: msg.d.eid });
         }
         break;
       }
@@ -84,7 +87,11 @@ export class Dispatcher {
 
       case Op.S_ENTITY_SPAWN: {
         const lp = store.localPlayer;
-        if (lp && msg.d.eid === lp.eid) break; // Skip self
+        if (lp && msg.d.eid === lp.eid) {
+          // Update local player name from server if we have it
+          if (msg.d.name) store.updateLocalPlayer({ name: msg.d.name });
+          break;
+        }
 
         const now = performance.now();
         const entity: RemoteEntity = {

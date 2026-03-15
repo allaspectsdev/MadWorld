@@ -116,11 +116,16 @@ async function handleAuth(
       return;
     }
 
-    // Check if already logged in
+    // Check if already logged in — kick old session cleanly
     const existing = world.getPlayerByUserId(userId);
     if (existing) {
-      // Disconnect old session
+      if (existing.partyId) {
+        partyManager.leaveParty(existing);
+      }
       if (existing.ws) {
+        existing.ws.send(
+          JSON.stringify({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Logged in from another device." } }),
+        );
         existing.ws.close(1000, "Logged in elsewhere");
       }
       world.removePlayer(existing);
@@ -143,7 +148,7 @@ async function handleAuth(
     ws.send(
       JSON.stringify({
         op: Op.S_AUTH_OK,
-        d: { token: "", playerId: player.playerId },
+        d: { token: "", playerId: player.playerId, eid: player.eid },
       }),
     );
 

@@ -56,6 +56,7 @@ export interface C_Pickup {
 export interface S_AuthOk {
   token: string;
   playerId: number;
+  eid: number;
 }
 
 export interface S_AuthError {
