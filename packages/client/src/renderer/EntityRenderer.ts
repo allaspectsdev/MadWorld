@@ -19,6 +19,7 @@ interface EntitySprite {
   nameText: Text;
   hpBar?: Graphics;
   hpBg?: Graphics;
+  hpY: number;
   aura?: Graphics;
   arrow?: Graphics;
   glowRing?: Graphics;
@@ -92,7 +93,7 @@ export class EntityRenderer {
       const ratio = Math.max(0, data.hp / data.maxHp);
       sprite.hpBar.clear();
       if (ratio > 0) {
-        sprite.hpBar.roundRect(-15, -28, 30 * ratio, 5, 2);
+        sprite.hpBar.roundRect(-15, sprite.hpY, 30 * ratio, 5, 2);
         sprite.hpBar.fill(ratio > 0.5 ? 0x2ecc71 : ratio > 0.25 ? 0xf39c12 : 0xe74c3c);
       }
     }
@@ -213,32 +214,51 @@ export class EntityRenderer {
       cont.addChild(glowRing);
     }
 
-    // Shadow (proportional to entity size)
+    // Shadow (sized to roughly match the entity's footprint)
     const shadow = new Graphics();
-    const mobSize = type === EntityType.MOB ? getMobSize(name) : { w: 28, h: 36 };
-    const shadowW = Math.max(8, mobSize.w * 0.5);
-    const shadowH = Math.max(3, mobSize.h * 0.12);
-    shadow.ellipse(0, TILE_SIZE * 0.35, shadowW, shadowH);
+    const shadowScale = boss ? 1.3 : 1.0;
+    shadow.ellipse(0, TILE_SIZE * 0.4, TILE_SIZE * 0.35 * shadowScale, TILE_SIZE * 0.12 * shadowScale);
     shadow.fill({ color: 0x000000, alpha: 0.3 });
     shadow.zIndex = -1;
     cont.addChild(shadow);
 
-    // Main sprite
+    // Main sprite — explicitly sized to fit the tile grid
     const texture = getEntityTexture(type, name, data?.appearance);
     const mainSprite = new Sprite(texture);
     mainSprite.anchor.set(0.5, 0.5);
+
+    // Determine display size based on entity type
+    if (type === EntityType.PLAYER) {
+      mainSprite.width = TILE_SIZE * 0.85;
+      mainSprite.height = TILE_SIZE * 1.1;
+    } else if (type === EntityType.MOB) {
+      const size = getMobSize(name);
+      const scale = boss ? 1.4 : 1.0;
+      const maxDim = Math.max(size.w, size.h);
+      const fitScale = (TILE_SIZE / maxDim) * scale;
+      mainSprite.width = size.w * fitScale;
+      mainSprite.height = size.h * fitScale;
+    } else {
+      mainSprite.width = TILE_SIZE * 0.8;
+      mainSprite.height = TILE_SIZE * 0.8;
+    }
+
     cont.addChild(mainSprite);
+
+    // Calculate top of sprite for positioning overlays
+    const spriteHalfH = mainSprite.height / 2;
+    const topY = -spriteHalfH;
 
     // Arrow indicator for local player
     let arrow: Graphics | undefined;
     if (isLocal) {
       arrow = new Graphics();
       arrow.moveTo(0, 0);
-      arrow.lineTo(-4, -6);
-      arrow.lineTo(4, -6);
+      arrow.lineTo(-5, -8);
+      arrow.lineTo(5, -8);
       arrow.closePath();
       arrow.fill(0xffffff);
-      arrow.y = -TILE_SIZE * 0.7;
+      arrow.y = topY - 14;
       arrow.zIndex = 10;
       cont.addChild(arrow);
     }
@@ -249,7 +269,7 @@ export class EntityRenderer {
       style: isLocal ? localNameStyle : nameStyle,
     });
     nameText.anchor.set(0.5, 1);
-    nameText.y = -TILE_SIZE * (isLocal ? 0.9 : 0.55);
+    nameText.y = topY - (isLocal ? 22 : 4);
     cont.addChild(nameText);
 
     const sprite: EntitySprite = {
@@ -257,6 +277,7 @@ export class EntityRenderer {
       mainSprite,
       shadow,
       nameText,
+      hpY: topY - 2,
       animState: createAnimState(),
       isLocal,
       isBoss: boss,
@@ -264,15 +285,16 @@ export class EntityRenderer {
 
     // HP bar for mobs and other players
     if (type === EntityType.MOB || (!isLocal && type === EntityType.PLAYER)) {
+      const hpY = topY - 2;
       const hpBg = new Graphics();
-      hpBg.roundRect(-15, -28, 30, 5, 2);
+      hpBg.roundRect(-15, hpY, 30, 5, 2);
       hpBg.fill(0x1a1a1a);
-      hpBg.roundRect(-15, -28, 30, 5, 2);
+      hpBg.roundRect(-15, hpY, 30, 5, 2);
       hpBg.stroke({ width: 0.5, color: 0x333333 });
       cont.addChild(hpBg);
 
       const hpBar = new Graphics();
-      hpBar.roundRect(-15, -28, 30, 5, 2);
+      hpBar.roundRect(-15, hpY, 30, 5, 2);
       hpBar.fill(0x2ecc71);
       cont.addChild(hpBar);
 

@@ -9,7 +9,7 @@ async function main() {
     resizeTo: window,
     backgroundColor: 0x1a1a2e,
     antialias: false,
-    resolution: Math.min(window.devicePixelRatio, 2),
+    resolution: window.devicePixelRatio,
   });
 
   const gameDiv = document.getElementById("game")!;
