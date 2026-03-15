@@ -285,11 +285,12 @@
       border-radius: 8px;
       overflow: hidden;
       z-index: 30;
-      opacity: 0.5;
+      opacity: 0;
+      pointer-events: none;
       transition: opacity 0.2s;
     }
-    #chat-panel.open { opacity: 1; }
-    #chat-panel:hover { opacity: 1; }
+    #chat-panel.open { opacity: 1; pointer-events: auto; }
+    #chat-panel:hover { opacity: 1; pointer-events: auto; }
     #chat-log {
       flex: 1;
       overflow-y: auto;
