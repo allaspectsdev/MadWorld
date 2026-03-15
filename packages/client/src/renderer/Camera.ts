@@ -7,8 +7,11 @@ export class Camera {
   private targetY = 0;
   private screenWidth = 0;
   private screenHeight = 0;
-  private lerp = 0.15;
   private _zoom = 1;
+  private _targetZoom = 1;
+  private shakeIntensity = 0;
+  private shakeDuration = 0;
+  private shakeTimer = 0;
 
   setScreenSize(width: number, height: number): void {
     this.screenWidth = width;
@@ -21,20 +24,47 @@ export class Camera {
   }
 
   setZoom(z: number): void {
-    this._zoom = Math.max(0.75, Math.min(2.5, z));
+    this._targetZoom = Math.max(0.75, Math.min(2.5, z));
   }
 
   get zoom(): number {
     return this._zoom;
   }
 
-  update(): void {
+  shake(intensity: number, duration: number): void {
+    this.shakeIntensity = intensity;
+    this.shakeDuration = duration;
+    this.shakeTimer = 0;
+  }
+
+  update(dt = 0.016): void {
+    // Smooth zoom lerp
+    if (Math.abs(this._zoom - this._targetZoom) > 0.001) {
+      this._zoom += (this._targetZoom - this._zoom) * Math.min(1, dt * 8);
+    } else {
+      this._zoom = this._targetZoom;
+    }
+
     this.container.scale.set(this._zoom);
+
+    // Frame-rate-independent lerp
+    const lerpFactor = 1 - Math.pow(0.0005, dt);
     const desiredX = -this.targetX * this._zoom + this.screenWidth / 2;
     const desiredY = -this.targetY * this._zoom + this.screenHeight / 2;
 
-    this.container.x += (desiredX - this.container.x) * this.lerp;
-    this.container.y += (desiredY - this.container.y) * this.lerp;
+    this.container.x += (desiredX - this.container.x) * lerpFactor;
+    this.container.y += (desiredY - this.container.y) * lerpFactor;
+
+    // Screen shake
+    if (this.shakeTimer < this.shakeDuration) {
+      this.shakeTimer += dt;
+      const progress = this.shakeTimer / this.shakeDuration;
+      const fade = 1 - progress;
+      const offsetX = (Math.random() - 0.5) * this.shakeIntensity * fade * 2;
+      const offsetY = (Math.random() - 0.5) * this.shakeIntensity * fade * 2;
+      this.container.x += offsetX;
+      this.container.y += offsetY;
+    }
   }
 
   screenToWorld(screenX: number, screenY: number): { x: number; y: number } {

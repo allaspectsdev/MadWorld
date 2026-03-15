@@ -2,7 +2,7 @@ import { Container, Graphics, Sprite, Text, TextStyle, Texture } from "pixi.js";
 import { TILE_SIZE, EntityType } from "@madworld/shared";
 import type { RemoteEntity } from "../state/GameStore.js";
 import { getEntityTexture } from "./SpriteFactory.js";
-import { isBossMob } from "./MobSpriteDefinitions.js";
+import { isBossMob, getMobSize } from "./MobSpriteDefinitions.js";
 import {
   createAnimState,
   updateAnimation,
@@ -15,42 +15,46 @@ import { TextureFactory } from "./TextureFactory.js";
 interface EntitySprite {
   container: Container;
   mainSprite: Sprite;
-  shadow: Sprite;
+  shadow: Graphics;
   nameText: Text;
   hpBar?: Graphics;
   hpBg?: Graphics;
   aura?: Graphics;
+  arrow?: Graphics;
+  glowRing?: Graphics;
   animState: AnimState;
-}
-
-let shadowTexture: Texture | null = null;
-
-function getShadowTexture(): Texture {
-  if (shadowTexture) return shadowTexture;
-  const g = new Graphics();
-  g.ellipse(10, 3, 10, 3);
-  g.fill({ color: 0x000000, alpha: 0.25 });
-  shadowTexture = TextureFactory.generate(g, 20, 6);
-  return shadowTexture;
+  isLocal: boolean;
+  isBoss: boolean;
 }
 
 const nameStyle = new TextStyle({
   fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
   fontSize: 11,
+  fontWeight: "bold",
   fill: 0xffffff,
-  stroke: { color: 0x000000, width: 2 },
+  stroke: { color: 0x000000, width: 3 },
+});
+
+const localNameStyle = new TextStyle({
+  fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+  fontSize: 12,
+  fontWeight: "bold",
+  fill: 0x88ffaa,
+  stroke: { color: 0x000000, width: 3 },
 });
 
 export class EntityRenderer {
   readonly container = new Container();
   private sprites = new Map<number, EntitySprite>();
   private localPlayerEid: number | null = null;
+  private globalTimer = 0;
 
   setLocalPlayer(eid: number): void {
     this.localPlayerEid = eid;
   }
 
   updateEntity(eid: number, x: number, y: number, data?: RemoteEntity, dt = 0.016): void {
+    this.globalTimer += dt;
     let sprite = this.sprites.get(eid);
 
     if (!sprite) {
@@ -59,27 +63,40 @@ export class EntityRenderer {
       this.container.addChild(sprite.container);
     }
 
-    // Animation
     const anim = updateAnimation(sprite.animState, dt, x, y);
     sprite.mainSprite.scale.set(anim.scaleX, anim.scaleY);
     sprite.mainSprite.alpha = anim.alpha;
+    sprite.mainSprite.rotation = anim.rotation;
 
-    const px = x * TILE_SIZE;
+    const px = x * TILE_SIZE + anim.offsetX;
     const py = y * TILE_SIZE + anim.offsetY;
     sprite.container.x = px;
     sprite.container.y = py;
 
-    // Update HP bar
-    if (data && data.hp !== undefined && data.maxHp && sprite.hpBar) {
+    // Shadow stays at feet (doesn't bob)
+    sprite.shadow.y = TILE_SIZE * 0.35 - anim.offsetY;
+
+    // Boss aura pulse
+    if (sprite.aura && sprite.isBoss) {
+      sprite.aura.alpha = 0.08 + Math.sin(this.globalTimer * 1.5) * 0.06;
+    }
+
+    // Local player arrow pulse
+    if (sprite.arrow) {
+      sprite.arrow.y = -TILE_SIZE * 0.7 + Math.sin(this.globalTimer * 3) * 2;
+      sprite.arrow.alpha = 0.7 + Math.sin(this.globalTimer * 4) * 0.3;
+    }
+
+    // HP bar update
+    if (data && data.hp !== undefined && data.maxHp && sprite.hpBar && sprite.hpBg) {
       const ratio = Math.max(0, data.hp / data.maxHp);
       sprite.hpBar.clear();
       if (ratio > 0) {
-        sprite.hpBar.roundRect(-14, -24, 28 * ratio, 4, 2);
+        sprite.hpBar.roundRect(-15, -28, 30 * ratio, 5, 2);
         sprite.hpBar.fill(ratio > 0.5 ? 0x2ecc71 : ratio > 0.25 ? 0xf39c12 : 0xe74c3c);
       }
     }
 
-    // Depth sort
     sprite.container.zIndex = y;
   }
 
@@ -92,12 +109,21 @@ export class EntityRenderer {
       this.container.addChild(sprite.container);
     }
 
+    this.globalTimer += dt * 0.5; // avoid double-counting in same frame
     const anim = updateAnimation(sprite.animState, dt, x, y);
     sprite.mainSprite.scale.set(anim.scaleX, anim.scaleY);
     sprite.mainSprite.alpha = anim.alpha;
+    sprite.mainSprite.rotation = anim.rotation;
 
-    sprite.container.x = x * TILE_SIZE;
+    sprite.container.x = x * TILE_SIZE + anim.offsetX;
     sprite.container.y = y * TILE_SIZE + anim.offsetY;
+    sprite.shadow.y = TILE_SIZE * 0.35 - anim.offsetY;
+
+    if (sprite.arrow) {
+      sprite.arrow.y = -TILE_SIZE * 0.7 + Math.sin(this.globalTimer * 3) * 2;
+      sprite.arrow.alpha = 0.7 + Math.sin(this.globalTimer * 4) * 0.3;
+    }
+
     sprite.container.zIndex = y;
   }
 
@@ -160,22 +186,40 @@ export class EntityRenderer {
 
     const type = data?.type ?? EntityType.PLAYER;
     const name = data?.name ?? (isLocal ? "You" : `Entity ${eid}`);
-    const isBoss = type === EntityType.MOB && isBossMob(name);
+    const boss = type === EntityType.MOB && isBossMob(name);
 
     // Aura for bosses
     let aura: Graphics | undefined;
-    if (isBoss) {
+    if (boss) {
       aura = new Graphics();
-      aura.circle(0, 0, TILE_SIZE * 0.8);
-      aura.fill({ color: name.includes("Lich") ? 0x8800ff : 0xffaa00, alpha: 0.08 });
+      const auraColor = name.includes("Lich") ? 0x8800ff : 0xffaa00;
+      aura.circle(0, 0, TILE_SIZE);
+      aura.fill({ color: auraColor, alpha: 0.1 });
+      aura.circle(0, 0, TILE_SIZE * 0.7);
+      aura.fill({ color: auraColor, alpha: 0.06 });
       aura.zIndex = -2;
       cont.addChild(aura);
     }
 
-    // Shadow
-    const shadow = new Sprite(getShadowTexture());
-    shadow.anchor.set(0.5, 0.5);
-    shadow.y = TILE_SIZE * 0.3;
+    // Glow ring for local player
+    let glowRing: Graphics | undefined;
+    if (isLocal) {
+      glowRing = new Graphics();
+      glowRing.ellipse(0, TILE_SIZE * 0.3, 10, 4);
+      glowRing.fill({ color: 0x44ff88, alpha: 0.15 });
+      glowRing.ellipse(0, TILE_SIZE * 0.3, 8, 3);
+      glowRing.fill({ color: 0x88ffaa, alpha: 0.1 });
+      glowRing.zIndex = -1;
+      cont.addChild(glowRing);
+    }
+
+    // Shadow (proportional to entity size)
+    const shadow = new Graphics();
+    const mobSize = type === EntityType.MOB ? getMobSize(name) : { w: 28, h: 36 };
+    const shadowW = Math.max(8, mobSize.w * 0.5);
+    const shadowH = Math.max(3, mobSize.h * 0.12);
+    shadow.ellipse(0, TILE_SIZE * 0.35, shadowW, shadowH);
+    shadow.fill({ color: 0x000000, alpha: 0.3 });
     shadow.zIndex = -1;
     cont.addChild(shadow);
 
@@ -183,16 +227,29 @@ export class EntityRenderer {
     const texture = getEntityTexture(type, name, data?.appearance);
     const mainSprite = new Sprite(texture);
     mainSprite.anchor.set(0.5, 0.5);
-    if (isLocal) {
-      // Slight green tint to distinguish self
-      mainSprite.tint = 0xccffcc;
-    }
     cont.addChild(mainSprite);
 
+    // Arrow indicator for local player
+    let arrow: Graphics | undefined;
+    if (isLocal) {
+      arrow = new Graphics();
+      arrow.moveTo(0, 0);
+      arrow.lineTo(-4, -6);
+      arrow.lineTo(4, -6);
+      arrow.closePath();
+      arrow.fill(0xffffff);
+      arrow.y = -TILE_SIZE * 0.7;
+      arrow.zIndex = 10;
+      cont.addChild(arrow);
+    }
+
     // Name label
-    const nameText = new Text({ text: isLocal ? "You" : name, style: nameStyle });
+    const nameText = new Text({
+      text: isLocal ? "You" : name,
+      style: isLocal ? localNameStyle : nameStyle,
+    });
     nameText.anchor.set(0.5, 1);
-    nameText.y = -TILE_SIZE * 0.5;
+    nameText.y = -TILE_SIZE * (isLocal ? 0.9 : 0.55);
     cont.addChild(nameText);
 
     const sprite: EntitySprite = {
@@ -201,17 +258,21 @@ export class EntityRenderer {
       shadow,
       nameText,
       animState: createAnimState(),
+      isLocal,
+      isBoss: boss,
     };
 
     // HP bar for mobs and other players
     if (type === EntityType.MOB || (!isLocal && type === EntityType.PLAYER)) {
       const hpBg = new Graphics();
-      hpBg.roundRect(-14, -24, 28, 4, 2);
-      hpBg.fill(0x222222);
+      hpBg.roundRect(-15, -28, 30, 5, 2);
+      hpBg.fill(0x1a1a1a);
+      hpBg.roundRect(-15, -28, 30, 5, 2);
+      hpBg.stroke({ width: 0.5, color: 0x333333 });
       cont.addChild(hpBg);
 
       const hpBar = new Graphics();
-      hpBar.roundRect(-14, -24, 28, 4, 2);
+      hpBar.roundRect(-15, -28, 30, 5, 2);
       hpBar.fill(0x2ecc71);
       cont.addChild(hpBar);
 
@@ -220,6 +281,8 @@ export class EntityRenderer {
     }
 
     if (aura) sprite.aura = aura;
+    if (arrow) sprite.arrow = arrow;
+    if (glowRing) sprite.glowRing = glowRing;
 
     return sprite;
   }

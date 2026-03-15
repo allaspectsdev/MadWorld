@@ -333,13 +333,18 @@ export class Dispatcher {
   }
 
   private showSystemMessage(message: string): void {
+    const container = document.getElementById("system-messages");
+    if (!container) return;
     const popup = document.createElement("div");
-    popup.className = "xp-popup";
-    popup.style.color = "#fff";
+    popup.className = "system-msg";
     popup.textContent = message;
-    popup.style.top = "80px";
-    document.getElementById("ui-root")?.appendChild(popup);
-    setTimeout(() => popup.remove(), 3000);
+    container.appendChild(popup);
+    // Fade in
+    requestAnimationFrame(() => popup.classList.add("visible"));
+    setTimeout(() => {
+      popup.classList.remove("visible");
+      setTimeout(() => popup.remove(), 500);
+    }, 3000);
   }
 
   private updateHUD(): void {
@@ -356,13 +361,20 @@ export class Dispatcher {
     }
   }
 
+  private xpPopupStack = 0;
+
   private showXpPopup(skillId: string, xp: number): void {
     const popup = document.createElement("div");
     popup.className = "xp-popup";
     popup.textContent = `+${xp} ${skillId} XP`;
-    popup.style.top = `${50 + Math.random() * 100}px`;
+    // Stack popups consistently on the right side
+    popup.style.top = `${50 + this.xpPopupStack * 24}px`;
+    this.xpPopupStack++;
     document.getElementById("ui-root")?.appendChild(popup);
-    setTimeout(() => popup.remove(), 2000);
+    setTimeout(() => {
+      popup.remove();
+      this.xpPopupStack = Math.max(0, this.xpPopupStack - 1);
+    }, 2000);
   }
 
   private showLevelUp(skillId: string, newLevel: number): void {

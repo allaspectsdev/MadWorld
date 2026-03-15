@@ -29,15 +29,19 @@ export class PartyHUD {
 
     this.container.style.display = "flex";
     const localEid = useGameStore.getState().localPlayer?.eid;
+    const localZone = useGameStore.getState().localPlayer?.zoneId;
 
-    this.container.innerHTML = party.members
+    let html = '<div class="party-header">Party</div>';
+
+    html += party.members
       .filter((m) => m.eid !== localEid)
       .map((m) => {
         const hpPct = m.maxHp > 0 ? (m.hp / m.maxHp) * 100 : 0;
         const hpColor = hpPct > 50 ? "#2ecc71" : hpPct > 25 ? "#f39c12" : "#e74c3c";
-        const localZone = useGameStore.getState().localPlayer?.zoneId;
-        const dimmed = m.zoneId !== localZone ? "opacity: 0.6;" : "";
-        const leader = m.isLeader ? '<span class="party-leader-icon">★</span>' : "";
+        const inDifferentZone = m.zoneId !== localZone;
+        const dimmed = inDifferentZone ? "opacity: 0.6;" : "";
+        const leader = m.isLeader ? '<span class="party-leader-icon">&#9733;</span>' : "";
+        const zoneLabel = inDifferentZone ? `<span class="party-member-zone">${m.zoneName} (far)</span>` : "";
 
         return `<div class="party-member" style="${dimmed}">
           <div class="party-member-header">
@@ -47,9 +51,11 @@ export class PartyHUD {
             <div class="party-hp-bar" style="width:${hpPct}%;background:${hpColor}"></div>
             <span class="party-hp-text">${Math.max(0, m.hp)}/${m.maxHp}</span>
           </div>
-          <span class="party-member-zone">${m.zoneName}</span>
+          ${zoneLabel}
         </div>`;
       })
       .join("");
+
+    this.container.innerHTML = html;
   }
 }

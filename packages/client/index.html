@@ -172,12 +172,60 @@
     /* Zone name */
     #zone-name {
       position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-      font-size: 18px;
+      font-size: 22px;
+      font-weight: 700;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.5);
+      padding: 6px 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
       opacity: 0;
-      transition: opacity 0.5s;
+      transition: opacity 0.8s ease;
     }
     #zone-name.visible { opacity: 1; }
+
+    /* System messages */
+    #system-messages {
+      position: absolute;
+      bottom: 80px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      z-index: 20; pointer-events: none;
+    }
+    .system-msg {
+      background: rgba(0,0,0,0.7);
+      padding: 8px 18px;
+      border-radius: 16px;
+      font-size: 13px;
+      color: #ddd;
+      border: 1px solid rgba(255,255,255,0.1);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .system-msg.visible { opacity: 1; }
+
+    /* Login particles */
+    .login-particle {
+      position: absolute;
+      width: 3px; height: 3px;
+      background: rgba(233, 69, 96, 0.25);
+      border-radius: 50%;
+      animation: loginFloat 10s infinite ease-in-out;
+      pointer-events: none;
+    }
+    @keyframes loginFloat {
+      0% { transform: translateY(0) scale(1); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-120vh) scale(0.5); opacity: 0; }
+    }
+
+    /* Damage flash animation */
+    @keyframes damageFlash {
+      0% { box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+      50% { box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 0 12px rgba(255,50,50,0.6); }
+      100% { box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+    }
+    .bar-container.damage-flash { animation: damageFlash 0.3s ease; }
 
     /* Skill XP popup */
     .xp-popup {
@@ -214,6 +262,7 @@
     <div id="ui-root">
       <!-- Login Screen -->
       <div id="login-screen">
+        <div id="login-particles"></div>
         <h1>MadWorld</h1>
         <div class="subtitle">Browser MMORPG</div>
         <form id="login-form">
@@ -228,18 +277,22 @@
 
       <!-- HUD -->
       <div id="hud" style="display:none">
-        <div class="bar-container">
+        <div class="bar-container" style="height:28px;">
+          <div class="bar-fill hp" id="hp-trail" style="width:100%; transition:width 0.8s ease; opacity:0.4; position:absolute; height:100%; border-radius:12px; background:linear-gradient(to right, #e94560, #ff6b6b);"></div>
           <div class="bar-fill hp" id="hp-bar" style="width:100%"></div>
-          <div class="bar-label"><span id="hp-text">100 / 100</span></div>
+          <div class="bar-label"><span style="font-size:8px; margin-right:4px; opacity:0.6;">HP</span><span id="hp-text">100 / 100</span></div>
         </div>
-        <div class="bar-container" style="height:16px; margin-top:4px;">
+        <div class="bar-container" style="height:20px; margin-top:4px;">
           <div class="bar-fill xp" id="xp-bar" style="width:0%; background: linear-gradient(to right, #3498db, #9b59b6);"></div>
-          <div class="bar-label" style="font-size:9px;"><span id="xp-text">0 XP</span></div>
+          <div class="bar-label" style="font-size:9px;"><span style="font-size:8px; margin-right:4px; opacity:0.6;">XP</span><span id="xp-text">0 XP</span></div>
         </div>
       </div>
 
       <!-- Minimap -->
       <div id="minimap-container" style="position:absolute; top:max(10px, env(safe-area-inset-top)); right:max(10px, env(safe-area-inset-right)); z-index:5; pointer-events:auto;"></div>
+
+      <!-- System Messages -->
+      <div id="system-messages"></div>
 
       <div id="zone-name"></div>
       <!-- Virtual Joystick Zone (touch only) -->
@@ -247,9 +300,9 @@
 
       <!-- Action Buttons (touch only) -->
       <div id="action-buttons">
-        <button id="btn-attack" class="action-btn">ATK</button>
-        <button id="btn-party" class="action-btn">INV</button>
-        <button id="btn-leave-party" class="action-btn">Leave</button>
+        <button id="btn-attack" class="action-btn">Attack</button>
+        <button id="btn-party" class="action-btn">Invite</button>
+        <button id="btn-leave-party" class="action-btn">Leave Party</button>
       </div>
 
       <!-- Party HUD -->
@@ -278,10 +331,26 @@
 
       <div id="death-overlay">
         <h2>You Died</h2>
-        <p>Respawning...</p>
+        <p>Respawning shortly...</p>
       </div>
+
+      <!-- Version -->
+      <div style="position:absolute; bottom:6px; right:10px; font-size:10px; color:rgba(255,255,255,0.15); pointer-events:none;">v0.1.0</div>
     </div>
   </div>
+  <script>
+    // Login screen floating particles
+    const pc = document.getElementById('login-particles');
+    if (pc) { for (let i = 0; i < 12; i++) {
+      const p = document.createElement('div');
+      p.className = 'login-particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.top = 60 + Math.random() * 40 + '%';
+      p.style.animationDelay = Math.random() * 10 + 's';
+      p.style.animationDuration = 8 + Math.random() * 6 + 's';
+      pc.appendChild(p);
+    }}
+  </script>
   <script type="module" src="/src/index.ts"></script>
 </body>
 </html>

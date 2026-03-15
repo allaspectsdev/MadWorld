@@ -37,7 +37,7 @@ export class DayNightOverlay {
       // Night: cool blue
       color = 0x000044;
       const nightProgress = (minuteInCycle - 15) / 9; // 0 to 1
-      alpha = 0.15 + Math.sin(nightProgress * Math.PI) * 0.05;
+      alpha = 0.1 + Math.sin(nightProgress * Math.PI) * 0.04;
     }
 
     this.overlay.tint = color;

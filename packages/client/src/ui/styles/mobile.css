@@ -69,8 +69,8 @@ html.touch #action-buttons { display: flex; }
 html:not(.touch) #action-buttons { display: none; }
 
 .action-btn {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.3);
   color: #fff;
@@ -84,6 +84,18 @@ html:not(.touch) #action-buttons { display: none; }
   text-align: center;
   line-height: 1.1;
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s, background 0.1s;
+}
+
+/* Party HUD header */
+.party-header {
+  font-size: 10px;
+  font-weight: bold;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+  padding-left: 2px;
 }
 
 #btn-attack {
@@ -103,9 +115,9 @@ html:not(.touch) #action-buttons { display: none; }
 }
 
 #btn-leave-party {
-  width: 56px;
-  height: 36px;
-  border-radius: 18px;
+  width: 64px;
+  height: 40px;
+  border-radius: 20px;
   background: rgba(149, 165, 166, 0.5);
   font-size: 8px;
   display: none;

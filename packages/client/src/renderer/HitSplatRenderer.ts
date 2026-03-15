@@ -8,41 +8,45 @@ interface HitSplat {
   startY: number;
 }
 
+const FONT = "'Segoe UI', system-ui, -apple-system, sans-serif";
+
 export class HitSplatRenderer {
   readonly container = new Container();
   private splats: HitSplat[] = [];
 
   private hitStyle = new TextStyle({
-    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-    fontSize: 16,
+    fontFamily: FONT,
+    fontSize: 18,
     fontWeight: "bold",
     fill: 0xff4444,
     stroke: { color: 0x000000, width: 3 },
   });
 
   private critStyle = new TextStyle({
-    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-    fontSize: 22,
+    fontFamily: FONT,
+    fontSize: 26,
     fontWeight: "bold",
     fill: 0xff0000,
-    stroke: { color: 0x000000, width: 3 },
+    stroke: { color: 0x000000, width: 4 },
   });
 
   private missStyle = new TextStyle({
-    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+    fontFamily: FONT,
     fontSize: 14,
+    fontWeight: "bold",
     fill: 0x999999,
     stroke: { color: 0x000000, width: 2 },
   });
 
   addSplat(worldX: number, worldY: number, damage: number, isCrit: boolean): void {
     const style = damage === 0 ? this.missStyle : isCrit ? this.critStyle : this.hitStyle;
-    const label = damage === 0 ? "Miss" : String(damage);
+    const label = damage === 0 ? "Miss" : isCrit ? `${damage}!` : String(damage);
 
     const text = new Text({ text: label, style });
     text.anchor.set(0.5);
-    const px = worldX * TILE_SIZE + (Math.random() - 0.5) * 10;
-    const py = worldY * TILE_SIZE - TILE_SIZE * 0.5;
+    // Centered above target, no random horizontal offset
+    const px = worldX * TILE_SIZE;
+    const py = worldY * TILE_SIZE - TILE_SIZE * 0.6;
     text.x = px;
     text.y = py;
 
@@ -57,7 +61,7 @@ export class HitSplatRenderer {
 
   update(): void {
     const now = performance.now();
-    const duration = 1500;
+    const duration = 1000; // Faster: 1s instead of 1.5s
 
     for (let i = this.splats.length - 1; i >= 0; i--) {
       const splat = this.splats[i];
@@ -71,9 +75,10 @@ export class HitSplatRenderer {
         continue;
       }
 
-      splat.text.y = splat.startY - elapsed * 0.03;
+      splat.text.y = splat.startY - elapsed * 0.04;
       splat.text.alpha = 1 - progress * progress;
-      splat.text.scale.set(1 + progress * 0.2);
+      // Subtle scale: 1.0 -> 1.05 (not ballooning)
+      splat.text.scale.set(1 + progress * 0.05);
     }
   }
 }
