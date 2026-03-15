@@ -20,6 +20,8 @@ export class InputManager {
   private entities: EntityRenderer;
   private seq = 0;
   private suppressMouseUntil = 0;
+  private sendTimer = 0;
+  private static readonly SEND_INTERVAL = 0.1; // Send at 10Hz to match server tick rate
 
   onAttack: ((eid: number) => void) | null = null;
   onPartyInvite: ((eid: number) => void) | null = null;
@@ -115,15 +117,24 @@ export class InputManager {
     const touchDir = this.joystick?.getDirection();
     const dir = touchDir ?? this.keyboard.getDirection();
 
-    if (!dir) return null;
+    if (!dir) {
+      this.sendTimer = 0;
+      return null;
+    }
 
-    this.seq++;
+    // Only send to server at tick rate (10Hz) to avoid queue buildup
+    this.sendTimer += dt;
+    if (this.sendTimer >= InputManager.SEND_INTERVAL) {
+      this.sendTimer -= InputManager.SEND_INTERVAL;
+      this.seq++;
 
-    this.socket.send({
-      op: Op.C_MOVE,
-      d: { seq: this.seq, dx: dir.dx, dy: dir.dy, timestamp: Date.now() },
-    } as ClientMessage);
+      this.socket.send({
+        op: Op.C_MOVE,
+        d: { seq: this.seq, dx: dir.dx, dy: dir.dy, timestamp: Date.now() },
+      } as ClientMessage);
+    }
 
+    // Return direction every frame for smooth client-side prediction
     return { dx: dir.dx, dy: dir.dy, seq: this.seq };
   }
 

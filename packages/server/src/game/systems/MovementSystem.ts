@@ -9,7 +9,10 @@ export function processMovement(): void {
   for (const [, player] of world.playersByEid) {
     if (player.moveQueue.length === 0) continue;
 
-    const move = player.moveQueue.shift()!;
+    // Process only the latest move intent per tick (drain stale ones)
+    const move = player.moveQueue.length > 1
+      ? player.moveQueue.splice(0, player.moveQueue.length).pop()!
+      : player.moveQueue.shift()!;
     const zone = world.getZone(player.zoneId);
     if (!zone) continue;
 

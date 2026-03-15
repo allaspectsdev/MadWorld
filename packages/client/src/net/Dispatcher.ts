@@ -125,8 +125,22 @@ export class Dispatcher {
 
         // If this is the local player's movement ack
         if (lp && msg.d.eid === lp.eid && msg.d.seq !== undefined) {
-          // Server reconciliation: update to server position
-          store.updateLocalPlayer({ x: msg.d.x, y: msg.d.y });
+          // Only correct if server position diverges significantly from prediction
+          // This prevents stutter from minor prediction/server drift
+          const dx = msg.d.x - lp.x;
+          const dy = msg.d.y - lp.y;
+          const drift = Math.sqrt(dx * dx + dy * dy);
+          if (drift > 1.5) {
+            // Large drift: snap to server position (rejection or desync)
+            store.updateLocalPlayer({ x: msg.d.x, y: msg.d.y });
+          } else if (drift > 0.3) {
+            // Moderate drift: blend toward server position
+            store.updateLocalPlayer({
+              x: lp.x + dx * 0.3,
+              y: lp.y + dy * 0.3,
+            });
+          }
+          // Small drift (<0.3 tiles): trust client prediction, don't correct
           break;
         }
 
