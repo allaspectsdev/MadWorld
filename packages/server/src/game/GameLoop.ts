@@ -6,6 +6,8 @@ import { processAI } from "./systems/AISystem.js";
 import { processBossAI } from "./systems/BossAISystem.js";
 import { processCombat } from "./systems/CombatSystem.js";
 import { instanceManager } from "./InstanceManager.js";
+import { GroundItem } from "./entities/GroundItem.js";
+import type { Zone } from "./Zone.js";
 
 let currentTick = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -25,12 +27,15 @@ function tick(): void {
   // 4. Resolve combat (world + instance zones, shared XP)
   processCombat();
 
-  // 5. Sync party member HP cross-zone
+  // 5. Despawn expired ground items
+  processGroundItemDespawn();
+
+  // 6. Sync party member HP cross-zone
   for (const [, player] of world.playersByEid) {
     partyManager.syncPartyMemberHp(player);
   }
 
-  // 6. Send tick sync to all players
+  // 7. Send tick sync to all players
   const tickMsg: ServerMessage = {
     op: Op.S_TICK,
     d: { tick: currentTick, serverTime: Date.now() },
@@ -39,14 +44,31 @@ function tick(): void {
     player.send(tickMsg);
   }
 
-  // 7. Persist dirty players every 30 seconds (300 ticks)
+  // 8. Persist dirty players every 30 seconds (300 ticks)
   if (currentTick % 300 === 0) {
     persistDirtyPlayers();
   }
 
-  // 8. Cleanup idle dungeon instances every ~60s
+  // 9. Cleanup idle dungeon instances every ~60s
   if (currentTick % 600 === 0) {
     instanceManager.cleanupIdleInstances();
+  }
+}
+
+function* allZones(): Iterable<Zone> {
+  yield* world.zones.values();
+  yield* world.instances.values();
+}
+
+function processGroundItemDespawn(): void {
+  for (const zone of allZones()) {
+    for (const [eid, entity] of zone.entities) {
+      if (!(entity instanceof GroundItem)) continue;
+      entity.despawnTimer--;
+      if (entity.despawnTimer <= 0) {
+        zone.removeEntity(eid);
+      }
+    }
   }
 }
 

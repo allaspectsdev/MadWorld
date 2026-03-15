@@ -2,6 +2,7 @@ import { SpatialGrid } from "./SpatialGrid.js";
 import { Entity } from "./entities/Entity.js";
 import { Player } from "./entities/Player.js";
 import { Mob } from "./entities/Mob.js";
+import { GroundItem } from "./entities/GroundItem.js";
 import { Op, EntityType, type ZoneDef, type ServerMessage } from "@madworld/shared";
 
 export class Zone {
@@ -60,6 +61,9 @@ export class Zone {
         ...(entity instanceof Mob
           ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.def.maxHp, level: entity.def.level }
           : {}),
+        ...(entity instanceof GroundItem
+          ? { name: entity.itemId, mobId: entity.itemId }
+          : {}),
       },
     } satisfies ServerMessage);
   }
@@ -111,6 +115,7 @@ export class Zone {
         tiles: this.def.tiles,
         spawnX: this.def.spawnX,
         spawnY: this.def.spawnY,
+        lights: this.def.lights,
       },
     } satisfies ServerMessage);
 
@@ -133,6 +138,9 @@ export class Zone {
             : {}),
           ...(entity instanceof Mob
             ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.def.maxHp, level: entity.def.level }
+            : {}),
+          ...(entity instanceof GroundItem
+            ? { name: entity.itemId, mobId: entity.itemId }
             : {}),
         },
       } satisfies ServerMessage);

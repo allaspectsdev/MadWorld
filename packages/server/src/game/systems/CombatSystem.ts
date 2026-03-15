@@ -1,6 +1,7 @@
 import { world } from "../World.js";
 import { Player } from "../entities/Player.js";
 import { Mob } from "../entities/Mob.js";
+import { GroundItem } from "../entities/GroundItem.js";
 import type { Zone } from "../Zone.js";
 import { partyManager } from "../PartyManager.js";
 import { instanceManager } from "../InstanceManager.js";
@@ -197,6 +198,22 @@ function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
   // --- Boss Kill ---
   if (mob.isBoss && zone.instanceId) {
     instanceManager.handleBossKill(zone.instanceId);
+  }
+
+  // --- Loot Drops ---
+  for (const loot of mob.def.lootTable) {
+    if (Math.random() < loot.chance) {
+      const offsetX = (Math.random() - 0.5) * 1.5;
+      const offsetY = (Math.random() - 0.5) * 1.5;
+      const groundItem = new GroundItem(
+        zone.id,
+        mob.x + offsetX,
+        mob.y + offsetY,
+        loot.itemId,
+        loot.quantity,
+      );
+      zone.addEntity(groundItem);
+    }
   }
 }
 

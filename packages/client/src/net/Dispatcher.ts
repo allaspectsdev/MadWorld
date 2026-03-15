@@ -6,6 +6,7 @@ import type { ParticleSystem } from "../renderer/ParticleSystem.js";
 import type { ScreenEffects } from "../renderer/ScreenEffects.js";
 import type { TelegraphRenderer } from "../renderer/TelegraphRenderer.js";
 import type { Minimap } from "../renderer/Minimap.js";
+import type { AudioManager } from "../audio/AudioManager.js";
 
 export class Dispatcher {
   private hitSplats: HitSplatRenderer;
@@ -14,6 +15,7 @@ export class Dispatcher {
   private screenEffects: ScreenEffects;
   private telegraphs: TelegraphRenderer;
   private minimap: Minimap;
+  private audio: AudioManager;
   private onZoneChange: (() => void) | null = null;
 
   constructor(
@@ -23,6 +25,7 @@ export class Dispatcher {
     screenEffects: ScreenEffects,
     telegraphs: TelegraphRenderer,
     minimap: Minimap,
+    audio: AudioManager,
   ) {
     this.hitSplats = hitSplats;
     this.entityRenderer = entityRenderer;
@@ -30,6 +33,7 @@ export class Dispatcher {
     this.screenEffects = screenEffects;
     this.telegraphs = telegraphs;
     this.minimap = minimap;
+    this.audio = audio;
   }
 
   setOnZoneChange(fn: () => void): void {
@@ -65,7 +69,7 @@ export class Dispatcher {
 
       case Op.S_ENTER_ZONE: {
         this.screenEffects.fadeZoneTransition();
-        store.setZone(msg.d.zoneId, msg.d.name, msg.d.width, msg.d.height, msg.d.tiles);
+        store.setZone(msg.d.zoneId, msg.d.name, msg.d.width, msg.d.height, msg.d.tiles, msg.d.lights);
         store.updateLocalPlayer({
           zoneId: msg.d.zoneId,
           zoneName: msg.d.name,
@@ -81,6 +85,7 @@ export class Dispatcher {
           setTimeout(() => zoneNameEl.classList.remove("visible"), 3000);
         }
 
+        this.audio.playSfx("portal_enter");
         this.onZoneChange?.();
         break;
       }
@@ -183,6 +188,13 @@ export class Dispatcher {
 
         this.hitSplats.addSplat(tx, ty, msg.d.amount, msg.d.isCrit);
 
+        // Audio
+        if (msg.d.amount > 0) {
+          this.audio.playSfx(msg.d.isCrit ? "hit_crit" : "hit_melee");
+        } else {
+          this.audio.playSfx("miss");
+        }
+
         // Combat impact particles
         if (msg.d.amount > 0) {
           this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 6, {
@@ -210,6 +222,9 @@ export class Dispatcher {
           store.updateLocalPlayer({ isDead: true });
           const overlay = document.getElementById("death-overlay");
           if (overlay) overlay.classList.add("active");
+          this.audio.playSfx("player_death");
+        } else {
+          this.audio.playSfx("mob_death");
         }
         // Death particles + animation
         const deadEntity = store.entities.get(msg.d.eid);
@@ -252,6 +267,7 @@ export class Dispatcher {
       case Op.S_LEVEL_UP: {
         this.showLevelUp(msg.d.skillId, msg.d.newLevel);
         this.screenEffects.flashLevelUp();
+        this.audio.playSfx("level_up");
         // Level-up sparkles
         const lpLvl = store.localPlayer;
         if (lpLvl) {
@@ -337,6 +353,18 @@ export class Dispatcher {
             msg.d.abilityId.includes("soul") ? 0x8800ff : 0xff0000,
           );
         }
+        break;
+      }
+
+      // --- Inventory / Equipment ---
+      case Op.S_INV_UPDATE: {
+        store.setInventory(msg.d.slots);
+        this.audio.playSfx("item_pickup");
+        break;
+      }
+
+      case Op.S_EQUIP_UPDATE: {
+        store.setEquipment(msg.d.slot, msg.d.itemId);
         break;
       }
 

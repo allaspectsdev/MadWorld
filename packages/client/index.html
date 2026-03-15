@@ -322,6 +322,217 @@
     #death-overlay.active { display: flex; }
     #death-overlay h2 { color: #e94560; font-size: 36px; margin-bottom: 10px; }
     #death-overlay p { color: #aaa; font-size: 16px; }
+
+    /* Inventory Panel */
+    #inventory-panel {
+      position: absolute;
+      top: 50%; right: 20px;
+      transform: translateY(-50%);
+      width: 340px;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 12px;
+      z-index: 40;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: auto;
+    }
+    #inventory-panel.open {
+      display: block;
+      opacity: 1;
+    }
+    .inv-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 40px);
+      grid-template-rows: repeat(4, 40px);
+      gap: 4px;
+      justify-content: center;
+    }
+    .inv-slot {
+      width: 40px;
+      height: 40px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .inv-slot:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.3);
+    }
+    .inv-item {
+      width: 32px;
+      height: 32px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      user-select: none;
+    }
+    .inv-quantity {
+      position: absolute;
+      bottom: 1px;
+      right: 2px;
+      font-size: 9px;
+      color: #fff;
+      background: rgba(0,0,0,0.7);
+      border-radius: 3px;
+      padding: 0 3px;
+      line-height: 14px;
+      text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+
+    /* Inventory context menu */
+    #inv-context-menu {
+      position: fixed;
+      display: none;
+      background: rgba(20,20,30,0.95);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      min-width: 100px;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .ctx-option {
+      padding: 6px 14px;
+      font-size: 12px;
+      color: #ddd;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .ctx-option:hover {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+    .ctx-option.ctx-drop {
+      color: #e94560;
+    }
+    .ctx-option.ctx-drop:hover {
+      background: rgba(233,69,96,0.2);
+    }
+
+    /* Equipment Panel */
+    #equip-panel {
+      margin-bottom: 10px;
+    }
+    .equip-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .equip-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+    }
+    .equip-slot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 3px;
+      cursor: default;
+      transition: background 0.15s;
+    }
+    .equip-slot.filled {
+      cursor: pointer;
+    }
+    .equip-slot.filled:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.25);
+    }
+    .equip-label {
+      font-size: 9px;
+      color: rgba(255,255,255,0.4);
+      min-width: 42px;
+      text-transform: uppercase;
+    }
+    .equip-item-name {
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .equip-item-name.empty-text {
+      color: rgba(255,255,255,0.2);
+      font-weight: 400;
+    }
+    .equip-stats {
+      margin-top: 8px;
+      font-size: 10px;
+      color: #7bed9f;
+      text-align: center;
+      padding: 4px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 3px;
+    }
+
+    /* Item Tooltip */
+    #item-tooltip {
+      position: fixed;
+      display: none;
+      background: rgba(10,10,20,0.95);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      padding: 10px 14px;
+      z-index: 110;
+      max-width: 220px;
+      pointer-events: none;
+    }
+    .tooltip-name {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .tooltip-rarity {
+      font-size: 10px;
+      text-transform: capitalize;
+      margin-bottom: 6px;
+      opacity: 0.7;
+    }
+    .tooltip-desc {
+      font-size: 11px;
+      color: #bbb;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .tooltip-stats {
+      font-size: 11px;
+      color: #7bed9f;
+      margin-bottom: 4px;
+    }
+    .tooltip-heal {
+      font-size: 11px;
+      color: #ff6b6b;
+      margin-bottom: 4px;
+    }
+    .tooltip-req {
+      font-size: 10px;
+      color: #ffdd57;
+      margin-bottom: 4px;
+    }
+    .tooltip-slot {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+    }
   </style>
 </head>
 <body>
@@ -410,6 +621,18 @@
         <h2>You Died</h2>
         <p>Respawning shortly...</p>
       </div>
+
+      <!-- Inventory Panel -->
+      <div id="inventory-panel">
+        <div id="equip-panel"></div>
+        <div class="inv-grid"></div>
+      </div>
+
+      <!-- Inventory Context Menu -->
+      <div id="inv-context-menu"></div>
+
+      <!-- Item Tooltip -->
+      <div id="item-tooltip"></div>
 
       <!-- Version -->
       <div style="position:absolute; bottom:6px; right:10px; font-size:10px; color:rgba(255,255,255,0.15); pointer-events:none;">v0.1.0</div>

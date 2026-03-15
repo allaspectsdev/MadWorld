@@ -23,6 +23,14 @@ export const WALKABLE_TILES = new Set<TileType>([
   TileType.DUNGEON_PORTAL,
 ]);
 
+export interface LightDef {
+  x: number;
+  y: number;
+  radius: number;
+  color: number;
+  flicker?: boolean;
+}
+
 export interface ZoneDef {
   id: string;
   name: string;
@@ -33,6 +41,7 @@ export interface ZoneDef {
   spawnY: number;
   portals: Portal[];
   mobSpawns: MobSpawn[];
+  lights?: LightDef[];
 }
 
 export interface Portal {

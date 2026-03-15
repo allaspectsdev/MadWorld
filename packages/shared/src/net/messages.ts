@@ -71,6 +71,7 @@ export interface S_EnterZone {
   tiles: TileType[][];
   spawnX: number;
   spawnY: number;
+  lights?: { x: number; y: number; radius: number; color: number; flicker?: boolean }[];
 }
 
 export interface S_EntitySpawn {

@@ -9,7 +9,7 @@ import { EntityRenderer } from "./renderer/EntityRenderer.js";
 import { HitSplatRenderer } from "./renderer/HitSplatRenderer.js";
 import { ParticleSystem } from "./renderer/ParticleSystem.js";
 import { ScreenEffects } from "./renderer/ScreenEffects.js";
-import { DayNightOverlay } from "./renderer/DayNightOverlay.js";
+import { LightingSystem } from "./renderer/LightingSystem.js";
 import { AmbientParticles } from "./renderer/AmbientParticles.js";
 import { TelegraphRenderer } from "./renderer/TelegraphRenderer.js";
 import { Minimap } from "./renderer/Minimap.js";
@@ -18,6 +18,8 @@ import { initDeviceDetection, isTouchDevice } from "./input/DeviceDetection.js";
 import { PartyHUD } from "./ui/components/PartyHUD.js";
 import { PartyInviteModal } from "./ui/components/PartyInviteModal.js";
 import { ChatPanel } from "./ui/components/ChatPanel.js";
+import { InventoryPanel } from "./ui/components/InventoryPanel.js";
+import { AudioManager } from "./audio/AudioManager.js";
 
 export class Game {
   private app: Application;
@@ -30,13 +32,15 @@ export class Game {
   private hitSplats: HitSplatRenderer;
   private particles: ParticleSystem;
   private screenEffects: ScreenEffects;
-  private dayNight: DayNightOverlay;
+  private lighting: LightingSystem;
   private ambientParticles: AmbientParticles;
   private telegraphs: TelegraphRenderer;
   private minimap: Minimap;
   private partyHUD: PartyHUD;
   private partyInviteModal: PartyInviteModal;
   private chatPanel: ChatPanel;
+  private inventoryPanel: InventoryPanel;
+  private audio: AudioManager;
 
   private isRegistering = false;
 
@@ -50,10 +54,11 @@ export class Game {
     this.particles = new ParticleSystem();
     this.particles.init();
     this.screenEffects = new ScreenEffects(app);
-    this.dayNight = new DayNightOverlay(app);
+    this.lighting = new LightingSystem(app);
     this.ambientParticles = new AmbientParticles(this.particles);
     this.telegraphs = new TelegraphRenderer();
     this.minimap = new Minimap();
+    this.audio = new AudioManager();
     this.dispatcher = new Dispatcher(
       this.hitSplats,
       this.entities,
@@ -61,6 +66,7 @@ export class Game {
       this.screenEffects,
       this.telegraphs,
       this.minimap,
+      this.audio,
     );
 
     initDeviceDetection();
@@ -75,6 +81,7 @@ export class Game {
     this.partyHUD = new PartyHUD();
     this.partyInviteModal = new PartyInviteModal(this.socket);
     this.chatPanel = new ChatPanel(this.socket);
+    this.inventoryPanel = new InventoryPanel(this.socket);
 
     // When chat is focused, disable movement input
     this.chatPanel.setOnFocusChange((focused) => {
@@ -89,7 +96,8 @@ export class Game {
     this.camera.container.addChild(this.hitSplats.container);
     this.entities.container.sortableChildren = true;
     app.stage.addChild(this.camera.container);
-    // ScreenEffects and DayNight add themselves to app.stage in their constructors
+    // ScreenEffects adds itself to app.stage in its constructor
+    // LightingSystem adds its overlay to app.stage in its constructor (multiply blend)
 
     // Default zoom for mobile
     if (isTouchDevice()) {
@@ -104,6 +112,17 @@ export class Game {
     this.partyHUD.start();
     this.partyInviteModal.start();
 
+    // Initialize audio on first user interaction
+    const initAudio = () => {
+      this.audio.init();
+      window.removeEventListener("click", initAudio);
+      window.removeEventListener("touchstart", initAudio);
+      window.removeEventListener("keydown", initAudio);
+    };
+    window.addEventListener("click", initAudio);
+    window.addEventListener("touchstart", initAudio);
+    window.addEventListener("keydown", initAudio);
+
     // Enter key toggles chat
     window.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -111,6 +130,14 @@ export class Game {
         if (loginScreen && loginScreen.style.display !== "none") return;
         e.preventDefault();
         this.chatPanel.toggle();
+      }
+
+      // I key toggles inventory (only when chat is not focused)
+      if ((e.key === "i" || e.key === "I") && !useGameStore.getState().chatOpen) {
+        const loginScreen = document.getElementById("login-screen");
+        if (loginScreen && loginScreen.style.display !== "none") return;
+        e.preventDefault();
+        useGameStore.getState().toggleInventory();
       }
     });
 
@@ -120,6 +147,24 @@ export class Game {
         this.tilemap.setTiles(state.tiles);
         this.minimap.renderTiles(state.tiles);
         this.entities.clear();
+
+        // Set zone lights for lighting system
+        const zoneLights = state.zoneLights ?? [];
+        this.lighting.setZoneLights(
+          zoneLights.map((l) => ({
+            x: l.x,
+            y: l.y,
+            radius: l.radius,
+            color: l.color,
+            intensity: 1,
+            flicker: l.flicker,
+          })),
+        );
+
+        // Switch audio for zone
+        if (state.localPlayer) {
+          this.audio.setZone(state.localPlayer.zoneId, state.localPlayer.zoneName);
+        }
 
         // Detect zone type for ambient particles
         if (state.localPlayer?.zoneId.startsWith("dungeon:")) {
@@ -146,6 +191,7 @@ export class Game {
     this.camera.setScreenSize(window.innerWidth, window.innerHeight);
     window.addEventListener("resize", () => {
       this.camera.setScreenSize(window.innerWidth, window.innerHeight);
+      this.lighting.resize();
     });
   }
 
@@ -155,7 +201,7 @@ export class Game {
     if (!lp || lp.isDead) {
       // Still update visual effects while dead
       this.screenEffects.update(dt);
-      this.dayNight.update(dt);
+      this.lighting.update(dt, lp?.x ?? 0, lp?.y ?? 0);
       this.particles.update(dt);
       this.telegraphs.update(dt);
       return;
@@ -199,9 +245,12 @@ export class Game {
     this.hitSplats.update();
     this.particles.update(dt);
     this.screenEffects.update(dt);
-    this.dayNight.update(dt);
     this.telegraphs.update(dt);
     this.minimap.update(dt);
+
+    // Lighting system
+    this.lighting.setCamera(current.x, current.y, this.camera.zoom);
+    this.lighting.update(dt, current.x, current.y);
 
     // Chat
     this.chatPanel.update();
@@ -291,6 +340,9 @@ export class Game {
         useGameStore.getState().setToken(data.token);
         document.getElementById("login-screen")!.style.display = "none";
         document.getElementById("hud")!.style.display = "flex";
+
+        // Resume audio context now that we have a user gesture
+        this.audio.resume();
 
         this.socket.connect(data.token);
       } catch {

@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { EntityType, TileType, Appearance, PartyMemberInfo, S_ChatMessage } from "@madworld/shared";
+import type { EntityType, TileType, Appearance, PartyMemberInfo, S_ChatMessage, LightDef } from "@madworld/shared";
+
+export interface InventorySlot {
+  itemId: string;
+  quantity: number;
+}
 
 export interface RemoteEntity {
   eid: number;
@@ -47,6 +52,7 @@ export interface GameState {
   zoneWidth: number;
   zoneHeight: number;
   tiles: TileType[][] | null;
+  zoneLights: LightDef[] | null;
 
   // Party
   party: { partyId: string; members: PartyMemberInfo[]; leadEid: number } | null;
@@ -55,6 +61,14 @@ export interface GameState {
   // Dungeon
   inDungeon: boolean;
   dungeonName: string | null;
+
+  // Inventory & Equipment
+  inventory: (InventorySlot | null)[];
+  equipment: Record<string, string>;
+  inventoryOpen: boolean;
+  setInventory: (slots: { index: number; itemId: string | null; quantity: number }[]) => void;
+  setEquipment: (slot: string, itemId: string | null) => void;
+  toggleInventory: () => void;
 
   // Chat
   chatMessages: S_ChatMessage[];
@@ -73,6 +87,7 @@ export interface GameState {
     width: number,
     height: number,
     tiles: TileType[][],
+    lights?: LightDef[],
   ) => void;
 
   setParty: (party: GameState["party"]) => void;
@@ -101,11 +116,37 @@ export const useGameStore = create<GameState>()((set, get) => ({
   zoneWidth: 0,
   zoneHeight: 0,
   tiles: null,
+  zoneLights: null,
 
   party: null,
   partyInvite: null,
   inDungeon: false,
   dungeonName: null,
+
+  inventory: new Array<InventorySlot | null>(28).fill(null),
+  equipment: {},
+  inventoryOpen: false,
+  setInventory: (slots) =>
+    set((state) => {
+      const inv = [...state.inventory];
+      for (const s of slots) {
+        if (s.index >= 0 && s.index < 28) {
+          inv[s.index] = s.itemId ? { itemId: s.itemId, quantity: s.quantity } : null;
+        }
+      }
+      return { inventory: inv };
+    }),
+  setEquipment: (slot, itemId) =>
+    set((state) => {
+      const equipment = { ...state.equipment };
+      if (itemId) {
+        equipment[slot] = itemId;
+      } else {
+        delete equipment[slot];
+      }
+      return { equipment };
+    }),
+  toggleInventory: () => set((state) => ({ inventoryOpen: !state.inventoryOpen })),
 
   chatMessages: [],
   chatOpen: false,
@@ -125,11 +166,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
     set((state) => ({
       localPlayer: state.localPlayer ? { ...state.localPlayer, ...updates } : null,
     })),
-  setZone: (zoneId, name, width, height, tiles) =>
+  setZone: (zoneId, name, width, height, tiles, lights) =>
     set({
       zoneWidth: width,
       zoneHeight: height,
       tiles,
+      zoneLights: lights ?? null,
       entities: new Map(),
     }),
 

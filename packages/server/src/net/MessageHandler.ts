@@ -1,5 +1,6 @@
-import { Op, type ClientMessage } from "@madworld/shared";
+import { Op, type ClientMessage, type ServerMessage, ITEMS, movementFormulas } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
+import { GroundItem } from "../game/entities/GroundItem.js";
 import { world } from "../game/World.js";
 import { partyManager } from "../game/PartyManager.js";
 import { verifyToken } from "../auth/jwt.js";
@@ -144,6 +145,241 @@ export async function handleMessage(
       break;
     }
 
+    case Op.C_PICKUP: {
+      const zone = world.getZone(player.zoneId);
+      if (!zone) break;
+      const target = zone.entities.get(msg.d.targetEid);
+      if (!target || !(target instanceof GroundItem)) break;
+      const dist = movementFormulas.distance(player.x, player.y, target.x, target.y);
+      if (dist > 2) break;
+
+      const groundItem = target;
+      const itemDef = ITEMS[groundItem.itemId];
+
+      // Try to stack with existing item first
+      let slotIndex = -1;
+      if (itemDef && itemDef.stackable) {
+        for (let i = 0; i < player.inventory.length; i++) {
+          const slot = player.inventory[i];
+          if (slot && slot.itemId === groundItem.itemId && slot.quantity < itemDef.maxStack) {
+            slotIndex = i;
+            break;
+          }
+        }
+      }
+
+      // Otherwise find first empty slot
+      if (slotIndex === -1) {
+        slotIndex = player.inventory.indexOf(null);
+      }
+      if (slotIndex === -1) break; // Inventory full
+
+      const existing = player.inventory[slotIndex];
+      if (existing && existing.itemId === groundItem.itemId) {
+        existing.quantity += groundItem.quantity;
+      } else {
+        player.inventory[slotIndex] = { itemId: groundItem.itemId, quantity: groundItem.quantity };
+      }
+
+      player.send({
+        op: Op.S_INV_UPDATE,
+        d: {
+          slots: [{
+            index: slotIndex,
+            itemId: player.inventory[slotIndex]!.itemId,
+            quantity: player.inventory[slotIndex]!.quantity,
+          }],
+        },
+      } satisfies ServerMessage);
+
+      zone.removeEntity(groundItem.eid);
+      player.dirty = true;
+      break;
+    }
+
+    case Op.C_INV_MOVE: {
+      const fromSlot = msg.d.fromSlot;
+      const toSlot = msg.d.toSlot;
+      if (fromSlot < 0 || fromSlot >= player.inventory.length) break;
+      if (toSlot < 0 || toSlot >= player.inventory.length) break;
+
+      const temp = player.inventory[fromSlot];
+      player.inventory[fromSlot] = player.inventory[toSlot];
+      player.inventory[toSlot] = temp;
+
+      const slots = [
+        {
+          index: fromSlot,
+          itemId: player.inventory[fromSlot]?.itemId ?? null,
+          quantity: player.inventory[fromSlot]?.quantity ?? 0,
+        },
+        {
+          index: toSlot,
+          itemId: player.inventory[toSlot]?.itemId ?? null,
+          quantity: player.inventory[toSlot]?.quantity ?? 0,
+        },
+      ];
+
+      player.send({
+        op: Op.S_INV_UPDATE,
+        d: { slots },
+      } satisfies ServerMessage);
+
+      player.dirty = true;
+      break;
+    }
+
+    case Op.C_INV_DROP: {
+      const dropSlot = msg.d.slot;
+      if (dropSlot < 0 || dropSlot >= player.inventory.length) break;
+      const dropItem = player.inventory[dropSlot];
+      if (!dropItem) break;
+
+      const dropQty = Math.min(msg.d.quantity, dropItem.quantity);
+      if (dropQty <= 0) break;
+
+      const dropZone = world.getZone(player.zoneId);
+      if (!dropZone) break;
+
+      const groundDrop = new GroundItem(
+        dropZone.id,
+        player.x,
+        player.y,
+        dropItem.itemId,
+        dropQty,
+      );
+      dropZone.addEntity(groundDrop);
+
+      dropItem.quantity -= dropQty;
+      if (dropItem.quantity <= 0) {
+        player.inventory[dropSlot] = null;
+      }
+
+      player.send({
+        op: Op.S_INV_UPDATE,
+        d: {
+          slots: [{
+            index: dropSlot,
+            itemId: player.inventory[dropSlot]?.itemId ?? null,
+            quantity: player.inventory[dropSlot]?.quantity ?? 0,
+          }],
+        },
+      } satisfies ServerMessage);
+
+      player.dirty = true;
+      break;
+    }
+
+    case Op.C_INV_USE: {
+      const useSlot = msg.d.slot;
+      if (useSlot < 0 || useSlot >= player.inventory.length) break;
+      const useItem = player.inventory[useSlot];
+      if (!useItem) break;
+
+      const useDef = ITEMS[useItem.itemId];
+      if (!useDef) break;
+
+      if (useDef.healAmount) {
+        player.hp = Math.min(player.maxHp, player.hp + useDef.healAmount);
+        player.send({
+          op: Op.S_PLAYER_STATS,
+          d: { hp: player.hp, maxHp: player.maxHp, level: 1 },
+        } satisfies ServerMessage);
+      }
+
+      useItem.quantity--;
+      if (useItem.quantity <= 0) {
+        player.inventory[useSlot] = null;
+      }
+
+      player.send({
+        op: Op.S_INV_UPDATE,
+        d: {
+          slots: [{
+            index: useSlot,
+            itemId: player.inventory[useSlot]?.itemId ?? null,
+            quantity: player.inventory[useSlot]?.quantity ?? 0,
+          }],
+        },
+      } satisfies ServerMessage);
+
+      player.dirty = true;
+      break;
+    }
+
+    case Op.C_EQUIP: {
+      const equipSlotIdx = msg.d.inventorySlot;
+      if (equipSlotIdx < 0 || equipSlotIdx >= player.inventory.length) break;
+      const equipItem = player.inventory[equipSlotIdx];
+      if (!equipItem) break;
+
+      const equipDef = ITEMS[equipItem.itemId];
+      if (!equipDef || !equipDef.equipSlot) break;
+
+      const equipSlot = equipDef.equipSlot;
+      const currentlyEquipped = player.equipment.get(equipSlot);
+
+      // If something is already in that slot, swap it back to inventory
+      if (currentlyEquipped) {
+        player.inventory[equipSlotIdx] = { itemId: currentlyEquipped, quantity: 1 };
+      } else {
+        player.inventory[equipSlotIdx] = null;
+      }
+
+      player.equipment.set(equipSlot, equipItem.itemId);
+
+      player.send({
+        op: Op.S_INV_UPDATE,
+        d: {
+          slots: [{
+            index: equipSlotIdx,
+            itemId: player.inventory[equipSlotIdx]?.itemId ?? null,
+            quantity: player.inventory[equipSlotIdx]?.quantity ?? 0,
+          }],
+        },
+      } satisfies ServerMessage);
+
+      player.send({
+        op: Op.S_EQUIP_UPDATE,
+        d: { slot: equipSlot, itemId: equipItem.itemId },
+      } satisfies ServerMessage);
+
+      player.dirty = true;
+      break;
+    }
+
+    case Op.C_UNEQUIP: {
+      const unequipSlot = msg.d.slot;
+      const unequipItemId = player.equipment.get(unequipSlot);
+      if (!unequipItemId) break;
+
+      // Find an empty inventory slot
+      const emptySlot = player.inventory.indexOf(null);
+      if (emptySlot === -1) break; // Inventory full
+
+      player.inventory[emptySlot] = { itemId: unequipItemId, quantity: 1 };
+      player.equipment.delete(unequipSlot);
+
+      player.send({
+        op: Op.S_INV_UPDATE,
+        d: {
+          slots: [{
+            index: emptySlot,
+            itemId: unequipItemId,
+            quantity: 1,
+          }],
+        },
+      } satisfies ServerMessage);
+
+      player.send({
+        op: Op.S_EQUIP_UPDATE,
+        d: { slot: unequipSlot, itemId: null },
+      } satisfies ServerMessage);
+
+      player.dirty = true;
+      break;
+    }
+
     case Op.C_PING:
       ws.send(
         JSON.stringify({
@@ -219,6 +455,29 @@ async function handleAuth(
         d: { hp: player.hp, maxHp: player.maxHp, level: 1 },
       }),
     );
+
+    // Send initial inventory state
+    const invSlots: Array<{ index: number; itemId: string | null; quantity: number }> = [];
+    for (let i = 0; i < player.inventory.length; i++) {
+      const slot = player.inventory[i];
+      if (slot) {
+        invSlots.push({ index: i, itemId: slot.itemId, quantity: slot.quantity });
+      }
+    }
+    if (invSlots.length > 0) {
+      player.send({
+        op: Op.S_INV_UPDATE,
+        d: { slots: invSlots },
+      } satisfies ServerMessage);
+    }
+
+    // Send initial equipment state
+    for (const [slot, itemId] of player.equipment) {
+      player.send({
+        op: Op.S_EQUIP_UPDATE,
+        d: { slot, itemId },
+      } satisfies ServerMessage);
+    }
 
     // Welcome message
     ws.send(

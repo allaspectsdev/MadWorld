@@ -138,6 +138,24 @@ function createGreendale(): ZoneDef {
       { mobId: "cow", x: 42, y: 40, count: 3, wanderRadius: 5 },
       { mobId: "cow", x: 20, y: 48, count: 2, wanderRadius: 4 },
     ],
+    lights: [
+      // Market center campfire
+      { x: 30, y: 30, radius: 5, color: 0xff9944, flicker: true },
+      // General store torch
+      { x: 25, y: 22, radius: 3, color: 0xffaa55, flicker: true },
+      // Inn torch
+      { x: 34, y: 22, radius: 3, color: 0xffaa55, flicker: true },
+      // Blacksmith forge glow
+      { x: 25, y: 33, radius: 3, color: 0xff6622, flicker: true },
+      // Town hall torch
+      { x: 34, y: 33, radius: 3, color: 0xffaa55, flicker: true },
+      // Road exit signposts
+      { x: 29, y: 2, radius: 2, color: 0xffcc66, flicker: true },
+      { x: 2, y: 29, radius: 2, color: 0xffcc66, flicker: true },
+      // Portal glow
+      { x: 29, y: 59, radius: 4, color: 0x9b59b6 },
+      { x: 59, y: 29, radius: 4, color: 0x9b59b6 },
+    ],
   };
 }
 
@@ -223,6 +241,16 @@ function createDarkwood(): ZoneDef {
       { mobId: "goblin", x: 40, y: 50, count: 3, wanderRadius: 5 },
       { mobId: "forest_spider", x: 12, y: 58, count: 2, wanderRadius: 3 },
     ],
+    lights: [
+      // Mysterious clearing glow
+      { x: 14, y: 59, radius: 4, color: 0x44ff88 },
+      // Stone circle eerie light
+      { x: 14, y: 59, radius: 2, color: 0x88ffaa },
+      // Dungeon portal red glow
+      { x: 30, y: 38, radius: 5, color: 0xe74c3c },
+      // Portal back to Greendale
+      { x: 29, y: 0, radius: 4, color: 0x9b59b6 },
+    ],
   };
 }
 
@@ -300,6 +328,12 @@ function createFields(): ZoneDef {
       { mobId: "goblin", x: 35, y: 8, count: 3, wanderRadius: 5 },
       { mobId: "chicken", x: 10, y: 42, count: 5, wanderRadius: 4 },
       { mobId: "cow", x: 45, y: 35, count: 3, wanderRadius: 5 },
+    ],
+    lights: [
+      // Portal back to Greendale
+      { x: 0, y: 29, radius: 4, color: 0x9b59b6 },
+      // Dungeon portal
+      { x: 40, y: 10, radius: 5, color: 0xe74c3c },
     ],
   };
 }

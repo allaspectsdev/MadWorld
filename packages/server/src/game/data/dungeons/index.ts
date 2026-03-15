@@ -74,6 +74,22 @@ function buildGoblinWarren(): ZoneDef {
       { mobId: "goblin_mage", x: 39, y: 18, count: 3, wanderRadius: 3 },
       { mobId: "goblin_chieftain", x: 41, y: 32, count: 1, wanderRadius: 2 },
     ],
+    lights: [
+      // Entrance torches
+      { x: 3, y: 16, radius: 3, color: 0xffaa55, flicker: true },
+      { x: 10, y: 16, radius: 3, color: 0xffaa55, flicker: true },
+      // Corridor 1
+      { x: 15, y: 20, radius: 2.5, color: 0xffaa55, flicker: true },
+      // Barracks torches
+      { x: 19, y: 15, radius: 3, color: 0xffaa55, flicker: true },
+      { x: 28, y: 15, radius: 3, color: 0xffaa55, flicker: true },
+      // Treasure room
+      { x: 39, y: 16, radius: 3, color: 0xffcc44, flicker: true },
+      // Boss room — eerie green
+      { x: 36, y: 28, radius: 4, color: 0x44cc44, flicker: true },
+      { x: 46, y: 28, radius: 4, color: 0x44cc44, flicker: true },
+      { x: 41, y: 35, radius: 5, color: 0x66ff66 },
+    ],
   };
 }
 
@@ -119,6 +135,25 @@ function buildCryptOfBones(): ZoneDef {
       { mobId: "dark_cultist", x: 40, y: 7, count: 4, wanderRadius: 4 },
       { mobId: "bone_golem", x: 39, y: 27, count: 3, wanderRadius: 3 },
       { mobId: "lich_king", x: 28, y: 40, count: 1, wanderRadius: 2 },
+    ],
+    lights: [
+      // Entrance torches
+      { x: 3, y: 3, radius: 3, color: 0x6688cc, flicker: true },
+      { x: 10, y: 3, radius: 3, color: 0x6688cc, flicker: true },
+      // Catacomb torches
+      { x: 17, y: 3, radius: 3, color: 0x6688cc, flicker: true },
+      { x: 28, y: 3, radius: 3, color: 0x6688cc, flicker: true },
+      // Corridor 2
+      { x: 32, y: 7, radius: 2.5, color: 0x6688cc, flicker: true },
+      // Ritual chamber — purple glow
+      { x: 40, y: 4, radius: 4, color: 0x8844cc, flicker: true },
+      { x: 40, y: 12, radius: 4, color: 0x8844cc, flicker: true },
+      // Ossuary
+      { x: 38, y: 24, radius: 3, color: 0x6688cc, flicker: true },
+      // Lich throne room — eerie purple
+      { x: 22, y: 34, radius: 5, color: 0x8800ff, flicker: true },
+      { x: 34, y: 34, radius: 5, color: 0x8800ff, flicker: true },
+      { x: 28, y: 40, radius: 6, color: 0xaa44ff },
     ],
   };
 }
