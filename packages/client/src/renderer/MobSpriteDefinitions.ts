@@ -706,6 +706,112 @@ const DEFS: Record<string, MobVisual> = {
     },
   },
 
+  GroundItem_Weapon: {
+    width: 20, height: 20,
+    draw(g, w, h) {
+      // Glow
+      g.circle(w / 2, h / 2, 8);
+      g.fill({ color: 0xaaaaff, alpha: 0.12 });
+      // Sword blade
+      g.moveTo(w / 2, 3); g.lineTo(w / 2 + 2, 13); g.lineTo(w / 2, 14); g.lineTo(w / 2 - 2, 13);
+      g.fill(0xbbbbbb);
+      g.moveTo(w / 2, 3); g.lineTo(w / 2 + 2, 13); g.lineTo(w / 2, 14); g.lineTo(w / 2 - 2, 13);
+      g.stroke({ width: 0.5, color: 0x888888 });
+      // Blade highlight
+      g.moveTo(w / 2, 4); g.lineTo(w / 2 + 0.5, 12);
+      g.stroke({ width: 0.5, color: 0xffffff, alpha: 0.4 });
+      // Guard
+      g.rect(w / 2 - 4, 13, 8, 2); g.fill(0x8b6914);
+      // Grip
+      g.rect(w / 2 - 1, 15, 2, 3); g.fill(0x5c3a1e);
+      // Pommel
+      g.circle(w / 2, 18.5, 1.5); g.fill(0x8b6914);
+    },
+  },
+
+  GroundItem_Armor: {
+    width: 20, height: 20,
+    draw(g, w, h) {
+      // Glow
+      g.circle(w / 2, h / 2, 8);
+      g.fill({ color: 0x88aaff, alpha: 0.12 });
+      // Shield shape
+      g.moveTo(w / 2, 3); g.lineTo(w / 2 + 6, 5); g.lineTo(w / 2 + 5, 14);
+      g.lineTo(w / 2, 17); g.lineTo(w / 2 - 5, 14); g.lineTo(w / 2 - 6, 5);
+      g.fill(0x777777);
+      g.moveTo(w / 2, 3); g.lineTo(w / 2 + 6, 5); g.lineTo(w / 2 + 5, 14);
+      g.lineTo(w / 2, 17); g.lineTo(w / 2 - 5, 14); g.lineTo(w / 2 - 6, 5);
+      g.stroke({ width: 1, color: 0x555555 });
+      // Emblem stripe
+      g.rect(w / 2 - 1, 5, 2, 10); g.fill(0xccaa44);
+      g.rect(w / 2 - 4, 8, 8, 2); g.fill(0xccaa44);
+    },
+  },
+
+  GroundItem_Food: {
+    width: 20, height: 20,
+    draw(g, w, h) {
+      // Glow
+      g.circle(w / 2, h / 2, 8);
+      g.fill({ color: 0xffaa44, alpha: 0.12 });
+      // Bowl
+      g.arc(w / 2, 12, 6, 0, Math.PI); g.fill(0x8b6914);
+      g.arc(w / 2, 12, 6, 0, Math.PI); g.stroke({ width: 0.5, color: 0x5a4008 });
+      // Food in bowl
+      g.arc(w / 2, 12, 5, Math.PI, 0); g.fill(0xe8a040);
+      // Steam wisps
+      g.moveTo(w / 2 - 2, 7); g.bezierCurveTo(w / 2 - 3, 4, w / 2 - 1, 3, w / 2 - 2, 1);
+      g.stroke({ width: 0.5, color: 0xffffff, alpha: 0.3 });
+      g.moveTo(w / 2 + 2, 7); g.bezierCurveTo(w / 2 + 3, 5, w / 2 + 1, 4, w / 2 + 2, 2);
+      g.stroke({ width: 0.5, color: 0xffffff, alpha: 0.3 });
+    },
+  },
+
+  GroundItem_Material: {
+    width: 20, height: 20,
+    draw(g, w, h) {
+      // Glow
+      g.circle(w / 2, h / 2, 8);
+      g.fill({ color: 0x88dd88, alpha: 0.12 });
+      // Sack
+      g.roundRect(4, 6, 12, 10, 3);
+      g.fill(0x8b7744);
+      g.roundRect(4, 6, 12, 10, 3);
+      g.stroke({ width: 1, color: 0x5a4008, alpha: 0.6 });
+      // Sack top gathered
+      g.moveTo(6, 6); g.lineTo(w / 2, 3); g.lineTo(14, 6);
+      g.fill(0x8b7744);
+      g.moveTo(6, 6); g.lineTo(w / 2, 3); g.lineTo(14, 6);
+      g.stroke({ width: 0.5, color: 0x5a4008 });
+      // Tie
+      g.circle(w / 2, 4, 1); g.fill(0x5a4008);
+    },
+  },
+
+  GroundItem_Gold: {
+    width: 20, height: 20,
+    draw(g, w, h) {
+      // Glow (bright gold)
+      g.circle(w / 2, h / 2, 9);
+      g.fill({ color: 0xffd700, alpha: 0.15 });
+      g.circle(w / 2, h / 2, 6);
+      g.fill({ color: 0xffee44, alpha: 0.1 });
+      // Coin stack (3 coins, offset)
+      g.ellipse(w / 2 - 2, 14, 5, 3); g.fill(0xccaa00);
+      g.ellipse(w / 2 - 2, 14, 5, 3); g.stroke({ width: 0.5, color: 0x886600 });
+      g.ellipse(w / 2, 11, 5, 3); g.fill(0xddbb00);
+      g.ellipse(w / 2, 11, 5, 3); g.stroke({ width: 0.5, color: 0x886600 });
+      g.ellipse(w / 2 + 1, 8, 5, 3); g.fill(0xffdd22);
+      g.ellipse(w / 2 + 1, 8, 5, 3); g.stroke({ width: 0.5, color: 0xaa8800 });
+      // "$" on top coin
+      g.moveTo(w / 2 + 1, 6); g.lineTo(w / 2 + 1, 10);
+      g.stroke({ width: 0.8, color: 0x886600 });
+      // Sparkle
+      g.moveTo(w / 2 + 5, 4); g.lineTo(w / 2 + 4, 5); g.lineTo(w / 2 + 5, 6); g.lineTo(w / 2 + 6, 5);
+      g.fill(0xffffcc);
+    },
+  },
+
   "Lich King": {
     width: 38, height: 44, isBoss: true,
     draw(g, w, h) {

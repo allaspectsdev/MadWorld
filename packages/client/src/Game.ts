@@ -335,10 +335,22 @@ export class Game {
   private setupInputCallbacks(): void {
     this.input.onAttack = (eid: number) => {
       const entity = useGameStore.getState().entities.get(eid);
-      if (entity && entity.type === EntityType.NPC) {
+      if (!entity) return;
+
+      if (entity.type === EntityType.NPC) {
         // NPC interaction instead of attack
         this.socket.send({
           op: Op.C_NPC_INTERACT,
+          d: { targetEid: eid },
+        } as ClientMessage);
+        this.clearTarget();
+        return;
+      }
+
+      if (entity.type === EntityType.GROUND_ITEM) {
+        // Pick up ground item
+        this.socket.send({
+          op: Op.C_PICKUP,
           d: { targetEid: eid },
         } as ClientMessage);
         this.clearTarget();

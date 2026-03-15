@@ -36,7 +36,7 @@ export function processCombat(): void {
     }
 
     const dist = movementFormulas.distance(player.x, player.y, target.x, target.y);
-    if (dist > 2) {
+    if (dist > 2.5) {
       // Throttled "too far" feedback (max once per 2s)
       const now = Date.now();
       if (!player.lastRangeMsg || now - player.lastRangeMsg >= 2000) {
@@ -60,6 +60,12 @@ export function processCombat(): void {
     }
 
     if (target instanceof Mob) {
+      // Skip dead mobs — prevents double-kill from auto-attack
+      if (target.aiState === AIState.DEAD) {
+        player.combatTarget = null;
+        continue;
+      }
+
       const result = combatFormulas.rollDamage(
         meleeLevel,
         equipAttack,
