@@ -1,0 +1,19 @@
+{
+  "name": "madworld",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:server": "pnpm --filter @madworld/server run dev",
+    "dev:client": "pnpm --filter @madworld/client run dev",
+    "build": "pnpm --filter @madworld/shared run build && pnpm -r run build",
+    "build:shared": "pnpm --filter @madworld/shared run build",
+    "test": "pnpm -r run test",
+    "db:generate": "pnpm --filter @madworld/server run db:generate",
+    "db:migrate": "pnpm --filter @madworld/server run db:migrate",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

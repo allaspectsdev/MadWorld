@@ -1,0 +1,79 @@
+import { Entity } from "./Entity.js";
+import {
+  EntityType,
+  type Appearance,
+  type SkillName,
+  ALL_SKILLS,
+  PLAYER_SPEED,
+  INVENTORY_SIZE,
+} from "@madworld/shared";
+import type { ServerWebSocket } from "bun";
+
+export interface InventorySlot {
+  itemId: string;
+  quantity: number;
+}
+
+export interface SkillData {
+  xp: number;
+}
+
+export class Player extends Entity {
+  playerId: number;
+  userId: number;
+  name: string;
+  appearance: Appearance;
+
+  hp: number;
+  maxHp: number;
+
+  skills: Map<SkillName, SkillData> = new Map();
+  inventory: (InventorySlot | null)[];
+  equipment: Map<string, string> = new Map(); // slot -> itemId
+
+  ws: ServerWebSocket<unknown> | null = null;
+
+  // Movement
+  lastMoveSeq: number = 0;
+  moveQueue: { dx: number; dy: number; seq: number }[] = [];
+
+  // Combat
+  combatTarget: number | null = null;
+  attackCooldown: number = 0;
+
+  // Persistence
+  dirty: boolean = false;
+
+  constructor(
+    playerId: number,
+    userId: number,
+    name: string,
+    zoneId: string,
+    x: number,
+    y: number,
+    hp: number,
+    maxHp: number,
+    appearance: Appearance,
+  ) {
+    super(EntityType.PLAYER, zoneId, x, y);
+    this.playerId = playerId;
+    this.userId = userId;
+    this.name = name;
+    this.hp = hp;
+    this.maxHp = maxHp;
+    this.appearance = appearance;
+    this.speed = PLAYER_SPEED;
+
+    this.inventory = new Array(INVENTORY_SIZE).fill(null);
+
+    for (const skill of ALL_SKILLS) {
+      this.skills.set(skill as SkillName, { xp: 0 });
+    }
+  }
+
+  send(msg: object): void {
+    if (this.ws && this.ws.readyState === 1) {
+      this.ws.send(JSON.stringify(msg));
+    }
+  }
+}

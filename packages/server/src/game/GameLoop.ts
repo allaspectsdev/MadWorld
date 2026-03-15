@@ -1,0 +1,65 @@
+import { TICK_MS, Op, type ServerMessage } from "@madworld/shared";
+import { world } from "./World.js";
+import { processMovement } from "./systems/MovementSystem.js";
+import { processAI } from "./systems/AISystem.js";
+import { processCombat } from "./systems/CombatSystem.js";
+
+let currentTick = 0;
+let intervalId: ReturnType<typeof setInterval> | null = null;
+
+function tick(): void {
+  currentTick++;
+
+  // 1. Process player movement intents
+  processMovement();
+
+  // 2. Run mob AI
+  processAI();
+
+  // 3. Resolve combat
+  processCombat();
+
+  // 4. Send tick sync to all players
+  const tickMsg: ServerMessage = {
+    op: Op.S_TICK,
+    d: { tick: currentTick, serverTime: Date.now() },
+  };
+  for (const [, player] of world.playersByEid) {
+    player.send(tickMsg);
+  }
+
+  // 5. Persist dirty players every 30 seconds (300 ticks)
+  if (currentTick % 300 === 0) {
+    persistDirtyPlayers();
+  }
+}
+
+async function persistDirtyPlayers(): Promise<void> {
+  for (const [, player] of world.playersByEid) {
+    if (!player.dirty) continue;
+    player.dirty = false;
+    // Persistence handled by PlayerService — imported dynamically to avoid circular deps
+    const { savePlayer } = await import("../services/PlayerService.js");
+    await savePlayer(player).catch((err) =>
+      console.error(`[Persist] Failed to save player ${player.name}:`, err),
+    );
+  }
+}
+
+export function startGameLoop(): void {
+  if (intervalId) return;
+  intervalId = setInterval(tick, TICK_MS);
+  console.log(`[GameLoop] Started at ${1000 / TICK_MS} ticks/sec`);
+}
+
+export function stopGameLoop(): void {
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+    console.log("[GameLoop] Stopped");
+  }
+}
+
+export function getCurrentTick(): number {
+  return currentTick;
+}

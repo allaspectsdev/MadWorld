@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MadWorld</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #111; }
+    #game { width: 100%; height: 100%; position: relative; }
+    #game canvas { display: block; }
+    #ui-root {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+    }
+    #ui-root > * { pointer-events: auto; }
+
+    /* Login screen */
+    #login-screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      z-index: 100;
+    }
+    #login-screen h1 {
+      font-size: 48px;
+      color: #e94560;
+      margin-bottom: 30px;
+      text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+    }
+    #login-screen form {
+      display: flex; flex-direction: column; gap: 12px; width: 300px;
+    }
+    #login-screen input {
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    #login-screen input::placeholder { color: rgba(255,255,255,0.4); }
+    #login-screen button {
+      padding: 12px;
+      background: #e94560;
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 16px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #login-screen button:hover { background: #c73e54; }
+    #login-screen .toggle { color: #aaa; text-align: center; cursor: pointer; font-size: 13px; }
+    #login-screen .toggle:hover { color: #fff; }
+    #login-screen .error { color: #ff6b6b; text-align: center; font-size: 13px; min-height: 18px; }
+
+    /* HUD */
+    #hud {
+      position: absolute; top: 10px; left: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .bar-container {
+      width: 200px; height: 22px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    .bar-fill.hp { background: linear-gradient(to right, #e94560, #ff6b6b); }
+    .bar-label {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+
+    /* Zone name */
+    #zone-name {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      font-size: 18px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    #zone-name.visible { opacity: 1; }
+
+    /* Skill XP popup */
+    .xp-popup {
+      position: absolute;
+      right: 10px;
+      font-size: 14px;
+      color: #7bed9f;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      animation: xpFade 2s ease-out forwards;
+    }
+    @keyframes xpFade {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-30px); }
+    }
+
+    /* Death overlay */
+    #death-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center; justify-content: center;
+      flex-direction: column;
+      z-index: 50;
+    }
+    #death-overlay.active { display: flex; }
+    #death-overlay h2 { color: #e94560; font-size: 36px; margin-bottom: 10px; }
+    #death-overlay p { color: #aaa; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="ui-root">
+      <!-- Login Screen -->
+      <div id="login-screen">
+        <h1>MadWorld</h1>
+        <form id="login-form">
+          <input type="email" id="auth-email" placeholder="Email" required />
+          <input type="password" id="auth-password" placeholder="Password" required />
+          <input type="text" id="auth-name" placeholder="Character Name" style="display:none" />
+          <button type="submit" id="auth-submit">Login</button>
+          <div class="error" id="auth-error"></div>
+          <div class="toggle" id="auth-toggle">Don't have an account? Register</div>
+        </form>
+      </div>
+
+      <!-- HUD -->
+      <div id="hud" style="display:none">
+        <div class="bar-container">
+          <div class="bar-fill hp" id="hp-bar" style="width:100%"></div>
+          <div class="bar-label"><span id="hp-text">100 / 100</span></div>
+        </div>
+      </div>
+
+      <div id="zone-name"></div>
+      <div id="death-overlay">
+        <h2>You Died</h2>
+        <p>Respawning...</p>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/index.ts"></script>
+</body>
+</html>

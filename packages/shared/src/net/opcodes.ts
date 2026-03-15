@@ -1,0 +1,69 @@
+export enum Op {
+  // ---- Client -> Server (0x00 - 0x7F) ----
+  C_AUTH_LOGIN = 0x01,
+  C_AUTH_REGISTER = 0x02,
+
+  C_MOVE = 0x10,
+  C_STOP = 0x11,
+
+  C_ATTACK = 0x20,
+  C_USE_SKILL = 0x21,
+
+  C_FISH_CAST = 0x30,
+  C_FISH_REEL = 0x31,
+  C_COOK_START = 0x32,
+
+  C_INV_MOVE = 0x40,
+  C_INV_DROP = 0x41,
+  C_INV_USE = 0x42,
+  C_EQUIP = 0x43,
+  C_UNEQUIP = 0x44,
+  C_PICKUP = 0x45,
+
+  C_CHAT_SEND = 0x50,
+
+  C_TRADE_REQUEST = 0x60,
+  C_TRADE_ACCEPT = 0x61,
+  C_TRADE_CANCEL = 0x62,
+  C_TRADE_SET_ITEM = 0x63,
+  C_TRADE_CONFIRM = 0x64,
+
+  C_PING = 0x70,
+
+  // ---- Server -> Client (0x80 - 0xFF) ----
+  S_AUTH_OK = 0x81,
+  S_AUTH_ERROR = 0x82,
+
+  S_ENTER_ZONE = 0x90,
+  S_ENTITY_SPAWN = 0x91,
+  S_ENTITY_DESPAWN = 0x92,
+  S_ENTITY_MOVE = 0x93,
+  S_ENTITY_STOP = 0x94,
+  S_PLAYER_STATS = 0x95,
+
+  S_DAMAGE = 0xa0,
+  S_DEATH = 0xa1,
+  S_RESPAWN = 0xa2,
+
+  S_FISH_BITE = 0xa8,
+  S_FISH_RESULT = 0xa9,
+  S_COOK_RESULT = 0xaa,
+
+  S_INV_UPDATE = 0xb0,
+  S_EQUIP_UPDATE = 0xb1,
+
+  S_XP_GAIN = 0xb8,
+  S_LEVEL_UP = 0xb9,
+
+  S_CHAT_MESSAGE = 0xc0,
+  S_SYSTEM_MESSAGE = 0xc1,
+
+  S_TRADE_INCOMING = 0xc8,
+  S_TRADE_START = 0xc9,
+  S_TRADE_UPDATE = 0xca,
+  S_TRADE_COMPLETE = 0xcb,
+  S_TRADE_CANCELLED = 0xcc,
+
+  S_TICK = 0xf0,
+  S_PONG = 0xf1,
+}
