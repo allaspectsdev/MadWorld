@@ -15,14 +15,30 @@ const TILE_COLORS: Record<number, string> = {
   [TileType.DUNGEON_PORTAL]: "#e74c3c",
 };
 
+// Friendly zone name labels for portals
+const ZONE_LABELS: Record<string, string> = {
+  greendale: "Village",
+  darkwood: "Darkwood",
+  fields: "Fields",
+  goblin_warren: "Dungeon",
+  crypt_of_bones: "Dungeon",
+};
+
 const SIZE = 140;
 const VIEW_RADIUS = 20; // Show 40x40 tile window centered on player
+
+interface PortalInfo {
+  x: number;
+  y: number;
+  label: string;
+}
 
 export class Minimap {
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   private tileData: TT[][] | null = null;
   private updateTimer = 0;
+  private portals: PortalInfo[] = [];
 
   constructor() {
     const container = document.getElementById("minimap-container");
@@ -61,6 +77,51 @@ export class Minimap {
 
   renderTiles(tiles: TT[][]): void {
     this.tileData = tiles;
+    this.findPortals(tiles);
+  }
+
+  private findPortals(tiles: TT[][]): void {
+    this.portals = [];
+    const state = useGameStore.getState();
+    const lp = state.localPlayer;
+    if (!lp) return;
+
+    // Find portal tiles and try to determine their destination
+    // We scan for PORTAL/DUNGEON_PORTAL tiles and group them
+    const visited = new Set<string>();
+
+    for (let y = 0; y < tiles.length; y++) {
+      for (let x = 0; x < (tiles[0]?.length ?? 0); x++) {
+        const type = tiles[y][x];
+        if (type !== TileType.PORTAL && type !== TileType.DUNGEON_PORTAL) continue;
+        const key = `${x},${y}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+
+        // Determine label based on edge position and current zone
+        let label = type === TileType.DUNGEON_PORTAL ? "Dungeon" : "";
+        if (type === TileType.PORTAL) {
+          label = this.guessPortalLabel(x, y, tiles.length, tiles[0]?.length ?? 0, lp.zoneId);
+        }
+
+        if (label) {
+          this.portals.push({ x, y, label });
+        }
+      }
+    }
+  }
+
+  private guessPortalLabel(x: number, y: number, mapH: number, mapW: number, currentZone: string): string {
+    // Portals at edges lead to specific zones based on current zone
+    if (currentZone === "greendale") {
+      if (y >= mapH - 2) return "Darkwood";
+      if (x >= mapW - 2) return "Fields";
+    } else if (currentZone === "darkwood") {
+      if (y <= 1) return "Village";
+    } else if (currentZone === "fields") {
+      if (x <= 1) return "Village";
+    }
+    return "Exit";
   }
 
   update(dt: number): void {
@@ -131,14 +192,29 @@ export class Minimap {
       }
     }
 
+    // Portal labels
+    ctx.font = "bold 8px 'Segoe UI', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    for (const portal of this.portals) {
+      const px = (portal.x - startX) * scale;
+      const py = (portal.y - startY) * scale;
+      if (px < -20 || px > SIZE + 20 || py < -10 || py > SIZE + 10) continue;
+
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      const textWidth = ctx.measureText(portal.label).width;
+      ctx.fillRect(px - textWidth / 2 - 2, py - 12, textWidth + 4, 10);
+      ctx.fillStyle = "#dda0dd";
+      ctx.fillText(portal.label, px, py - 4);
+    }
+
     // Local player (white with outline, larger)
-    const px = (lp.x - startX) * scale;
-    const py = (lp.y - startY) * scale;
+    const ppx = (lp.x - startX) * scale;
+    const ppy = (lp.y - startY) * scale;
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 1.5;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+    ctx.arc(ppx, ppy, 3.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 

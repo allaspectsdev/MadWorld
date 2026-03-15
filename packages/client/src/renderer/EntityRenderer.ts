@@ -65,7 +65,8 @@ export class EntityRenderer {
     }
 
     const anim = updateAnimation(sprite.animState, dt, x, y);
-    sprite.mainSprite.scale.set(anim.scaleX, anim.scaleY);
+    const flipX = sprite.animState.facingLeft ? -1 : 1;
+    sprite.mainSprite.scale.set(anim.scaleX * flipX, anim.scaleY);
     sprite.mainSprite.alpha = anim.alpha;
     sprite.mainSprite.rotation = anim.rotation;
 
@@ -112,7 +113,8 @@ export class EntityRenderer {
 
     this.globalTimer += dt * 0.5; // avoid double-counting in same frame
     const anim = updateAnimation(sprite.animState, dt, x, y);
-    sprite.mainSprite.scale.set(anim.scaleX, anim.scaleY);
+    const flipX = sprite.animState.facingLeft ? -1 : 1;
+    sprite.mainSprite.scale.set(anim.scaleX * flipX, anim.scaleY);
     sprite.mainSprite.alpha = anim.alpha;
     sprite.mainSprite.rotation = anim.rotation;
 

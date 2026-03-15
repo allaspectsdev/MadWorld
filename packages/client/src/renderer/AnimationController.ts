@@ -5,6 +5,7 @@ export interface AnimState {
   timer: number;
   prevX: number;
   prevY: number;
+  facingLeft: boolean;
 }
 
 const IDLE_BOB_SPEED = 1.5;
@@ -14,7 +15,7 @@ const ATTACK_DURATION = 0.2;
 const DEATH_DURATION = 0.5;
 
 export function createAnimState(): AnimState {
-  return { phase: "idle", timer: 0, prevX: 0, prevY: 0 };
+  return { phase: "idle", timer: 0, prevX: 0, prevY: 0, facingLeft: false };
 }
 
 export function updateAnimation(
@@ -25,7 +26,14 @@ export function updateAnimation(
 ): { offsetY: number; offsetX: number; scaleX: number; scaleY: number; alpha: number; rotation: number } {
   state.timer += dt;
 
-  const moved = Math.abs(x - state.prevX) > 0.01 || Math.abs(y - state.prevY) > 0.01;
+  const dx = x - state.prevX;
+  const moved = Math.abs(dx) > 0.01 || Math.abs(y - state.prevY) > 0.01;
+
+  // Track facing direction based on horizontal movement
+  if (Math.abs(dx) > 0.01) {
+    state.facingLeft = dx < 0;
+  }
+
   state.prevX = x;
   state.prevY = y;
 

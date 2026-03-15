@@ -1,5 +1,6 @@
 export class KeyboardInput {
   private keys = new Set<string>();
+  enabled = true;
 
   private onKeyDown = (e: KeyboardEvent) => {
     this.keys.add(e.key.toLowerCase());
@@ -20,6 +21,8 @@ export class KeyboardInput {
   }
 
   getDirection(): { dx: number; dy: number } | null {
+    if (!this.enabled) return null;
+
     let dx = 0;
     let dy = 0;
 

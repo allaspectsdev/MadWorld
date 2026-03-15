@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EntityType, TileType, Appearance, PartyMemberInfo } from "@madworld/shared";
+import type { EntityType, TileType, Appearance, PartyMemberInfo, S_ChatMessage } from "@madworld/shared";
 
 export interface RemoteEntity {
   eid: number;
@@ -56,6 +56,13 @@ export interface GameState {
   inDungeon: boolean;
   dungeonName: string | null;
 
+  // Chat
+  chatMessages: S_ChatMessage[];
+  chatOpen: boolean;
+  addChatMessage: (msg: S_ChatMessage) => void;
+  toggleChat: () => void;
+  setChatOpen: (open: boolean) => void;
+
   setConnected: (v: boolean) => void;
   setToken: (t: string) => void;
   setLocalPlayer: (p: LocalPlayer) => void;
@@ -99,6 +106,17 @@ export const useGameStore = create<GameState>()((set, get) => ({
   partyInvite: null,
   inDungeon: false,
   dungeonName: null,
+
+  chatMessages: [],
+  chatOpen: false,
+  addChatMessage: (msg) =>
+    set((state) => {
+      const msgs = [...state.chatMessages, msg];
+      if (msgs.length > 100) msgs.shift();
+      return { chatMessages: msgs };
+    }),
+  toggleChat: () => set((state) => ({ chatOpen: !state.chatOpen })),
+  setChatOpen: (open) => set({ chatOpen: open }),
 
   setConnected: (v) => set({ connected: v }),
   setToken: (t) => set({ token: t }),

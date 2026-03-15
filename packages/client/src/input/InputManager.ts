@@ -10,7 +10,7 @@ import { isTouchDevice, onInputModeChange } from "./DeviceDetection.js";
 import { useGameStore } from "../state/GameStore.js";
 
 export class InputManager {
-  private keyboard: KeyboardInput;
+  readonly keyboard: KeyboardInput;
   private touchInput: TouchInput | null = null;
   private joystick: VirtualJoystick | null = null;
   private actionButtons: ActionButtons | null = null;

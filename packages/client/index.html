@@ -241,6 +241,73 @@
       100% { opacity: 0; transform: translateY(-30px); }
     }
 
+    /* Chat panel */
+    #chat-panel {
+      position: absolute;
+      bottom: 10px; left: 10px;
+      width: 360px;
+      max-height: 250px;
+      display: flex; flex-direction: column;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 30;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+    #chat-panel.open { opacity: 1; }
+    #chat-panel:hover { opacity: 1; }
+    #chat-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 8px;
+      max-height: 180px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.2) transparent;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .chat-msg { word-wrap: break-word; }
+    .chat-tabs {
+      display: flex;
+      gap: 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .chat-tab {
+      flex: 1;
+      padding: 3px 0;
+      text-align: center;
+      font-size: 10px;
+      cursor: pointer;
+      color: rgba(255,255,255,0.5);
+      background: transparent;
+      border: none;
+      font-family: inherit;
+      transition: color 0.15s, background 0.15s;
+    }
+    .chat-tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .chat-tab.active { color: #fff; background: rgba(255,255,255,0.1); }
+    #chat-input {
+      width: 100%;
+      padding: 6px 8px;
+      background: rgba(0,0,0,0.5);
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+    }
+    #chat-input::placeholder { color: rgba(255,255,255,0.3); }
+    @media (max-width: 600px) {
+      #chat-panel {
+        width: calc(100% - 20px);
+        max-height: 40vh;
+      }
+    }
+
     /* Death overlay */
     #death-overlay {
       position: absolute;
@@ -303,6 +370,16 @@
         <button id="btn-attack" class="action-btn">Attack</button>
         <button id="btn-party" class="action-btn">Invite</button>
         <button id="btn-leave-party" class="action-btn">Leave Party</button>
+      </div>
+
+      <!-- Chat Panel -->
+      <div id="chat-panel">
+        <div id="chat-log"></div>
+        <div class="chat-tabs">
+          <button class="chat-tab active" data-channel="zone">Zone</button>
+          <button class="chat-tab" data-channel="global">Global</button>
+        </div>
+        <input id="chat-input" type="text" placeholder="Press Enter to chat..." maxlength="200" autocomplete="off" />
       </div>
 
       <!-- Party HUD -->

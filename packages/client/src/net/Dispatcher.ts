@@ -175,6 +175,8 @@ export class Dispatcher {
           ty = lp.y;
           store.updateLocalPlayer({ hp: msg.d.targetHpAfter });
           this.updateHUD();
+          // Flash HP bar on damage
+          this.flashHpBar();
         } else {
           break;
         }
@@ -338,6 +340,11 @@ export class Dispatcher {
         break;
       }
 
+      case Op.S_CHAT_MESSAGE: {
+        store.addChatMessage(msg.d);
+        break;
+      }
+
       case Op.S_SYSTEM_MESSAGE: {
         this.showSystemMessage(msg.d.message);
         break;
@@ -380,6 +387,16 @@ export class Dispatcher {
     if (hpText) {
       hpText.textContent = `${Math.max(0, lp.hp)} / ${lp.maxHp}`;
     }
+  }
+
+  private flashHpBar(): void {
+    const container = document.querySelector(".bar-container") as HTMLElement;
+    if (!container) return;
+    container.classList.remove("damage-flash");
+    // Force reflow so re-adding the class restarts the animation
+    void container.offsetWidth;
+    container.classList.add("damage-flash");
+    setTimeout(() => container.classList.remove("damage-flash"), 300);
   }
 
   private xpPopupStack = 0;

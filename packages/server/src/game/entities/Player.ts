@@ -52,6 +52,9 @@ export class Player extends Entity {
   // Party HP sync throttle
   lastSyncedHp: number = 0;
 
+  // Chat rate limiting
+  lastChatTime: number = 0;
+
   // Persistence
   dirty: boolean = false;
 

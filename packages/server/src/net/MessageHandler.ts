@@ -84,6 +84,66 @@ export async function handleMessage(
       partyManager.kickMember(player, msg.d.targetEid);
       break;
 
+    case Op.C_CHAT_SEND: {
+      const now = Date.now();
+      // Rate limit: 1 message per second
+      if (now - player.lastChatTime < 1000) break;
+
+      const raw = msg.d.message;
+      if (!raw || typeof raw !== "string") break;
+
+      // Strip HTML and trim
+      const message = raw.replace(/<[^>]*>/g, "").trim();
+      if (message.length < 1 || message.length > 200) break;
+
+      player.lastChatTime = now;
+      const channel = msg.d.channel ?? "zone";
+      const chatMsg = {
+        op: Op.S_CHAT_MESSAGE,
+        d: {
+          channel,
+          senderName: player.name,
+          message,
+          timestamp: now,
+        },
+      };
+
+      if (channel === "global") {
+        for (const [, p] of world.playersByEid) {
+          p.send(chatMsg);
+        }
+      } else if (channel === "whisper") {
+        const targetName = msg.d.targetName;
+        if (!targetName) break;
+        let target: Player | undefined;
+        for (const [, p] of world.playersByEid) {
+          if (p.name.toLowerCase() === targetName.toLowerCase()) {
+            target = p;
+            break;
+          }
+        }
+        if (target) {
+          target.send(chatMsg);
+          // Echo back to sender so they see their own whisper
+          player.send(chatMsg);
+        } else {
+          player.send({
+            op: Op.S_CHAT_MESSAGE,
+            d: { channel: "system" as const, senderName: "", message: `Player "${targetName}" not found.`, timestamp: now },
+          });
+        }
+      } else {
+        // Zone chat: broadcast to all players in same zone
+        const zone = world.getZone(player.zoneId);
+        if (zone) {
+          for (const [, p] of zone.players) {
+            p.send(chatMsg);
+          }
+        }
+      }
+      break;
+    }
+
     case Op.C_PING:
       ws.send(
         JSON.stringify({
@@ -157,6 +217,19 @@ async function handleAuth(
       JSON.stringify({
         op: Op.S_PLAYER_STATS,
         d: { hp: player.hp, maxHp: player.maxHp, level: 1 },
+      }),
+    );
+
+    // Welcome message
+    ws.send(
+      JSON.stringify({
+        op: Op.S_CHAT_MESSAGE,
+        d: {
+          channel: "system",
+          senderName: "",
+          message: "Welcome to MadWorld! Use WASD to move. Click mobs to attack. Press Enter to chat.",
+          timestamp: Date.now(),
+        },
       }),
     );
   }

@@ -17,6 +17,7 @@ import { InputManager } from "./input/InputManager.js";
 import { initDeviceDetection, isTouchDevice } from "./input/DeviceDetection.js";
 import { PartyHUD } from "./ui/components/PartyHUD.js";
 import { PartyInviteModal } from "./ui/components/PartyInviteModal.js";
+import { ChatPanel } from "./ui/components/ChatPanel.js";
 
 export class Game {
   private app: Application;
@@ -35,6 +36,7 @@ export class Game {
   private minimap: Minimap;
   private partyHUD: PartyHUD;
   private partyInviteModal: PartyInviteModal;
+  private chatPanel: ChatPanel;
 
   private isRegistering = false;
 
@@ -72,6 +74,12 @@ export class Game {
 
     this.partyHUD = new PartyHUD();
     this.partyInviteModal = new PartyInviteModal(this.socket);
+    this.chatPanel = new ChatPanel(this.socket);
+
+    // When chat is focused, disable movement input
+    this.chatPanel.setOnFocusChange((focused) => {
+      this.input.keyboard.enabled = !focused;
+    });
 
     // Build scene graph
     this.camera.container.addChild(this.tilemap.container);
@@ -95,6 +103,16 @@ export class Game {
     this.setupInputCallbacks();
     this.partyHUD.start();
     this.partyInviteModal.start();
+
+    // Enter key toggles chat
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const loginScreen = document.getElementById("login-screen");
+        if (loginScreen && loginScreen.style.display !== "none") return;
+        e.preventDefault();
+        this.chatPanel.toggle();
+      }
+    });
 
     this.dispatcher.setOnZoneChange(() => {
       const state = useGameStore.getState();
@@ -184,6 +202,9 @@ export class Game {
     this.dayNight.update(dt);
     this.telegraphs.update(dt);
     this.minimap.update(dt);
+
+    // Chat
+    this.chatPanel.update();
 
     // Ambient particles
     const bounds = this.camera.getViewBounds();
