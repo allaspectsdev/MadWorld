@@ -124,10 +124,10 @@ export class Game {
       this.update(this.app.ticker.deltaMS / 1000);
     });
 
-    // Handle resize
-    this.camera.setScreenSize(this.app.screen.width, this.app.screen.height);
+    // Handle resize — use window dimensions directly for reliability
+    this.camera.setScreenSize(window.innerWidth, window.innerHeight);
     window.addEventListener("resize", () => {
-      this.camera.setScreenSize(this.app.screen.width, this.app.screen.height);
+      this.camera.setScreenSize(window.innerWidth, window.innerHeight);
     });
   }
 

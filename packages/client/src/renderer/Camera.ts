@@ -5,13 +5,14 @@ export class Camera {
   readonly container = new Container();
   private targetX = 0;
   private targetY = 0;
-  private screenWidth = 0;
-  private screenHeight = 0;
+  private screenWidth = 800;
+  private screenHeight = 600;
   private _zoom = 1;
   private _targetZoom = 1;
   private shakeIntensity = 0;
   private shakeDuration = 0;
   private shakeTimer = 0;
+  private firstUpdate = true;
 
   setScreenSize(width: number, height: number): void {
     this.screenWidth = width;
@@ -47,23 +48,30 @@ export class Camera {
 
     this.container.scale.set(this._zoom);
 
-    // Frame-rate-independent lerp
-    const lerpFactor = 1 - Math.pow(0.0005, dt);
-    const desiredX = -this.targetX * this._zoom + this.screenWidth / 2;
-    const desiredY = -this.targetY * this._zoom + this.screenHeight / 2;
+    // Center the target on screen
+    // container.x positions the scaled container. To put targetX at screen center:
+    // screenCenter = container.x + targetX * zoom
+    // container.x = screenCenter - targetX * zoom
+    const desiredX = this.screenWidth / 2 - this.targetX * this._zoom;
+    const desiredY = this.screenHeight / 2 - this.targetY * this._zoom;
 
-    this.container.x += (desiredX - this.container.x) * lerpFactor;
-    this.container.y += (desiredY - this.container.y) * lerpFactor;
+    // Snap on first update, then smooth lerp
+    if (this.firstUpdate) {
+      this.container.x = desiredX;
+      this.container.y = desiredY;
+      this.firstUpdate = false;
+    } else {
+      const lerpFactor = 1 - Math.pow(0.001, dt);
+      this.container.x += (desiredX - this.container.x) * lerpFactor;
+      this.container.y += (desiredY - this.container.y) * lerpFactor;
+    }
 
     // Screen shake
     if (this.shakeTimer < this.shakeDuration) {
       this.shakeTimer += dt;
-      const progress = this.shakeTimer / this.shakeDuration;
-      const fade = 1 - progress;
-      const offsetX = (Math.random() - 0.5) * this.shakeIntensity * fade * 2;
-      const offsetY = (Math.random() - 0.5) * this.shakeIntensity * fade * 2;
-      this.container.x += offsetX;
-      this.container.y += offsetY;
+      const fade = 1 - this.shakeTimer / this.shakeDuration;
+      this.container.x += (Math.random() - 0.5) * this.shakeIntensity * fade * 2;
+      this.container.y += (Math.random() - 0.5) * this.shakeIntensity * fade * 2;
     }
   }
 
