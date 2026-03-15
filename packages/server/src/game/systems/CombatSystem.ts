@@ -5,6 +5,7 @@ import { GroundItem } from "../entities/GroundItem.js";
 import type { Zone } from "../Zone.js";
 import { partyManager } from "../PartyManager.js";
 import { instanceManager } from "../InstanceManager.js";
+import { onMobKill as questOnMobKill } from "./QuestSystem.js";
 import { Op, AIState, PARTY_XP_RANGE, PARTY_XP_BONUS, type ServerMessage } from "@madworld/shared";
 import { combatFormulas, movementFormulas } from "@madworld/shared";
 import { levelForXp } from "@madworld/shared";
@@ -190,9 +191,11 @@ function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
 
     for (const member of membersInRange) {
       grantXp(member, SkillName.MELEE, sharedXp);
+      questOnMobKill(member, mob.def.id);
     }
   } else {
     grantXp(killer, SkillName.MELEE, baseXp);
+    questOnMobKill(killer, mob.def.id);
   }
 
   // --- Boss Kill ---

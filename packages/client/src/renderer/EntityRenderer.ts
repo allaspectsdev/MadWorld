@@ -8,9 +8,12 @@ import {
   updateAnimation,
   triggerAttack,
   triggerDeath,
+  getAnimName,
   type AnimState,
 } from "./AnimationController.js";
 import { TextureFactory } from "./TextureFactory.js";
+import { SpriteAnimator } from "./SpriteAnimator.js";
+import { spriteSheetAnims } from "./SpriteSheetLoader.js";
 
 interface EntitySprite {
   container: Container;
@@ -24,6 +27,7 @@ interface EntitySprite {
   arrow?: Graphics;
   glowRing?: Graphics;
   animState: AnimState;
+  animator?: SpriteAnimator;
   isLocal: boolean;
   isBoss: boolean;
 }
@@ -33,6 +37,14 @@ const nameStyle = new TextStyle({
   fontSize: 11,
   fontWeight: "bold",
   fill: 0xffffff,
+  stroke: { color: 0x000000, width: 3 },
+});
+
+const npcNameStyle = new TextStyle({
+  fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+  fontSize: 12,
+  fontWeight: "bold",
+  fill: 0xffd700,
   stroke: { color: 0x000000, width: 3 },
 });
 
@@ -69,6 +81,16 @@ export class EntityRenderer {
     sprite.mainSprite.scale.set(anim.scaleX * flipX, anim.scaleY);
     sprite.mainSprite.alpha = anim.alpha;
     sprite.mainSprite.rotation = anim.rotation;
+
+    // Sprite sheet animation
+    if (sprite.animator) {
+      sprite.animator.facingLeft = sprite.animState.facingLeft;
+      sprite.animator.play(getAnimName(sprite.animState));
+      const tex = sprite.animator.update(dt);
+      if (tex) {
+        sprite.mainSprite.texture = tex;
+      }
+    }
 
     const px = x * TILE_SIZE + anim.offsetX;
     const py = y * TILE_SIZE + anim.offsetY;
@@ -117,6 +139,16 @@ export class EntityRenderer {
     sprite.mainSprite.scale.set(anim.scaleX * flipX, anim.scaleY);
     sprite.mainSprite.alpha = anim.alpha;
     sprite.mainSprite.rotation = anim.rotation;
+
+    // Sprite sheet animation
+    if (sprite.animator) {
+      sprite.animator.facingLeft = sprite.animState.facingLeft;
+      sprite.animator.play(getAnimName(sprite.animState));
+      const tex = sprite.animator.update(dt);
+      if (tex) {
+        sprite.mainSprite.texture = tex;
+      }
+    }
 
     sprite.container.x = x * TILE_SIZE + anim.offsetX;
     sprite.container.y = y * TILE_SIZE + anim.offsetY;
@@ -216,11 +248,21 @@ export class EntityRenderer {
       cont.addChild(glowRing);
     }
 
+    const isNpc = type === EntityType.NPC;
+
     // Shadow (sized to roughly match the entity's footprint)
     const shadow = new Graphics();
     const shadowScale = boss ? 1.3 : 1.0;
-    shadow.ellipse(0, TILE_SIZE * 0.4, TILE_SIZE * 0.35 * shadowScale, TILE_SIZE * 0.12 * shadowScale);
-    shadow.fill({ color: 0x000000, alpha: 0.3 });
+    if (isNpc) {
+      // Warm golden glow for NPCs
+      shadow.ellipse(0, TILE_SIZE * 0.4, TILE_SIZE * 0.4, TILE_SIZE * 0.14);
+      shadow.fill({ color: 0xffd700, alpha: 0.15 });
+      shadow.ellipse(0, TILE_SIZE * 0.4, TILE_SIZE * 0.3, TILE_SIZE * 0.1);
+      shadow.fill({ color: 0xffaa00, alpha: 0.1 });
+    } else {
+      shadow.ellipse(0, TILE_SIZE * 0.4, TILE_SIZE * 0.35 * shadowScale, TILE_SIZE * 0.12 * shadowScale);
+      shadow.fill({ color: 0x000000, alpha: 0.3 });
+    }
     shadow.zIndex = -1;
     cont.addChild(shadow);
 
@@ -268,11 +310,26 @@ export class EntityRenderer {
     // Name label
     const nameText = new Text({
       text: isLocal ? "You" : name,
-      style: isLocal ? localNameStyle : nameStyle,
+      style: isLocal ? localNameStyle : isNpc ? npcNameStyle : nameStyle,
     });
     nameText.anchor.set(0.5, 1);
     nameText.y = topY - (isLocal ? 22 : 4);
     cont.addChild(nameText);
+
+    // Check for sprite sheet animations
+    const entityKey = type === EntityType.PLAYER ? "player" : name.toLowerCase().replace(/\s+/g, "_");
+    const animState = createAnimState();
+    let animator: SpriteAnimator | undefined;
+
+    if (spriteSheetAnims.has(entityKey)) {
+      animator = new SpriteAnimator();
+      const animDefs = spriteSheetAnims.get(entityKey)!;
+      for (const def of animDefs) {
+        animator.addAnimation(def);
+      }
+      animState.hasSprites = true;
+      animator.play("idle");
+    }
 
     const sprite: EntitySprite = {
       container: cont,
@@ -280,12 +337,13 @@ export class EntityRenderer {
       shadow,
       nameText,
       hpY: topY - 2,
-      animState: createAnimState(),
+      animState,
+      animator,
       isLocal,
       isBoss: boss,
     };
 
-    // HP bar for mobs and other players
+    // HP bar for mobs and other players (not NPCs)
     if (type === EntityType.MOB || (!isLocal && type === EntityType.PLAYER)) {
       const hpY = topY - 2;
       const hpBg = new Graphics();

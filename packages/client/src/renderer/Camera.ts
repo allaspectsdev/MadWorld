@@ -13,6 +13,10 @@ export class Camera {
   private shakeDuration = 0;
   private shakeTimer = 0;
   private firstUpdate = true;
+  private leadX = 0;
+  private leadY = 0;
+  private currentLeadX = 0;
+  private currentLeadY = 0;
 
   setScreenSize(width: number, height: number): void {
     this.screenWidth = width;
@@ -32,6 +36,12 @@ export class Camera {
     return this._zoom;
   }
 
+  setMovementLead(dx: number, dy: number): void {
+    // Target lead is 1.5 tiles in movement direction
+    this.leadX = dx * 1.5 * TILE_SIZE;
+    this.leadY = dy * 1.5 * TILE_SIZE;
+  }
+
   shake(intensity: number, duration: number): void {
     this.shakeIntensity = intensity;
     this.shakeDuration = duration;
@@ -48,12 +58,19 @@ export class Camera {
 
     this.container.scale.set(this._zoom);
 
-    // Center the target on screen
+    // Smoothly lerp the movement lead
+    const leadLerp = 1 - Math.pow(0.001, dt);
+    this.currentLeadX += (this.leadX - this.currentLeadX) * leadLerp;
+    this.currentLeadY += (this.leadY - this.currentLeadY) * leadLerp;
+
+    // Center the target on screen, offset by movement lead
     // container.x positions the scaled container. To put targetX at screen center:
     // screenCenter = container.x + targetX * zoom
     // container.x = screenCenter - targetX * zoom
-    const desiredX = this.screenWidth / 2 - this.targetX * this._zoom;
-    const desiredY = this.screenHeight / 2 - this.targetY * this._zoom;
+    const targetWithLeadX = this.targetX + this.currentLeadX;
+    const targetWithLeadY = this.targetY + this.currentLeadY;
+    const desiredX = this.screenWidth / 2 - targetWithLeadX * this._zoom;
+    const desiredY = this.screenHeight / 2 - targetWithLeadY * this._zoom;
 
     // Snap on first update, then smooth lerp
     if (this.firstUpdate) {

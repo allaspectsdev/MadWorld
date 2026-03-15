@@ -1,0 +1,105 @@
+import { useGameStore } from "../../state/GameStore.js";
+import { QUESTS, Op, type ClientMessage } from "@madworld/shared";
+import type { Socket } from "../../net/Socket.js";
+
+export class NPCDialog {
+  private container: HTMLElement;
+  private socket: Socket;
+  private unsubscribe: (() => void) | null = null;
+
+  constructor(socket: Socket) {
+    this.socket = socket;
+    this.container = document.getElementById("npc-dialog")!;
+
+    this.container.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+
+      if (target.classList.contains("npc-dialog-close")) {
+        useGameStore.getState().setNpcDialog(null);
+        return;
+      }
+
+      const questId = target.dataset.questAccept;
+      if (questId) {
+        this.socket.send({
+          op: Op.C_QUEST_ACCEPT,
+          d: { questId },
+        } as ClientMessage);
+        useGameStore.getState().setNpcDialog(null);
+        return;
+      }
+
+      const turnInId = target.dataset.questTurnin;
+      if (turnInId) {
+        this.socket.send({
+          op: Op.C_QUEST_TURN_IN,
+          d: { questId: turnInId },
+        } as ClientMessage);
+        useGameStore.getState().setNpcDialog(null);
+        return;
+      }
+    });
+  }
+
+  start(): void {
+    this.unsubscribe = useGameStore.subscribe(
+      (state) => {
+        this.render(state.npcDialog);
+      },
+    );
+    this.render(useGameStore.getState().npcDialog);
+  }
+
+  stop(): void {
+    this.unsubscribe?.();
+  }
+
+  private render(
+    dialog: { npcName: string; dialog: string; availableQuests: string[]; turnInQuests: string[] } | null,
+  ): void {
+    if (!dialog) {
+      this.container.classList.remove("open");
+      return;
+    }
+    this.container.classList.add("open");
+
+    let html = `<div class="npc-dialog-header">
+      <span class="npc-dialog-name">${dialog.npcName}</span>
+      <button class="npc-dialog-close">X</button>
+    </div>`;
+
+    html += `<div class="npc-dialog-text">${dialog.dialog}</div>`;
+
+    // Quests ready to turn in
+    if (dialog.turnInQuests.length > 0) {
+      html += '<div class="npc-quest-section"><div class="npc-quest-section-title">Turn In</div>';
+      for (const questId of dialog.turnInQuests) {
+        const def = QUESTS[questId];
+        if (!def) continue;
+        html += `<button class="npc-quest-btn npc-quest-turnin" data-quest-turnin="${questId}">${def.name} (Complete)</button>`;
+      }
+      html += "</div>";
+    }
+
+    // Available quests
+    if (dialog.availableQuests.length > 0) {
+      html += '<div class="npc-quest-section"><div class="npc-quest-section-title">Available Quests</div>';
+      for (const questId of dialog.availableQuests) {
+        const def = QUESTS[questId];
+        if (!def) continue;
+        html += `<div class="npc-quest-offer">
+          <div class="npc-quest-offer-name">${def.name}</div>
+          <div class="npc-quest-offer-desc">${def.description}</div>
+          <button class="npc-quest-btn npc-quest-accept" data-quest-accept="${questId}">Accept</button>
+        </div>`;
+      }
+      html += "</div>";
+    }
+
+    if (dialog.availableQuests.length === 0 && dialog.turnInQuests.length === 0) {
+      html += '<div class="npc-no-quests">No quests available.</div>';
+    }
+
+    this.container.innerHTML = html;
+  }
+}

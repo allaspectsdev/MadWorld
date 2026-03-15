@@ -62,6 +62,18 @@ export interface GameState {
   inDungeon: boolean;
   dungeonName: string | null;
 
+  // Quests
+  quests: { questId: string; stepIndex: number; progress: Record<string, number> }[];
+  completedQuests: string[];
+  questLogOpen: boolean;
+  npcDialog: { npcName: string; dialog: string; availableQuests: string[]; turnInQuests: string[] } | null;
+  setQuests: (quests: { questId: string; stepIndex: number; progress: Record<string, number> }[]) => void;
+  setCompletedQuests: (completed: string[]) => void;
+  updateQuest: (questId: string, stepIndex: number, progress: Record<string, number>) => void;
+  completeQuest: (questId: string) => void;
+  toggleQuestLog: () => void;
+  setNpcDialog: (dialog: { npcName: string; dialog: string; availableQuests: string[]; turnInQuests: string[] } | null) => void;
+
   // Inventory & Equipment
   inventory: (InventorySlot | null)[];
   equipment: Record<string, string>;
@@ -122,6 +134,32 @@ export const useGameStore = create<GameState>()((set, get) => ({
   partyInvite: null,
   inDungeon: false,
   dungeonName: null,
+
+  quests: [],
+  completedQuests: [],
+  questLogOpen: false,
+  npcDialog: null,
+  setQuests: (quests) => set({ quests }),
+  setCompletedQuests: (completed) => set({ completedQuests: completed }),
+  updateQuest: (questId, stepIndex, progress) =>
+    set((state) => {
+      const existing = state.quests.find((q) => q.questId === questId);
+      if (existing) {
+        return {
+          quests: state.quests.map((q) =>
+            q.questId === questId ? { ...q, stepIndex, progress } : q,
+          ),
+        };
+      }
+      return { quests: [...state.quests, { questId, stepIndex, progress }] };
+    }),
+  completeQuest: (questId) =>
+    set((state) => ({
+      quests: state.quests.filter((q) => q.questId !== questId),
+      completedQuests: [...state.completedQuests, questId],
+    })),
+  toggleQuestLog: () => set((state) => ({ questLogOpen: !state.questLogOpen })),
+  setNpcDialog: (dialog) => set({ npcDialog: dialog }),
 
   inventory: new Array<InventorySlot | null>(28).fill(null),
   equipment: {},

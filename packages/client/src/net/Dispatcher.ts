@@ -356,6 +356,30 @@ export class Dispatcher {
         break;
       }
 
+      // --- NPC / Quest Messages ---
+      case Op.S_NPC_DIALOG: {
+        store.setNpcDialog(msg.d);
+        break;
+      }
+
+      case Op.S_QUEST_UPDATE: {
+        store.updateQuest(msg.d.questId, msg.d.stepIndex, msg.d.progress);
+        break;
+      }
+
+      case Op.S_QUEST_COMPLETE: {
+        store.completeQuest(msg.d.questId);
+        this.showSystemMessage("Quest complete!");
+        this.audio.playSfx("level_up");
+        break;
+      }
+
+      case Op.S_QUEST_LIST: {
+        store.setQuests(msg.d.active);
+        store.setCompletedQuests(msg.d.completed);
+        break;
+      }
+
       // --- Inventory / Equipment ---
       case Op.S_INV_UPDATE: {
         store.setInventory(msg.d.slots);

@@ -1,6 +1,7 @@
 import { Zone } from "./Zone.js";
 import { Player } from "./entities/Player.js";
 import { Mob } from "./entities/Mob.js";
+import { NPC } from "./entities/NPC.js";
 import { MOBS, type ZoneDef } from "@madworld/shared";
 import { ZONE_DEFS } from "./data/zones/index.js";
 
@@ -31,6 +32,12 @@ export class World {
           );
           zone.addEntity(mob);
         }
+      }
+
+      // Spawn NPCs
+      for (const npcSpawn of def.npcSpawns ?? []) {
+        const npc = new NPC(npcSpawn.npcId, npcSpawn.name, npcSpawn.dialog, npcSpawn.quests ?? [], def.id, npcSpawn.x, npcSpawn.y);
+        zone.addEntity(npc);
       }
     }
     console.log(`[World] Initialized ${this.zones.size} zones`);

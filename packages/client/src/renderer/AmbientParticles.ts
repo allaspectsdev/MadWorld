@@ -10,12 +10,21 @@ export class AmbientParticles {
   private screenW = 800;
   private screenH = 600;
 
+  // Rain state
+  private isRaining = false;
+  private rainTimer = 0;
+  private nextRainCheck = 0;
+
   constructor(particles: ParticleSystem) {
     this.particles = particles;
   }
 
   setZoneType(type: "forest" | "sand" | "dungeon" | "default"): void {
     this.zoneType = type;
+    // Reset rain when zone changes
+    this.isRaining = false;
+    this.rainTimer = 0;
+    this.nextRainCheck = 0;
   }
 
   setCamera(x: number, y: number, w: number, h: number): void {
@@ -25,19 +34,68 @@ export class AmbientParticles {
     this.screenH = h;
   }
 
+  private updateRain(dt: number): void {
+    if (this.zoneType !== "forest") {
+      this.isRaining = false;
+      return;
+    }
+
+    if (this.isRaining) {
+      this.rainTimer -= dt;
+      if (this.rainTimer <= 0) {
+        this.isRaining = false;
+        this.nextRainCheck = 5; // Wait 5s before next rain check
+      }
+    } else {
+      this.nextRainCheck -= dt;
+      if (this.nextRainCheck <= 0) {
+        // 30% chance to start rain
+        if (Math.random() < 0.3) {
+          this.isRaining = true;
+          this.rainTimer = 30 + Math.random() * 30; // 30-60 seconds
+        }
+        this.nextRainCheck = 10; // Check again in 10s if not raining
+      }
+    }
+  }
+
   update(dt: number): void {
     if (this.zoneType === "default") return;
+
+    this.updateRain(dt);
 
     this.timer += dt;
     if (this.timer < 0.4) return;
     this.timer = 0;
 
-    // Spawn 1-2 particles per tick within the viewport
-    const count = 1 + Math.floor(Math.random() * 2);
+    // Determine particle count based on zone type and rain
+    let count: number;
+    if (this.isRaining) {
+      count = 4 + Math.floor(Math.random() * 3); // 4-6
+    } else if (this.zoneType === "dungeon") {
+      count = 2 + Math.floor(Math.random() * 2); // 2-3 (fog enhancement)
+    } else {
+      count = 1 + Math.floor(Math.random() * 2); // 1-2
+    }
 
     for (let i = 0; i < count; i++) {
       const px = this.cameraX + Math.random() * this.screenW;
       const py = this.cameraY + Math.random() * this.screenH * 0.3; // top third
+
+      // Rain particles override forest particles during rain
+      if (this.isRaining) {
+        this.particles.emit(px, py, 1, {
+          tint: 0xaabbdd,
+          speed: 200,
+          spread: 0.1,
+          life: 0.4,
+          gravity: 150,
+          dirX: 0.2,
+          dirY: 1,
+          baseScale: 0.3,
+        });
+        continue;
+      }
 
       switch (this.zoneType) {
         case "forest":
@@ -72,11 +130,11 @@ export class AmbientParticles {
             {
               texType: "glow",
               tint: 0xaaaaaa,
-              speed: 5,
+              speed: 3,
               spread: Math.PI * 2,
-              life: 4,
+              life: 6,
               gravity: 0,
-              baseScale: 0.3,
+              baseScale: 0.8,
             },
           );
           break;

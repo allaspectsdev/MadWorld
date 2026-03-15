@@ -3,6 +3,7 @@ import { Entity } from "./entities/Entity.js";
 import { Player } from "./entities/Player.js";
 import { Mob } from "./entities/Mob.js";
 import { GroundItem } from "./entities/GroundItem.js";
+import { NPC } from "./entities/NPC.js";
 import { Op, EntityType, type ZoneDef, type ServerMessage } from "@madworld/shared";
 
 export class Zone {
@@ -63,6 +64,9 @@ export class Zone {
           : {}),
         ...(entity instanceof GroundItem
           ? { name: entity.itemId, mobId: entity.itemId }
+          : {}),
+        ...(entity instanceof NPC
+          ? { name: entity.name }
           : {}),
       },
     } satisfies ServerMessage);
@@ -141,6 +145,9 @@ export class Zone {
             : {}),
           ...(entity instanceof GroundItem
             ? { name: entity.itemId, mobId: entity.itemId }
+            : {}),
+          ...(entity instanceof NPC
+            ? { name: entity.name }
             : {}),
         },
       } satisfies ServerMessage);

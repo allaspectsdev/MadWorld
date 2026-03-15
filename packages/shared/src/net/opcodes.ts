@@ -14,6 +14,9 @@ export enum Op {
   C_PARTY_LEAVE = 0x25,
   C_PARTY_KICK = 0x26,
   C_DUNGEON_ENTER = 0x27,
+  C_NPC_INTERACT = 0x28,
+  C_QUEST_ACCEPT = 0x29,
+  C_QUEST_TURN_IN = 0x2a,
 
   C_FISH_CAST = 0x30,
   C_FISH_REEL = 0x31,
@@ -79,6 +82,10 @@ export enum Op {
   S_DUNGEON_WIPE = 0xd6,
   S_DUNGEON_EXIT = 0xd7,
   S_BOSS_ABILITY = 0xd8,
+  S_NPC_DIALOG = 0xd9,
+  S_QUEST_UPDATE = 0xda,
+  S_QUEST_COMPLETE = 0xdb,
+  S_QUEST_LIST = 0xdc,
 
   S_TICK = 0xf0,
   S_PONG = 0xf1,

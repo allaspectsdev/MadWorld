@@ -6,6 +6,7 @@ export interface AnimState {
   prevX: number;
   prevY: number;
   facingLeft: boolean;
+  hasSprites: boolean;
 }
 
 const IDLE_BOB_SPEED = 1.5;
@@ -15,7 +16,13 @@ const ATTACK_DURATION = 0.2;
 const DEATH_DURATION = 0.5;
 
 export function createAnimState(): AnimState {
-  return { phase: "idle", timer: 0, prevX: 0, prevY: 0, facingLeft: false };
+  return { phase: "idle", timer: 0, prevX: 0, prevY: 0, facingLeft: false, hasSprites: false };
+}
+
+const NEUTRAL_TRANSFORM = { offsetY: 0, offsetX: 0, scaleX: 1, scaleY: 1, alpha: 1, rotation: 0 };
+
+export function getAnimName(state: AnimState): string {
+  return state.phase;
 }
 
 export function updateAnimation(
@@ -43,6 +50,22 @@ export function updateAnimation(
   } else if (state.phase === "walk" && !moved) {
     state.phase = "idle";
     state.timer = 0;
+  }
+
+  // When using sprite sheets, still track state transitions but return neutral transforms
+  if (state.hasSprites) {
+    // Still need to handle timed phase transitions (attack/death finishing)
+    if (state.phase === "attack") {
+      const t = Math.min(state.timer / ATTACK_DURATION, 1);
+      if (t >= 1) {
+        state.phase = "idle";
+        state.timer = 0;
+      }
+    } else if (state.phase === "death") {
+      const t = Math.min(state.timer / DEATH_DURATION, 1);
+      return { ...NEUTRAL_TRANSFORM, alpha: 1 - t * t };
+    }
+    return { ...NEUTRAL_TRANSFORM };
   }
 
   switch (state.phase) {

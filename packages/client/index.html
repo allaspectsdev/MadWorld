@@ -19,6 +19,38 @@
     }
     #ui-root > * { pointer-events: auto; }
 
+    /* Loading screen */
+    #loading-screen {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      z-index: 200;
+      transition: opacity 0.5s ease;
+    }
+    #loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-bar-container {
+      width: 300px; height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .loading-bar-fill {
+      height: 100%; width: 0%;
+      background: #e94560;
+      transition: width 0.3s;
+      border-radius: 3px;
+    }
+    .loading-status {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 12px;
+    }
+
     /* Login screen */
     #login-screen {
       position: absolute;
@@ -533,11 +565,369 @@
       font-size: 10px;
       color: rgba(255,255,255,0.5);
     }
+
+    /* Quest Log */
+    #quest-log {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+      width: 280px;
+      max-height: 60vh;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 0;
+      z-index: 35;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.2) transparent;
+    }
+    #quest-log.open {
+      display: block;
+      opacity: 1;
+    }
+    .quest-log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffd700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .quest-log-close {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #aaa;
+      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+    .quest-log-close:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .quest-log-empty {
+      padding: 20px 12px;
+      text-align: center;
+      color: rgba(255,255,255,0.4);
+      font-size: 12px;
+    }
+    .quest-entry {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .quest-entry:last-child {
+      border-bottom: none;
+    }
+    .quest-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 3px;
+    }
+    .quest-desc {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .quest-progress-bar {
+      height: 14px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .quest-progress-fill {
+      height: 100%;
+      background: linear-gradient(to right, #2ecc71, #27ae60);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .quest-progress-text {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #fff;
+      text-shadow: 1px 1px 1px rgba(0,0,0,0.8);
+    }
+    .quest-completed {
+      opacity: 0.5;
+    }
+    .quest-done-tag {
+      font-size: 9px;
+      color: #2ecc71;
+      font-weight: 400;
+      margin-left: 4px;
+    }
+
+    /* NPC Dialog */
+    #npc-dialog {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background: rgba(10,10,20,0.95);
+      border: 2px solid rgba(255,215,0,0.4);
+      border-radius: 10px;
+      padding: 0;
+      z-index: 65;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.2) transparent;
+    }
+    #npc-dialog.open {
+      display: block;
+      opacity: 1;
+    }
+    .npc-dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,215,0,0.2);
+    }
+    .npc-dialog-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffd700;
+    }
+    .npc-dialog-close {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #aaa;
+      font-size: 12px;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+    .npc-dialog-close:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .npc-dialog-text {
+      padding: 14px 16px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.6;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .npc-quest-section {
+      padding: 10px 16px;
+    }
+    .npc-quest-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .npc-quest-offer {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .npc-quest-offer-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .npc-quest-offer-desc {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .npc-quest-btn {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-bottom: 4px;
+    }
+    .npc-quest-accept {
+      background: #2ecc71;
+      color: #fff;
+    }
+    .npc-quest-accept:hover {
+      background: #27ae60;
+    }
+    .npc-quest-turnin {
+      background: #ffd700;
+      color: #1a1a2e;
+    }
+    .npc-quest-turnin:hover {
+      background: #ffcc00;
+    }
+    .npc-no-quests {
+      padding: 14px 16px;
+      text-align: center;
+      color: rgba(255,255,255,0.4);
+      font-size: 12px;
+    }
+
+    /* Skill Bar */
+    #skill-bar {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none; /* shown when HUD visible */
+      gap: 4px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 4px;
+      z-index: 10;
+    }
+    .skill-slot {
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 4px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.5);
+      font-size: 14px;
+    }
+    .skill-slot.active {
+      border-color: rgba(233,69,96,0.5);
+      color: #fff;
+    }
+    .skill-slot .keybind {
+      position: absolute;
+      top: 2px;
+      left: 4px;
+      font-size: 9px;
+      color: rgba(255,255,255,0.4);
+    }
+    .skill-slot.locked {
+      opacity: 0.3;
+    }
+
+    /* Settings Panel */
+    #settings-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 380px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: rgba(0,0,0,0.9);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 20px;
+      z-index: 70;
+      display: none;
+    }
+    #settings-panel.open { display: block; }
+    .settings-section { margin-bottom: 16px; }
+    .settings-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e94560;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .settings-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+    }
+    .settings-slider {
+      -webkit-appearance: none;
+      width: 150px;
+      height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      outline: none;
+    }
+    .settings-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #e94560;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .keybind-table {
+      width: 100%;
+      font-size: 11px;
+      border-collapse: collapse;
+    }
+    .keybind-table td {
+      padding: 4px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .keybind-table td:first-child {
+      color: rgba(255,255,255,0.5);
+      width: 120px;
+    }
   </style>
 </head>
 <body>
   <div id="game">
     <div id="ui-root">
+      <!-- Loading Screen -->
+      <div id="loading-screen">
+        <h1 style="font-size:48px; color:#e94560; font-weight:900; letter-spacing:4px; text-transform:uppercase; text-shadow:0 0 20px rgba(233,69,96,0.7); margin-bottom:30px;">MadWorld</h1>
+        <div class="loading-bar-container">
+          <div class="loading-bar-fill" id="loading-bar"></div>
+        </div>
+        <div class="loading-status" id="loading-status">Loading...</div>
+      </div>
+
       <!-- Login Screen -->
       <div id="login-screen">
         <div id="login-particles"></div>
@@ -633,6 +1023,18 @@
 
       <!-- Item Tooltip -->
       <div id="item-tooltip"></div>
+
+      <!-- Skill Bar -->
+      <div id="skill-bar"></div>
+
+      <!-- Quest Log -->
+      <div id="quest-log"></div>
+
+      <!-- NPC Dialog -->
+      <div id="npc-dialog"></div>
+
+      <!-- Settings Panel -->
+      <div id="settings-panel"></div>
 
       <!-- Version -->
       <div style="position:absolute; bottom:6px; right:10px; font-size:10px; color:rgba(255,255,255,0.15); pointer-events:none;">v0.1.0</div>

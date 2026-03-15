@@ -16,6 +16,7 @@ export * from "./constants/game.js";
 export * from "./constants/skills.js";
 export { ITEMS, getItem } from "./constants/items.js";
 export { MOBS } from "./constants/mobs.js";
+export { QUESTS } from "./constants/quests.js";
 
 // Formulas
 export * as combatFormulas from "./formulas/combat.js";

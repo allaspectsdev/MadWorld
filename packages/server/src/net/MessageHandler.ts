@@ -1,11 +1,13 @@
 import { Op, type ClientMessage, type ServerMessage, ITEMS, movementFormulas } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
 import { GroundItem } from "../game/entities/GroundItem.js";
+import { NPC } from "../game/entities/NPC.js";
 import { world } from "../game/World.js";
 import { partyManager } from "../game/PartyManager.js";
 import { verifyToken } from "../auth/jwt.js";
 import { loadPlayer } from "../services/PlayerService.js";
 import { savePlayer } from "../services/PlayerService.js";
+import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQuests, cleanupQuestState } from "../game/systems/QuestSystem.js";
 import type { ServerWebSocket } from "bun";
 
 export interface SocketData {
@@ -380,6 +382,38 @@ export async function handleMessage(
       break;
     }
 
+    case Op.C_NPC_INTERACT: {
+      const zone = world.getZone(player.zoneId);
+      if (!zone) break;
+      const target = zone.entities.get(msg.d.targetEid);
+      if (!target || !(target instanceof NPC)) break;
+      const dist = movementFormulas.distance(player.x, player.y, target.x, target.y);
+      if (dist > 2) break;
+
+      const { available, turnIn } = getAvailableQuests(player, target.quests);
+
+      player.send({
+        op: Op.S_NPC_DIALOG,
+        d: {
+          npcName: target.name,
+          dialog: target.dialog,
+          availableQuests: available,
+          turnInQuests: turnIn,
+        },
+      } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_QUEST_ACCEPT: {
+      acceptQuest(player, msg.d.questId);
+      break;
+    }
+
+    case Op.C_QUEST_TURN_IN: {
+      turnInQuest(player, msg.d.questId);
+      break;
+    }
+
     case Op.C_PING:
       ws.send(
         JSON.stringify({
@@ -479,6 +513,10 @@ async function handleAuth(
       } satisfies ServerMessage);
     }
 
+    // Initialize quest state and send quest list
+    initQuestState(player);
+    sendQuestList(player);
+
     // Welcome message
     ws.send(
       JSON.stringify({
@@ -498,6 +536,7 @@ export async function handleDisconnect(ws: GameWebSocket): Promise<void> {
   const player = ws.data.player;
   if (player) {
     player.ws = null;
+    cleanupQuestState(player.eid);
     if (player.partyId) {
       partyManager.leaveParty(player);
     }

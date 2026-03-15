@@ -19,7 +19,11 @@ import { PartyHUD } from "./ui/components/PartyHUD.js";
 import { PartyInviteModal } from "./ui/components/PartyInviteModal.js";
 import { ChatPanel } from "./ui/components/ChatPanel.js";
 import { InventoryPanel } from "./ui/components/InventoryPanel.js";
+import { QuestLog } from "./ui/components/QuestLog.js";
+import { NPCDialog } from "./ui/components/NPCDialog.js";
 import { AudioManager } from "./audio/AudioManager.js";
+import { SkillBar } from "./ui/components/SkillBar.js";
+import { SettingsPanel } from "./ui/components/SettingsPanel.js";
 
 export class Game {
   private app: Application;
@@ -41,6 +45,10 @@ export class Game {
   private chatPanel: ChatPanel;
   private inventoryPanel: InventoryPanel;
   private audio: AudioManager;
+  private skillBar: SkillBar;
+  private settingsPanel: SettingsPanel;
+  private questLog: QuestLog;
+  private npcDialog: NPCDialog;
 
   private isRegistering = false;
 
@@ -82,6 +90,10 @@ export class Game {
     this.partyInviteModal = new PartyInviteModal(this.socket);
     this.chatPanel = new ChatPanel(this.socket);
     this.inventoryPanel = new InventoryPanel(this.socket);
+    this.skillBar = new SkillBar();
+    this.settingsPanel = new SettingsPanel(this.audio, this.camera);
+    this.questLog = new QuestLog();
+    this.npcDialog = new NPCDialog(this.socket);
 
     // When chat is focused, disable movement input
     this.chatPanel.setOnFocusChange((focused) => {
@@ -111,6 +123,8 @@ export class Game {
     this.setupInputCallbacks();
     this.partyHUD.start();
     this.partyInviteModal.start();
+    this.questLog.start();
+    this.npcDialog.start();
 
     // Initialize audio on first user interaction
     const initAudio = () => {
@@ -138,6 +152,22 @@ export class Game {
         if (loginScreen && loginScreen.style.display !== "none") return;
         e.preventDefault();
         useGameStore.getState().toggleInventory();
+      }
+
+      // L key toggles quest log (only when chat is not focused)
+      if ((e.key === "l" || e.key === "L") && !useGameStore.getState().chatOpen) {
+        const loginScreen = document.getElementById("login-screen");
+        if (loginScreen && loginScreen.style.display !== "none") return;
+        e.preventDefault();
+        useGameStore.getState().toggleQuestLog();
+      }
+
+      // Escape key toggles settings panel
+      if (e.key === "Escape") {
+        const loginScreen = document.getElementById("login-screen");
+        if (loginScreen && loginScreen.style.display !== "none") return;
+        e.preventDefault();
+        this.settingsPanel.toggle();
       }
     });
 
@@ -214,6 +244,9 @@ export class Game {
         x: lp.x + move.dx * PLAYER_SPEED * dt,
         y: lp.y + move.dy * PLAYER_SPEED * dt,
       });
+      this.camera.setMovementLead(move.dx, move.dy);
+    } else {
+      this.camera.setMovementLead(0, 0);
     }
 
     const current = useGameStore.getState().localPlayer;
@@ -272,6 +305,15 @@ export class Game {
 
   private setupInputCallbacks(): void {
     this.input.onAttack = (eid: number) => {
+      const entity = useGameStore.getState().entities.get(eid);
+      if (entity && entity.type === EntityType.NPC) {
+        // NPC interaction instead of attack
+        this.socket.send({
+          op: Op.C_NPC_INTERACT,
+          d: { targetEid: eid },
+        } as ClientMessage);
+        return;
+      }
       this.socket.send({
         op: Op.C_ATTACK,
         d: { targetEid: eid },
@@ -340,6 +382,7 @@ export class Game {
         useGameStore.getState().setToken(data.token);
         document.getElementById("login-screen")!.style.display = "none";
         document.getElementById("hud")!.style.display = "flex";
+        document.getElementById("skill-bar")!.style.display = "flex";
 
         // Resume audio context now that we have a user gesture
         this.audio.resume();

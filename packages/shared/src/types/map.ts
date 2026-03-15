@@ -41,6 +41,7 @@ export interface ZoneDef {
   spawnY: number;
   portals: Portal[];
   mobSpawns: MobSpawn[];
+  npcSpawns?: NpcSpawn[];
   lights?: LightDef[];
 }
 
@@ -59,6 +60,15 @@ export interface MobSpawn {
   y: number;
   count: number;
   wanderRadius: number;
+}
+
+export interface NpcSpawn {
+  npcId: string;
+  name: string;
+  x: number;
+  y: number;
+  dialog: string;
+  quests?: string[];
 }
 
 export interface ChunkCoord {

@@ -250,6 +250,42 @@ export interface S_BossAbility {
   radius: number;
 }
 
+// ---- NPC / Quest Payloads ----
+
+export interface C_NpcInteract {
+  targetEid: number;
+}
+
+export interface C_QuestAccept {
+  questId: string;
+}
+
+export interface C_QuestTurnIn {
+  questId: string;
+}
+
+export interface S_NpcDialog {
+  npcName: string;
+  dialog: string;
+  availableQuests: string[];
+  turnInQuests: string[];
+}
+
+export interface S_QuestUpdate {
+  questId: string;
+  stepIndex: number;
+  progress: Record<string, number>;
+}
+
+export interface S_QuestComplete {
+  questId: string;
+}
+
+export interface S_QuestList {
+  active: { questId: string; stepIndex: number; progress: Record<string, number> }[];
+  completed: string[];
+}
+
 // ---- Discriminated Unions ----
 
 export type ClientMessage =
@@ -279,6 +315,9 @@ export type ClientMessage =
   | { op: Op.C_PARTY_LEAVE; d: Record<string, never> }
   | { op: Op.C_PARTY_KICK; d: C_PartyKick }
   | { op: Op.C_DUNGEON_ENTER; d: C_DungeonEnter }
+  | { op: Op.C_NPC_INTERACT; d: C_NpcInteract }
+  | { op: Op.C_QUEST_ACCEPT; d: C_QuestAccept }
+  | { op: Op.C_QUEST_TURN_IN; d: C_QuestTurnIn }
   | { op: Op.C_PING; d: { t: number } };
 
 export type ServerMessage =
@@ -308,5 +347,9 @@ export type ServerMessage =
   | { op: Op.S_DUNGEON_WIPE; d: S_DungeonWipe }
   | { op: Op.S_DUNGEON_EXIT; d: S_DungeonExit }
   | { op: Op.S_BOSS_ABILITY; d: S_BossAbility }
+  | { op: Op.S_NPC_DIALOG; d: S_NpcDialog }
+  | { op: Op.S_QUEST_UPDATE; d: S_QuestUpdate }
+  | { op: Op.S_QUEST_COMPLETE; d: S_QuestComplete }
+  | { op: Op.S_QUEST_LIST; d: S_QuestList }
   | { op: Op.S_TICK; d: S_Tick }
   | { op: Op.S_PONG; d: S_Pong };
