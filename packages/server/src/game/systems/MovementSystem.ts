@@ -20,8 +20,10 @@ export function processMovement(): void {
     const newX = player.x + move.dx * player.speed * dt;
     const newY = player.y + move.dy * player.speed * dt;
 
-    // Check walkability
-    if (!movementFormulas.isWalkable(zone.def, newX, newY)) {
+    // Check walkability — but if player is currently stuck in a non-walkable tile,
+    // allow movement to escape (don't trap them forever)
+    const currentlyStuck = !movementFormulas.isWalkable(zone.def, player.x, player.y);
+    if (!currentlyStuck && !movementFormulas.isWalkable(zone.def, newX, newY)) {
       // Send correction back
       player.send({
         op: Op.S_ENTITY_MOVE,

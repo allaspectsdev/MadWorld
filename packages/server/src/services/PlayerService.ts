@@ -2,7 +2,8 @@ import { db } from "../db/index.js";
 import { players, skills, inventory, equipment } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { Player } from "../game/entities/Player.js";
-import { type SkillName, type Appearance, levelForXp } from "@madworld/shared";
+import { type SkillName, type Appearance, levelForXp, movementFormulas } from "@madworld/shared";
+import { ZONE_DEFS } from "../game/data/zones/index.js";
 
 export async function loadPlayer(userId: number): Promise<Player | null> {
   const [row] = await db
@@ -13,13 +14,34 @@ export async function loadPlayer(userId: number): Promise<Player | null> {
 
   if (!row) return null;
 
+  // Validate saved position — if stuck in non-walkable tile, reset to zone spawn
+  let posX = row.posX;
+  let posY = row.posY;
+  let zoneId = row.zoneId;
+
+  const zoneDef = ZONE_DEFS.find((z) => z.id === zoneId);
+  if (zoneDef) {
+    if (!movementFormulas.isWalkable(zoneDef, posX, posY)) {
+      console.log(`[PlayerService] Player ${row.name} stuck at (${posX},${posY}) in ${zoneId}, resetting to spawn`);
+      posX = zoneDef.spawnX;
+      posY = zoneDef.spawnY;
+    }
+  } else {
+    // Zone doesn't exist (maybe a dungeon instance that's gone) — reset to default
+    console.log(`[PlayerService] Player ${row.name} in unknown zone ${zoneId}, resetting to greendale`);
+    const defaultZone = ZONE_DEFS[0];
+    zoneId = defaultZone.id;
+    posX = defaultZone.spawnX;
+    posY = defaultZone.spawnY;
+  }
+
   const player = new Player(
     row.id,
     userId,
     row.name,
-    row.zoneId,
-    row.posX,
-    row.posY,
+    zoneId,
+    posX,
+    posY,
     row.currentHp,
     row.maxHp,
     (row.appearance as Appearance) ?? { hairStyle: 0, hairColor: 0, skinColor: 0, shirtColor: 0 },
