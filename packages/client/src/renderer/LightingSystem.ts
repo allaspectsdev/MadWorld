@@ -18,6 +18,9 @@ export class LightingSystem {
   private lightMapTexture: RenderTexture;
   private lightMapGraphics: Graphics;
   private overlay: Sprite;
+  private glowMapTexture: RenderTexture;
+  private glowMapGraphics: Graphics;
+  private glowOverlay: Sprite;
   private timer = 0;
 
   // Static zone lights (torches, campfires)
@@ -54,6 +57,15 @@ export class LightingSystem {
     this.overlay.blendMode = "multiply";
     this.overlay.eventMode = "none";
     app.stage.addChild(this.overlay);
+
+    this.glowMapTexture = RenderTexture.create({ width: lmW, height: lmH });
+    this.glowMapGraphics = new Graphics();
+    this.glowOverlay = new Sprite(this.glowMapTexture);
+    this.glowOverlay.width = this.screenW;
+    this.glowOverlay.height = this.screenH;
+    this.glowOverlay.blendMode = "add";
+    this.glowOverlay.eventMode = "none";
+    app.stage.addChild(this.glowOverlay);
   }
 
   setZoneLights(lights: LightSource[]): void {
@@ -76,6 +88,10 @@ export class LightingSystem {
     this.lightMapTexture.resize(lmW, lmH);
     this.overlay.width = this.screenW;
     this.overlay.height = this.screenH;
+
+    this.glowMapTexture.resize(lmW, lmH);
+    this.glowOverlay.width = this.screenW;
+    this.glowOverlay.height = this.screenH;
   }
 
   update(dt: number, playerWorldX: number, playerWorldY: number): void {
@@ -147,12 +163,54 @@ export class LightingSystem {
       target: this.lightMapTexture,
       clear: true,
     });
+
+    // Render additive glow layer
+    const gg = this.glowMapGraphics;
+    gg.clear();
+
+    // Transparent base (glow only where lights are)
+    gg.rect(0, 0, lmW, lmH);
+    gg.fill({ color: 0x000000, alpha: 0 });
+
+    const glowIntensity = ambient.isNight ? 0.4 : 0.05;
+    for (const light of allLights) {
+      const screenPos = this.worldToLightMap(light.x, light.y);
+      const radiusPx = light.radius * TILE_SIZE * this.camZoom * LIGHT_MAP_SCALE;
+      if (
+        screenPos.x < -radiusPx || screenPos.x > lmW + radiusPx ||
+        screenPos.y < -radiusPx || screenPos.y > lmH + radiusPx
+      ) continue;
+
+      let gi = light.intensity * glowIntensity;
+      if (light.flicker) {
+        gi *= 0.85 + Math.random() * 0.15;
+      }
+
+      // Soft glow circles using light's own color
+      const glowColor = light.color === 0xffffff ? 0xffeedd : light.color;
+      gg.circle(screenPos.x, screenPos.y, radiusPx * 0.8);
+      gg.fill({ color: glowColor, alpha: gi * 0.15 });
+      gg.circle(screenPos.x, screenPos.y, radiusPx * 0.4);
+      gg.fill({ color: glowColor, alpha: gi * 0.25 });
+      gg.circle(screenPos.x, screenPos.y, radiusPx * 0.15);
+      gg.fill({ color: 0xffffff, alpha: gi * 0.1 });
+    }
+
+    this.app.renderer.render({
+      container: gg,
+      target: this.glowMapTexture,
+      clear: true,
+    });
   }
 
   /** Returns true if the day/night cycle is currently in the night phase. */
   isNight(): boolean {
     const minuteInCycle = this.timer / 60; // 0-24
     return minuteInCycle >= 15;
+  }
+
+  getTimeOfDay(): number {
+    return (this.timer / 60) % 24;
   }
 
   /** Add a temporary dynamic light (boss aura, spell, etc.) */

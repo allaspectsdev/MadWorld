@@ -87,6 +87,7 @@ export interface S_EntitySpawn {
   maxHp?: number;
   level?: number;
   isGod?: boolean;
+  equipment?: Record<string, string>;
 }
 
 export interface C_GodTeleport {

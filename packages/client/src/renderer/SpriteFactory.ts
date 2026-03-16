@@ -19,10 +19,11 @@ export function getEntityTexture(
   type: EntityType,
   name?: string,
   appearance?: Appearance,
+  equipment?: Record<string, string>,
 ): Texture {
   switch (type) {
     case EntityType.PLAYER:
-      return getPlayerTexture(appearance);
+      return getPlayerTexture(appearance, equipment);
     case EntityType.MOB:
       return getMobTexture(name ?? "Unknown");
     case EntityType.NPC:

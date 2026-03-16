@@ -11,6 +11,7 @@ import { ChatBubbleRenderer } from "./renderer/ChatBubbleRenderer.js";
 import { ParticleSystem } from "./renderer/ParticleSystem.js";
 import { ScreenEffects } from "./renderer/ScreenEffects.js";
 import { LightingSystem } from "./renderer/LightingSystem.js";
+import { SkyRenderer } from "./renderer/SkyRenderer.js";
 import { AmbientParticles } from "./renderer/AmbientParticles.js";
 import { TelegraphRenderer } from "./renderer/TelegraphRenderer.js";
 import { DecorationRenderer } from "./renderer/DecorationRenderer.js";
@@ -58,6 +59,7 @@ export class Game {
   private questLog: QuestLog;
   private npcDialog: NPCDialog;
   private colorGrading: ColorMatrixFilter;
+  private sky: SkyRenderer;
 
   private isRegistering = false;
   private currentTarget: number | null = null;
@@ -82,6 +84,7 @@ export class Game {
     this.particles.init();
     this.screenEffects = new ScreenEffects(app);
     this.lighting = new LightingSystem(app);
+    this.sky = new SkyRenderer(app.screen.width, app.screen.height);
     this.ambientParticles = new AmbientParticles(this.particles);
     this.ambientParticles.onLightning = () => this.screenEffects.flashLightning();
     this.telegraphs = new TelegraphRenderer();
@@ -133,6 +136,7 @@ export class Game {
     this.camera.container.addChild(this.hitSplats.container);
     this.camera.container.addChild(this.chatBubbles.container);
     this.entities.container.sortableChildren = true;
+    app.stage.addChildAt(this.sky.container, 0);
     app.stage.addChild(this.camera.container);
     this.colorGrading = new ColorMatrixFilter();
     this.camera.container.filters = [this.colorGrading];
@@ -313,6 +317,7 @@ export class Game {
     window.addEventListener("resize", () => {
       this.camera.setScreenSize(window.innerWidth, window.innerHeight);
       this.lighting.resize();
+      this.sky.resize(this.app.screen.width, this.app.screen.height);
     });
   }
 
@@ -454,6 +459,7 @@ export class Game {
     // Lighting system
     this.lighting.setCamera(current.x, current.y, this.camera.zoom);
     this.lighting.update(dt, current.x, current.y);
+    this.sky.update(dt, this.lighting.getTimeOfDay(), current.x, current.y);
     this.ambientParticles.isNight = this.lighting.isNight();
 
     // Skill bar cooldown ticking

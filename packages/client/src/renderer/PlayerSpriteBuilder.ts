@@ -11,8 +11,9 @@ const H = 36;
 
 const cache = new Map<string, Texture>();
 
-function cacheKey(a: Appearance): string {
-  return `${a.hairStyle}_${a.hairColor}_${a.skinColor}_${a.shirtColor}`;
+function cacheKey(a: Appearance, equip?: Record<string, string>): string {
+  const equipStr = equip ? Object.entries(equip).sort().map(([k,v]) => `${k}:${v}`).join(',') : '';
+  return `${a.hairStyle}_${a.hairColor}_${a.skinColor}_${a.shirtColor}_${equipStr}`;
 }
 
 function darken(color: number, amount: number): number {
@@ -29,7 +30,7 @@ function lighten(color: number, amount: number): number {
   return (r << 16) | (g << 8) | b;
 }
 
-function drawPlayer(g: Graphics, a: Appearance): void {
+function drawPlayer(g: Graphics, a: Appearance, equip?: Record<string, string>): void {
   const skin = SKIN_COLORS[a.skinColor % SKIN_COLORS.length];
   const hair = HAIR_COLORS[a.hairColor % HAIR_COLORS.length];
   const shirt = SHIRT_COLORS[a.shirtColor % SHIRT_COLORS.length];
@@ -275,16 +276,118 @@ function drawPlayer(g: Graphics, a: Appearance): void {
       g.stroke({ width: 0.3, color: hairLight, alpha: 0.08 });
       break;
   }
+
+  // Equipment overlays
+  if (equip) {
+    // Chest armor changes shirt color overlay
+    if (equip.chest) {
+      const armorColors: Record<string, number> = {
+        leather_chest: 0x6b4226,
+        chain_mail: 0x888888,
+        iron_plate: 0x666666,
+        drake_plate: 0x882222,
+      };
+      const armorColor = armorColors[equip.chest];
+      if (armorColor) {
+        // Armor overlay on torso
+        g.moveTo(7, 14);
+        g.lineTo(21, 14);
+        g.lineTo(20, 25);
+        g.lineTo(8, 25);
+        g.closePath();
+        g.fill({ color: armorColor, alpha: 0.7 });
+        // Shoulder pads
+        g.ellipse(7, 15, 3, 2);
+        g.fill({ color: armorColor, alpha: 0.6 });
+        g.ellipse(21, 15, 3, 2);
+        g.fill({ color: armorColor, alpha: 0.6 });
+      }
+    }
+
+    // Helmet
+    if (equip.head) {
+      const helmColors: Record<string, { color: number; hasNoseGuard?: boolean; hasHorns?: boolean }> = {
+        leather_cap: { color: 0x6b4226 },
+        iron_helm: { color: 0x777777, hasNoseGuard: true },
+        dragon_helm: { color: 0x882222, hasHorns: true },
+      };
+      const helm = helmColors[equip.head];
+      if (helm) {
+        // Helmet dome over head
+        g.arc(W / 2, 8, 6.5, Math.PI, 0);
+        g.fill(helm.color);
+        if (helm.hasNoseGuard) {
+          g.rect(13, 6, 2, 5);
+          g.fill({ color: helm.color, alpha: 0.8 });
+        }
+        if (helm.hasHorns) {
+          g.moveTo(9, 4); g.lineTo(7, 0); g.lineTo(11, 4);
+          g.fill(0x661111);
+          g.moveTo(17, 4); g.lineTo(21, 0); g.lineTo(19, 4);
+          g.fill(0x661111);
+        }
+      }
+    }
+
+    // Weapon (right hand)
+    if (equip.weapon) {
+      const isAxe = equip.weapon.includes('axe');
+      const isBow = equip.weapon.includes('bow');
+      if (isBow) {
+        // Bow arc
+        g.moveTo(23, 16);
+        g.bezierCurveTo(26, 19, 26, 24, 23, 27);
+        g.stroke({ width: 1.5, color: 0x8b6914 });
+        g.moveTo(23, 16); g.lineTo(23, 27);
+        g.stroke({ width: 0.5, color: 0xcccccc });
+      } else if (isAxe) {
+        // Axe handle + head
+        g.rect(23, 14, 1.5, 12);
+        g.fill(0x5c3a1e);
+        g.moveTo(22, 14); g.lineTo(26, 12); g.lineTo(26, 17); g.lineTo(22, 15);
+        g.fill(0x888888);
+      } else {
+        // Sword
+        g.rect(23, 12, 1.5, 12);
+        g.fill(0xaaaaaa);
+        g.rect(21, 11, 6, 1.5);
+        g.fill(0x8b6914);
+        // Blade highlight
+        g.rect(23.5, 13, 0.5, 10);
+        g.fill({ color: 0xffffff, alpha: 0.3 });
+      }
+    }
+
+    // Shield (left arm)
+    if (equip.shield) {
+      g.roundRect(1, 17, 5, 7, 1.5);
+      g.fill(0x666666);
+      g.roundRect(1, 17, 5, 7, 1.5);
+      g.stroke({ width: 0.5, color: 0x444444 });
+      // Shield emblem
+      g.rect(3, 18, 1, 4);
+      g.fill(0xccaa44);
+    }
+
+    // Boots
+    if (equip.feet) {
+      const bootColor = equip.feet.includes('iron') ? 0x555555 : 0x4a3a2a;
+      g.roundRect(8, H - 5, 4, 3, 1);
+      g.fill(bootColor);
+      g.roundRect(16, H - 5, 4, 3, 1);
+      g.fill(bootColor);
+    }
+  }
 }
 
-export function getPlayerTexture(appearance?: Appearance): Texture {
+export function getPlayerTexture(appearance?: Appearance, equipment?: Record<string, string>): Texture {
   const a = appearance ?? { hairStyle: 0, hairColor: 0, skinColor: 0, shirtColor: 0 };
-  const key = cacheKey(a);
+  const key = cacheKey(a, equipment);
 
   if (cache.has(key)) return cache.get(key)!;
 
   const g = new Graphics();
-  drawPlayer(g, a);
+  drawPlayer(g, a, equipment);
   const tex = TextureFactory.generate(g, W, H);
   cache.set(key, tex);
   return tex;

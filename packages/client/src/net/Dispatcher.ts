@@ -125,6 +125,7 @@ export class Dispatcher {
           maxHp: msg.d.maxHp,
           level: msg.d.level,
           isGod: msg.d.isGod,
+          equipment: msg.d.equipment,
           prevX: msg.d.x,
           prevY: msg.d.y,
           prevTime: now,

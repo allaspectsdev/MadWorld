@@ -213,9 +213,9 @@ export class TilemapRenderer {
   update(dt: number): void {
     // Animate water/portals
     this.animTimer += dt;
-    if (this.animTimer >= 0.8) {
-      this.animTimer -= 0.8;
-      this.animFrame = (this.animFrame + 1) % 3;
+    if (this.animTimer >= 0.5) {
+      this.animTimer -= 0.5;
+      this.animFrame = (this.animFrame + 1) % 6;
 
       for (const ts of this.animatedTiles) {
         if (!ts.textureSet.frames) continue;

@@ -18,6 +18,7 @@ export interface RemoteEntity {
   maxHp?: number;
   level?: number;
   isGod?: boolean;
+  equipment?: Record<string, string>;
   // Interpolation state
   prevX: number;
   prevY: number;

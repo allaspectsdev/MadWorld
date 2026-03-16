@@ -432,7 +432,7 @@ export class EntityRenderer {
     cont.addChild(shadow);
 
     // Main sprite — explicitly sized to fit the tile grid
-    const texture = getEntityTexture(type, name, data?.appearance);
+    const texture = getEntityTexture(type, name, data?.appearance, data?.equipment);
     const mainSprite = new Sprite(texture);
     mainSprite.anchor.set(0.5, 0.5);
 

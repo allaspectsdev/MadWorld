@@ -143,7 +143,7 @@ function drawGrass(variant: number): Texture {
 }
 
 // ---------------------------------------------------------------------------
-// WATER — 3 frames (animated)
+// WATER — 6 frames (animated)
 // ---------------------------------------------------------------------------
 function drawWater(frame: number): Texture {
   const g = new Graphics();
@@ -167,17 +167,17 @@ function drawWater(frame: number): Texture {
   g.fill({ color: 0x0a2a4a, alpha: 0.15 });
 
   // Phase shift between frames
-  const phaseShift = 2.1;
+  const phaseShift = 1.05;
   const phase = frame * phaseShift;
 
   // 4-6 wave caustic bezier curves
   for (let i = 0; i < 5; i++) {
     const baseY = 3 + i * 6;
-    g.moveTo(0, baseY + Math.sin(phase + i * 0.8) * 2);
+    g.moveTo(0, baseY + Math.sin(phase + i * 0.8) * 2.5);
     g.bezierCurveTo(
-      S * 0.25, baseY + Math.sin(phase + i * 0.8 + 1.0) * 3,
-      S * 0.75, baseY + Math.sin(phase + i * 0.8 + 2.0) * 3,
-      S, baseY + Math.sin(phase + i * 0.8 + 3.0) * 2
+      S * 0.25, baseY + Math.sin(phase + i * 0.8 + 1.0) * 3.5,
+      S * 0.75, baseY + Math.sin(phase + i * 0.8 + 2.0) * 3.5,
+      S, baseY + Math.sin(phase + i * 0.8 + 3.0) * 2.5
     );
     g.stroke({ width: 1.5, color: 0x6ab0d8, alpha: 0.12 });
   }
@@ -1052,7 +1052,7 @@ export function generateTileTextures(): void {
 
   for (const [type, drawFn] of animatedTiles) {
     const frames: Texture[][] = [];
-    for (let f = 0; f < 3; f++) {
+    for (let f = 0; f < 6; f++) {
       frames.push([drawFn(f)]);
     }
     tileSets.set(type, { variants: frames[0], frames });
