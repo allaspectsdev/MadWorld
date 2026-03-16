@@ -150,6 +150,13 @@ export async function handleMessage(
       if (message.length < 1 || message.length > 200) break;
 
       player.lastChatTime = now;
+
+      // God admin commands
+      if (message.startsWith("/") && player.isGod) {
+        handleGodCommand(player, message);
+        break;
+      }
+
       const channel = msg.d.channel ?? "zone";
       const chatMsg = {
         op: Op.S_CHAT_MESSAGE,
@@ -903,6 +910,121 @@ export async function handleMessage(
     default:
       // Unknown or unimplemented opcode
       break;
+  }
+}
+
+function giveItem(player: Player, itemId: string, quantity: number): boolean {
+  const itemDef = ITEMS[itemId];
+  if (!itemDef) return false;
+
+  let slotIndex = -1;
+  if (itemDef.stackable) {
+    for (let i = 0; i < player.inventory.length; i++) {
+      const slot = player.inventory[i];
+      if (slot && slot.itemId === itemId && slot.quantity < itemDef.maxStack) {
+        slotIndex = i;
+        break;
+      }
+    }
+  }
+  if (slotIndex === -1) {
+    slotIndex = player.inventory.indexOf(null);
+  }
+  if (slotIndex === -1) return false;
+
+  const existing = player.inventory[slotIndex];
+  if (existing && existing.itemId === itemId) {
+    existing.quantity = Math.min(existing.quantity + quantity, itemDef.maxStack);
+  } else {
+    player.inventory[slotIndex] = { itemId, quantity };
+  }
+
+  player.send({
+    op: Op.S_INV_UPDATE,
+    d: { slots: [{ index: slotIndex, itemId: player.inventory[slotIndex]!.itemId, quantity: player.inventory[slotIndex]!.quantity }] },
+  } satisfies ServerMessage);
+  player.dirty = true;
+  return true;
+}
+
+function handleGodCommand(player: Player, command: string): void {
+  const parts = command.slice(1).split(" ");
+  const cmd = parts[0]?.toLowerCase();
+  const args = parts.slice(1);
+
+  switch (cmd) {
+    case "give": {
+      const itemId = args[0];
+      const quantity = parseInt(args[1] ?? "1", 10) || 1;
+      if (!itemId || !ITEMS[itemId]) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Unknown item: ${itemId}. Use /items to list.` } } satisfies ServerMessage);
+        break;
+      }
+      const result = giveItem(player, itemId, quantity);
+      if (result) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Spawned ${quantity}x ${ITEMS[itemId].name}` } } satisfies ServerMessage);
+      } else {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Inventory full" } } satisfies ServerMessage);
+      }
+      break;
+    }
+
+    case "items": {
+      const filter = args[0]?.toLowerCase();
+      const entries = Object.values(ITEMS)
+        .filter((item: any) => !filter || item.category === filter || item.id.includes(filter))
+        .slice(0, 20);
+      const list = entries.map((i: any) => `${i.id} (${i.category}, ${i.rarity})`).join(", ");
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Items: ${list}` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "spawn": {
+      const npcName = args[0]?.replace(/_/g, " ");
+      if (!npcName) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Usage: /spawn <NPC_Name> [dialog text]" } } satisfies ServerMessage);
+        break;
+      }
+      const dialog = args.slice(1).join(" ") || "...";
+      const zone = world.getZone(player.zoneId);
+      if (!zone) break;
+      const npc = new NPC(`god_npc_${Date.now()}`, npcName, dialog, [], player.zoneId, player.x, player.y);
+      zone.addEntity(npc);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Spawned NPC "${npcName}"` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "heal": {
+      player.hp = player.maxHp;
+      player.dirty = true;
+      player.send({ op: Op.S_PLAYER_STATS, d: { hp: player.hp, maxHp: player.maxHp, level: 1 } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Fully healed" } } satisfies ServerMessage);
+      break;
+    }
+
+    case "kill": {
+      const zone = world.getZone(player.zoneId);
+      if (!zone) break;
+      let count = 0;
+      for (const [, mob] of zone.mobs) {
+        const dist = movementFormulas.distance(player.x, player.y, mob.x, mob.y);
+        if (dist <= 5 && mob.aiState !== AIState.DEAD) {
+          mob.hp = 0;
+          handleMobDeath(mob, player, zone);
+          count++;
+        }
+      }
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Killed ${count} nearby mobs` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "help": {
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "God commands: /give <item> [qty], /items [filter], /spawn <Name> [dialog], /heal, /kill, /help" } } satisfies ServerMessage);
+      break;
+    }
+
+    default:
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Unknown command: /${cmd}. Type /help for list.` } } satisfies ServerMessage);
   }
 }
 

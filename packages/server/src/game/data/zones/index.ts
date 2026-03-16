@@ -365,6 +365,11 @@ function createDarkwood(): ZoneDef {
       { mobId: "goblin", x: 40, y: 50, count: 3, wanderRadius: 5 },
       { mobId: "forest_spider", x: 12, y: 58, count: 2, wanderRadius: 3 },
     ],
+    npcSpawns: [
+      { npcId: "hermit", name: "Hermit Greybeard", x: 40, y: 40, dialog: "I've lived in these woods for decades... The goblins are getting bolder.", quests: [] },
+      { npcId: "wounded_scout", name: "Wounded Scout", x: 20, y: 30, dialog: "The spider nest... it's deeper than we thought. Be careful in there.", quests: [] },
+      { npcId: "forest_spirit", name: "Forest Spirit", x: 55, y: 15, dialog: "The trees whisper of an ancient evil stirring beneath the earth...", quests: [] },
+    ],
     lights: [
       // Mysterious clearing glow
       { x: 14, y: 59, radius: 4, color: 0x44ff88 },
@@ -484,6 +489,11 @@ function createFields(): ZoneDef {
       { mobId: "chicken", x: 10, y: 42, count: 5, wanderRadius: 4 },
       { mobId: "cow", x: 45, y: 35, count: 3, wanderRadius: 5 },
     ],
+    npcSpawns: [
+      { npcId: "traveling_merchant", name: "Traveling Merchant", x: 30, y: 25, dialog: "Fine wares for sale! I've come all the way from the capital.", quests: [] },
+      { npcId: "shepherd", name: "Shepherd Boy", x: 45, y: 15, dialog: "Have you seen my lost sheep? They wandered toward the river.", quests: [] },
+      { npcId: "bridge_keeper", name: "Bridge Keeper", x: 30, y: 30, dialog: "This bridge has stood for a hundred years. I aim to keep it standing.", quests: [] },
+    ],
     lights: [
       // Portal back to Greendale
       { x: 0, y: 29, radius: 4, color: 0x9b59b6 },
@@ -583,6 +593,8 @@ function createScorchedHighlands(): ZoneDef {
     ],
     npcSpawns: [
       { npcId: "scout_ember", name: "Scout Ember", x: 12, y: 57, dialog: "The highlands are treacherous. The Dragon's Lair is to the north — only the bravest dare enter.", quests: ["highland_patrol", "lava_beetles", "dragon_lair_key", "slay_the_drake"] },
+      { npcId: "lava_researcher", name: "Lava Researcher", x: 45, y: 35, dialog: "The volcanic activity is increasing. Something stirs deep below...", quests: [] },
+      { npcId: "scorched_survivor", name: "Scorched Survivor", x: 20, y: 50, dialog: "I barely escaped the last eruption. Don't stay too long.", quests: [] },
     ],
     lights: [
       // Red lava glow around lake
@@ -686,6 +698,8 @@ function createFrozenWastes(): ZoneDef {
     ],
     npcSpawns: [
       { npcId: "ranger_frost", name: "Ranger Frost", x: 17, y: 52, dialog: "The Dragon's Lair lies beyond the frozen lake. Its minions have been terrorizing this land.", quests: ["frozen_hunt", "crystal_shards"] },
+      { npcId: "ice_scholar", name: "Ice Scholar", x: 50, y: 30, dialog: "These crystals contain ancient magic. The Yeti guards them jealously.", quests: [] },
+      { npcId: "stranded_explorer", name: "Stranded Explorer", x: 25, y: 45, dialog: "My expedition was wiped out by the frost wolves. Please, help me.", quests: [] },
     ],
     lights: [
       // Blue-white lights around frozen lake

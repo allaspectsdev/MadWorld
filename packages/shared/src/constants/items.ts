@@ -388,6 +388,36 @@ export const ITEMS: Record<string, ItemDef> = {
     rarity: Rarity.COMMON,
     value: 1,
   },
+
+  // --- Tier 2 Weapons ---
+  iron_axe: { id: "iron_axe", name: "Iron Axe", description: "A sturdy axe forged from iron.", category: ItemCategory.WEAPON, stackable: false, maxStack: 1, equipSlot: EquipSlot.WEAPON, stats: { attack: 15 }, rarity: Rarity.COMMON, levelReq: { [SkillName.MELEE]: 8 }, value: 80 },
+  steel_mace: { id: "steel_mace", name: "Steel Mace", description: "A heavy mace that packs a punch.", category: ItemCategory.WEAPON, stackable: false, maxStack: 1, equipSlot: EquipSlot.WEAPON, stats: { attack: 20 }, rarity: Rarity.UNCOMMON, levelReq: { [SkillName.MELEE]: 15 }, value: 200 },
+  crystal_staff: { id: "crystal_staff", name: "Crystal Staff", description: "A staff imbued with crystalline energy.", category: ItemCategory.WEAPON, stackable: false, maxStack: 1, equipSlot: EquipSlot.WEAPON, stats: { attack: 18, rangedAttack: 12 }, rarity: Rarity.RARE, levelReq: { [SkillName.MELEE]: 12 }, value: 400 },
+  frost_blade: { id: "frost_blade", name: "Frost Blade", description: "A sword cold to the touch, forged in the Frozen Wastes.", category: ItemCategory.WEAPON, stackable: false, maxStack: 1, equipSlot: EquipSlot.WEAPON, stats: { attack: 28 }, rarity: Rarity.RARE, levelReq: { [SkillName.MELEE]: 18 }, value: 600 },
+  inferno_axe: { id: "inferno_axe", name: "Inferno Axe", description: "An axe that burns with eternal flame.", category: ItemCategory.WEAPON, stackable: false, maxStack: 1, equipSlot: EquipSlot.WEAPON, stats: { attack: 35 }, rarity: Rarity.EPIC, levelReq: { [SkillName.MELEE]: 22 }, value: 1000 },
+  shadow_dagger: { id: "shadow_dagger", name: "Shadow Dagger", description: "A dagger that seems to bend light around it.", category: ItemCategory.WEAPON, stackable: false, maxStack: 1, equipSlot: EquipSlot.WEAPON, stats: { attack: 25, speed: 2 }, rarity: Rarity.EPIC, levelReq: { [SkillName.MELEE]: 20 }, value: 900 },
+
+  // --- Tier 2 Armor ---
+  chain_legs: { id: "chain_legs", name: "Chain Leggings", description: "Linked chain protects the legs.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.LEGS, stats: { defense: 8 }, rarity: Rarity.COMMON, levelReq: { [SkillName.DEFENSE]: 5 }, value: 60 },
+  iron_boots: { id: "iron_boots", name: "Iron Boots", description: "Heavy but protective iron boots.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.FEET, stats: { defense: 5 }, rarity: Rarity.COMMON, levelReq: { [SkillName.DEFENSE]: 5 }, value: 50 },
+  steel_helm: { id: "steel_helm", name: "Steel Helm", description: "A full steel helmet with cheek guards.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.HEAD, stats: { defense: 12 }, rarity: Rarity.UNCOMMON, levelReq: { [SkillName.DEFENSE]: 12 }, value: 200 },
+  steel_plate: { id: "steel_plate", name: "Steel Platebody", description: "Full plate armor of tempered steel.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.CHEST, stats: { defense: 22 }, rarity: Rarity.UNCOMMON, levelReq: { [SkillName.DEFENSE]: 15 }, value: 400 },
+  crystal_shield: { id: "crystal_shield", name: "Crystal Shield", description: "A translucent shield humming with energy.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.SHIELD, stats: { defense: 15 }, rarity: Rarity.RARE, levelReq: { [SkillName.DEFENSE]: 15 }, value: 500 },
+  frost_armor: { id: "frost_armor", name: "Frost Armor", description: "Armor forged from enchanted ice that never melts.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.CHEST, stats: { defense: 28, hp: 15 }, rarity: Rarity.RARE, levelReq: { [SkillName.DEFENSE]: 20 }, value: 800 },
+  shadow_cloak: { id: "shadow_cloak", name: "Shadow Cloak", description: "A cloak woven from shadows. Grants swiftness.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.CHEST, stats: { defense: 10, speed: 3 }, rarity: Rarity.EPIC, levelReq: { [SkillName.DEFENSE]: 18 }, value: 750 },
+  dragon_helm: { id: "dragon_helm", name: "Dragon Helm", description: "A fearsome helm crafted from dragon bone.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.HEAD, stats: { defense: 20, hp: 25 }, rarity: Rarity.EPIC, levelReq: { [SkillName.DEFENSE]: 25 }, value: 1200 },
+
+  // --- Better Consumables ---
+  cooked_salmon: { id: "cooked_salmon", name: "Cooked Salmon", description: "A hearty salmon fillet.", category: ItemCategory.CONSUMABLE, stackable: true, maxStack: 99, rarity: Rarity.COMMON, value: 15, healAmount: 40 },
+  meat_pie: { id: "meat_pie", name: "Meat Pie", description: "A savory pie packed with protein.", category: ItemCategory.CONSUMABLE, stackable: true, maxStack: 99, rarity: Rarity.UNCOMMON, value: 30, healAmount: 60 },
+  elixir_of_life: { id: "elixir_of_life", name: "Elixir of Life", description: "A powerful healing potion brewed by alchemists.", category: ItemCategory.CONSUMABLE, stackable: true, maxStack: 20, rarity: Rarity.RARE, value: 100, healAmount: 120 },
+  golden_apple: { id: "golden_apple", name: "Golden Apple", description: "A mythical fruit said to grant vitality.", category: ItemCategory.CONSUMABLE, stackable: true, maxStack: 10, rarity: Rarity.EPIC, value: 500, healAmount: 200 },
+
+  // --- Crafting Materials ---
+  steel_bar: { id: "steel_bar", name: "Steel Bar", description: "A bar of refined steel.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.UNCOMMON, value: 25 },
+  mithril_ore: { id: "mithril_ore", name: "Mithril Ore", description: "A rare ore with a blue sheen.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.RARE, value: 50 },
+  enchanted_gem: { id: "enchanted_gem", name: "Enchanted Gem", description: "A gem pulsing with arcane energy.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.RARE, value: 75 },
+  ancient_rune: { id: "ancient_rune", name: "Ancient Rune", description: "A rune inscribed with forgotten magic.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.EPIC, value: 150 },
 };
 
 export function getItem(id: string): ItemDef | undefined {

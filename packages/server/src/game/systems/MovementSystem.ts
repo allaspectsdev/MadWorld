@@ -111,6 +111,17 @@ function handleZoneTransition(
 }
 
 function handleDungeonEntry(player: Player, portal: Portal): void {
+  // God players can enter dungeons solo
+  if (player.isGod) {
+    const soloPartyId = `god_solo_${player.eid}`;
+    let instance = instanceManager.getInstanceForParty(soloPartyId);
+    if (!instance) {
+      instance = instanceManager.createInstance(soloPartyId, portal.dungeonId!);
+    }
+    instanceManager.enterInstance(player, instance.instanceId);
+    return;
+  }
+
   const party = partyManager.getPartyForPlayer(player.eid);
 
   if (!party) {
