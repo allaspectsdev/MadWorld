@@ -108,8 +108,11 @@ export class Dispatcher {
       case Op.S_ENTITY_SPAWN: {
         const lp = store.localPlayer;
         if (lp && msg.d.eid === lp.eid) {
-          // Update local player name from server if we have it
-          if (msg.d.name) store.updateLocalPlayer({ name: msg.d.name });
+          // Update local player data from server
+          store.updateLocalPlayer({
+            ...(msg.d.name ? { name: msg.d.name } : {}),
+            ...(msg.d.appearance ? { appearance: msg.d.appearance } : {}),
+          });
           break;
         }
 

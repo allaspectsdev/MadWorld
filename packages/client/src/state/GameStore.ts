@@ -41,6 +41,7 @@ export interface LocalPlayer {
   zoneName: string;
   isDead: boolean;
   isGod?: boolean;
+  appearance?: Appearance;
 }
 
 export interface GameState {

@@ -442,7 +442,11 @@ export class EntityRenderer {
     cont.addChild(shadow);
 
     // Main sprite — explicitly sized to fit the tile grid
-    const texture = getEntityTexture(type, name, data?.appearance, data?.equipment);
+    // For local player, pull appearance/equipment from store since data may be undefined
+    const storeState = isLocal ? useGameStore.getState() : null;
+    const appearance = data?.appearance ?? storeState?.localPlayer?.appearance;
+    const equipmentData = data?.equipment ?? storeState?.equipment;
+    const texture = getEntityTexture(type, name, appearance, equipmentData);
     const mainSprite = new Sprite(texture);
     mainSprite.anchor.set(0.5, 0.5);
 
