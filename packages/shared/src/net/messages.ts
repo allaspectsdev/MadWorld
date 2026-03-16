@@ -166,6 +166,7 @@ export interface S_LevelUp {
 export interface S_ChatMessage {
   channel: "global" | "zone" | "whisper" | "system";
   senderName: string;
+  senderEid?: number;
   message: string;
   timestamp: number;
 }

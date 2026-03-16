@@ -7,6 +7,7 @@ import { Camera } from "./renderer/Camera.js";
 import { TilemapRenderer } from "./renderer/TilemapRenderer.js";
 import { EntityRenderer } from "./renderer/EntityRenderer.js";
 import { HitSplatRenderer } from "./renderer/HitSplatRenderer.js";
+import { ChatBubbleRenderer } from "./renderer/ChatBubbleRenderer.js";
 import { ParticleSystem } from "./renderer/ParticleSystem.js";
 import { ScreenEffects } from "./renderer/ScreenEffects.js";
 import { LightingSystem } from "./renderer/LightingSystem.js";
@@ -38,6 +39,7 @@ export class Game {
   private tilemap: TilemapRenderer;
   private entities: EntityRenderer;
   private hitSplats: HitSplatRenderer;
+  private chatBubbles: ChatBubbleRenderer;
   private particles: ParticleSystem;
   private screenEffects: ScreenEffects;
   private lighting: LightingSystem;
@@ -75,6 +77,7 @@ export class Game {
     this.tilemap = new TilemapRenderer();
     this.entities = new EntityRenderer();
     this.hitSplats = new HitSplatRenderer();
+    this.chatBubbles = new ChatBubbleRenderer();
     this.particles = new ParticleSystem();
     this.particles.init();
     this.screenEffects = new ScreenEffects(app);
@@ -94,6 +97,7 @@ export class Game {
       this.minimap,
       this.audio,
       this.camera,
+      this.chatBubbles,
     );
 
     initDeviceDetection();
@@ -127,6 +131,7 @@ export class Game {
     this.camera.container.addChild(this.entities.container);
     this.camera.container.addChild(this.particles.container);
     this.camera.container.addChild(this.hitSplats.container);
+    this.camera.container.addChild(this.chatBubbles.container);
     this.entities.container.sortableChildren = true;
     app.stage.addChild(this.camera.container);
     this.colorGrading = new ColorMatrixFilter();
@@ -432,6 +437,15 @@ export class Game {
 
     // Update all visual systems
     this.hitSplats.update();
+    this.chatBubbles.update(dt, (eid) => {
+      const e = state.entities.get(eid);
+      if (!e) {
+        const lp = state.localPlayer;
+        if (lp && lp.eid === eid) return { x: lp.x, y: lp.y };
+        return null;
+      }
+      return { x: e.nextX, y: e.nextY };
+    });
     this.particles.update(dt);
     this.screenEffects.update(dt);
     this.telegraphs.update(dt);

@@ -21,6 +21,32 @@ function blade(g: Graphics, x: number, y: number, h: number, color: number): voi
   g.fill(color);
 }
 
+// Helper: add subtle per-pixel noise for organic surface texture
+function addSurfaceNoise(
+  g: Graphics,
+  rng: () => number,
+  baseColor: number,
+  count: number = 40,
+  alphaRange: [number, number] = [0.01, 0.025],
+): void {
+  const baseR = (baseColor >> 16) & 0xff;
+  const baseG = (baseColor >> 8) & 0xff;
+  const baseB = baseColor & 0xff;
+
+  for (let i = 0; i < count; i++) {
+    const nx = rng() * S;
+    const ny = rng() * S;
+    const shift = Math.floor((rng() - 0.5) * 30);
+    const r = Math.max(0, Math.min(255, baseR + shift));
+    const gv = Math.max(0, Math.min(255, baseG + shift));
+    const b = Math.max(0, Math.min(255, baseB + shift));
+    const color = (r << 16) | (gv << 8) | b;
+    const alpha = alphaRange[0] + rng() * (alphaRange[1] - alphaRange[0]);
+    g.circle(nx, ny, 0.4 + rng() * 0.4);
+    g.fill({ color, alpha });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // GRASS — 6 variants
 // ---------------------------------------------------------------------------
@@ -51,6 +77,9 @@ function drawGrass(variant: number): Texture {
   g.fill({ color: 0x3a6040, alpha: 0.02 });
   g.rect(0, grassBandH * 3, S, grassBandH);
   g.fill({ color: 0x6a9c79, alpha: 0.02 });
+
+  // Surface noise
+  addSurfaceNoise(g, rng, 0x4a7c59, 40);
 
   // 6-8 grass tufts as curved bezier arcs leaning in a seeded wind direction
   const windAngle = (rng() - 0.5) * 1.2; // consistent wind per variant
@@ -185,6 +214,9 @@ function drawForest(variant: number): Texture {
   // Dark ground base
   g.rect(0, 0, S, S);
   g.fill(0x263e1e);
+
+  // Surface noise
+  addSurfaceNoise(g, rng, 0x263e1e, 30);
 
   // 15-20 moss/leaf debris dots
   const debrisCount = 15 + Math.floor(rng() * 6);
@@ -327,6 +359,9 @@ function drawMountain(variant: number): Texture {
   g.rect(0, 0, S, S);
   g.fill(0x606060);
 
+  // Surface noise
+  addSurfaceNoise(g, rng, 0x606060, 30, [0.015, 0.03]);
+
   // 5-7 irregular rock slab polygons
   const slabCount = 5 + Math.floor(rng() * 3);
   const grayRange = [0x555555, 0x5e5e5e, 0x666666, 0x6e6e6e, 0x757575];
@@ -457,6 +492,9 @@ function drawSand(variant: number): Texture {
     g.fill(bandColors[i]);
   }
 
+  // Surface noise
+  addSurfaceNoise(g, rng, 0xc0b480, 30, [0.008, 0.02]);
+
   // 6-8 paired ripple bezier curves (shadow + highlight)
   const rippleCount = 6 + Math.floor(rng() * 3);
   for (let i = 0; i < rippleCount; i++) {
@@ -530,6 +568,9 @@ function drawDirt(variant: number): Texture {
   g.fill({ color: 0x9b8365, alpha: 0.02 });
   g.rect(0, bandH * 2, S, bandH);
   g.fill({ color: 0x7a6a50, alpha: 0.03 });
+
+  // Surface noise
+  addSurfaceNoise(g, rng, 0x8b7355, 35);
 
   // Variants 0-1: Lighter worn oval in center
   if (variant < 2) {
@@ -636,6 +677,9 @@ function drawCobblestone(variant: number): Texture {
   g.rect(0, 0, S, S);
   g.fill(0x3a3a3a);
 
+  // Surface noise
+  addSurfaceNoise(g, rng, 0x3a3a3a, 25, [0.015, 0.03]);
+
   // Row-based stone placement with rounded corners
   let y = 1;
   while (y < S - 1) {
@@ -691,6 +735,9 @@ function drawBuildingFloor(variant: number): Texture {
   // Grout base
   g.rect(0, 0, S, S);
   g.fill(0x7a4a2e);
+
+  // Surface noise
+  addSurfaceNoise(g, rng, 0x7a4a2e, 25);
 
   // Mix of 8x8 and 6x10 flagstones with seeded pattern
   let ty = 0;

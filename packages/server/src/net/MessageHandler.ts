@@ -156,6 +156,7 @@ export async function handleMessage(
         d: {
           channel,
           senderName: player.name,
+          senderEid: player.eid,
           message,
           timestamp: now,
         },

@@ -8,6 +8,7 @@ import type { TelegraphRenderer } from "../renderer/TelegraphRenderer.js";
 import type { Minimap } from "../renderer/Minimap.js";
 import type { AudioManager } from "../audio/AudioManager.js";
 import type { Camera } from "../renderer/Camera.js";
+import type { ChatBubbleRenderer } from "../renderer/ChatBubbleRenderer.js";
 import { isBossMob } from "../renderer/MobSpriteDefinitions.js";
 
 export class Dispatcher {
@@ -19,6 +20,7 @@ export class Dispatcher {
   private minimap: Minimap;
   private audio: AudioManager;
   private camera: Camera;
+  private chatBubbles: ChatBubbleRenderer;
   private onZoneChange: (() => void) | null = null;
   private onEntityDeath: ((eid: number) => void) | null = null;
 
@@ -31,6 +33,7 @@ export class Dispatcher {
     minimap: Minimap,
     audio: AudioManager,
     camera: Camera,
+    chatBubbles: ChatBubbleRenderer,
   ) {
     this.hitSplats = hitSplats;
     this.entityRenderer = entityRenderer;
@@ -40,6 +43,7 @@ export class Dispatcher {
     this.minimap = minimap;
     this.audio = audio;
     this.camera = camera;
+    this.chatBubbles = chatBubbles;
   }
 
   setOnZoneChange(fn: () => void): void {
@@ -495,6 +499,10 @@ export class Dispatcher {
 
       case Op.S_CHAT_MESSAGE: {
         store.addChatMessage(msg.d);
+        // Show chat bubble above sender
+        if (msg.d.senderEid && msg.d.channel !== "system") {
+          this.chatBubbles.addBubble(msg.d.senderEid, msg.d.message);
+        }
         break;
       }
 
