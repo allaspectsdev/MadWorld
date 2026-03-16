@@ -1,5 +1,5 @@
 import { Application, ColorMatrixFilter } from "pixi.js";
-import { PLAYER_SPEED, TILE_SIZE, EntityType, Op, type ClientMessage } from "@madworld/shared";
+import { PLAYER_SPEED, TILE_SIZE, EntityType, Op, TileType, type ClientMessage } from "@madworld/shared";
 import { Socket } from "./net/Socket.js";
 import { Dispatcher } from "./net/Dispatcher.js";
 import { useGameStore } from "./state/GameStore.js";
@@ -64,6 +64,8 @@ export class Game {
   private pathFollower = new PathFollower();
   private pathSendTimer = 0;
   private pathSeq = 10000; // offset to avoid collision with input seq
+  private lastDustX = 0;
+  private lastDustY = 0;
   private static readonly AUTO_ATTACK_INTERVAL = 0.5;
 
   constructor(app: Application) {
@@ -268,6 +270,9 @@ export class Game {
           }
         }
 
+        // Pass zone lights to ambient particles for ember effects
+        this.ambientParticles.zoneLights = (state.zoneLights ?? []).map(l => ({ x: l.x, y: l.y, radius: l.radius, color: l.color }));
+
         // Zone color grading
         this.colorGrading.reset();
         if (state.localPlayer?.zoneId.startsWith("dungeon:")) {
@@ -366,6 +371,22 @@ export class Game {
     this.camera.setTarget(current.x, current.y);
     this.camera.update();
 
+    // Footstep dust particles
+    const dustDist = Math.sqrt((current.x - this.lastDustX) ** 2 + (current.y - this.lastDustY) ** 2);
+    if (dustDist > 0.5) {
+      this.lastDustX = current.x;
+      this.lastDustY = current.y;
+      const dustTile = state.tiles?.[Math.floor(current.y)]?.[Math.floor(current.x)];
+      if (dustTile === TileType.DIRT || dustTile === TileType.SAND || dustTile === TileType.COBBLESTONE) {
+        this.particles.emit(current.x * TILE_SIZE, current.y * TILE_SIZE + TILE_SIZE * 0.3, 3, {
+          texType: "circle",
+          tint: dustTile === TileType.SAND ? 0xc2b280 : 0x998877,
+          speed: 15, spread: Math.PI, life: 0.4, gravity: -10,
+          baseScale: 0.5, scaleDecay: 1,
+        });
+      }
+    }
+
     // Update tilemap (animated tiles)
     this.tilemap.update(dt);
 
@@ -419,6 +440,7 @@ export class Game {
     // Lighting system
     this.lighting.setCamera(current.x, current.y, this.camera.zoom);
     this.lighting.update(dt, current.x, current.y);
+    this.ambientParticles.isNight = this.lighting.isNight();
 
     // Skill bar cooldown ticking
     this.skillBar.update(dt);
@@ -434,7 +456,7 @@ export class Game {
       (bounds.right - bounds.left) * TILE_SIZE,
       (bounds.bottom - bounds.top) * TILE_SIZE,
     );
-    this.ambientParticles.update(dt);
+    this.ambientParticles.update(dt, current.x, current.y);
   }
 
   private setupSocket(): void {

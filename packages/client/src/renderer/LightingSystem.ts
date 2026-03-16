@@ -149,6 +149,12 @@ export class LightingSystem {
     });
   }
 
+  /** Returns true if the day/night cycle is currently in the night phase. */
+  isNight(): boolean {
+    const minuteInCycle = this.timer / 60; // 0-24
+    return minuteInCycle >= 15;
+  }
+
   /** Add a temporary dynamic light (boss aura, spell, etc.) */
   addDynamicLight(light: LightSource): void {
     this.dynamicLights.push(light);

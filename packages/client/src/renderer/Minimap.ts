@@ -169,10 +169,12 @@ export class Minimap {
       }
     }
 
-    // Fog of war — darken edges
+    // Fog of war — darken edges with smooth fade
     const gradient = ctx.createRadialGradient(SIZE / 2, SIZE / 2, SIZE * 0.25, SIZE / 2, SIZE / 2, SIZE * 0.5);
     gradient.addColorStop(0, "rgba(0,0,0,0)");
-    gradient.addColorStop(1, "rgba(0,0,0,0.5)");
+    gradient.addColorStop(0.6, "rgba(0,0,0,0)");
+    gradient.addColorStop(0.85, "rgba(0,0,0,0.5)");
+    gradient.addColorStop(1, "rgba(0,0,0,1)");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, SIZE, SIZE);
 
@@ -190,6 +192,16 @@ export class Minimap {
       } else if (entity.type === EntityType.MOB) {
         ctx.fillStyle = "#e74c3c";
         ctx.fillRect(ex - 1, ey - 1, 2.5, 2.5);
+      }
+
+      // NPC markers (gold diamonds)
+      if (entity.type === EntityType.NPC) {
+        ctx.save();
+        ctx.translate(ex, ey);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = "#ffd700";
+        ctx.fillRect(-1.5, -1.5, 3, 3);
+        ctx.restore();
       }
     }
 

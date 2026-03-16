@@ -37,6 +37,8 @@ export class DecorationRenderer {
         ) {
           if (chance < 0.15) {
             this.placeLogOrStump(x, y, seed);
+          } else if (chance >= 0.15 && chance < 0.23) {
+            this.placeMushroomCluster(x, y, seed);
           }
           continue;
         }
@@ -73,6 +75,11 @@ export class DecorationRenderer {
             this.placeCattails(x, y, seed);
           }
           continue;
+        }
+
+        // 6. Wildflowers on plain grass tiles (no special neighbors)
+        if (type === TileType.GRASS && chance >= 0.85 && chance < 0.95) {
+          this.placeWildflowers(x, y, seed);
         }
       }
     }
@@ -277,6 +284,77 @@ export class DecorationRenderer {
       g.lineTo(px + radius * 0.8, py + radius * 0.4);
       g.closePath();
       g.stroke({ width: 0.5, color: 0x2a8a2a, alpha: 0.4 });
+    }
+
+    const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
+    const sprite = new Sprite(tex);
+    const offsetX = this.seededRand(seed, 10) * 4 - 2;
+    const offsetY = this.seededRand(seed, 11) * 4 - 2;
+    sprite.x = x * TILE_SIZE + offsetX;
+    sprite.y = y * TILE_SIZE + offsetY;
+    this.container.addChild(sprite);
+  }
+
+  private placeWildflowers(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const flowerColors = [0xffff66, 0xff99cc, 0xffffff, 0xcc88ff, 0xffaa44];
+    const count = 2 + (seed % 3); // 2-4 flowers
+
+    for (let i = 0; i < count; i++) {
+      const fx = 4 + this.seededRand(seed, i * 2) * 24;
+      const fy = 4 + this.seededRand(seed, i * 2 + 1) * 24;
+      const color = flowerColors[(seed + i) % flowerColors.length];
+      const petalR = 1.0 + this.seededRand(seed, i * 2 + 10) * 0.5;
+
+      // Stem
+      g.moveTo(fx, fy);
+      g.lineTo(fx, fy + 2);
+      g.stroke({ width: 0.5, color: 0x3a6a3a, alpha: 0.6 });
+
+      // 4 petals
+      g.circle(fx - petalR, fy, petalR * 0.6);
+      g.fill({ color, alpha: 0.7 });
+      g.circle(fx + petalR, fy, petalR * 0.6);
+      g.fill({ color, alpha: 0.7 });
+      g.circle(fx, fy - petalR, petalR * 0.6);
+      g.fill({ color, alpha: 0.7 });
+      g.circle(fx, fy + petalR * 0.3, petalR * 0.6);
+      g.fill({ color, alpha: 0.7 });
+
+      // Center
+      g.circle(fx, fy, 0.6);
+      g.fill(0xffcc00);
+    }
+
+    const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
+    const sprite = new Sprite(tex);
+    sprite.x = x * TILE_SIZE;
+    sprite.y = y * TILE_SIZE;
+    this.container.addChild(sprite);
+  }
+
+  private placeMushroomCluster(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const capColors = [0xc8a050, 0xb03030, 0xd4a060, 0x8855aa];
+    const count = 2 + (seed % 2); // 2-3 mushrooms
+
+    for (let i = 0; i < count; i++) {
+      const mx = 6 + this.seededRand(seed, i * 3) * 20;
+      const my = 8 + this.seededRand(seed, i * 3 + 1) * 16;
+      const capColor = capColors[(seed + i) % capColors.length];
+      const size = 1.2 + this.seededRand(seed, i * 3 + 2) * 0.8;
+
+      // Stem
+      g.rect(mx - 0.5, my, 1, 2.5);
+      g.fill(0xe8dcc8);
+
+      // Cap
+      g.ellipse(mx, my, size * 1.5, size);
+      g.fill(capColor);
+
+      // Cap highlight
+      g.ellipse(mx - 0.5, my - 0.3, size * 0.6, size * 0.4);
+      g.fill({ color: 0xffffff, alpha: 0.12 });
     }
 
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);

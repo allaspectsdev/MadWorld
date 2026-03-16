@@ -38,9 +38,18 @@ export class HitSplatRenderer {
     stroke: { color: 0x000000, width: 2 },
   });
 
+  private healStyle = new TextStyle({
+    fontFamily: FONT,
+    fontSize: 18,
+    fontWeight: "bold",
+    fill: 0x44ff88,
+    stroke: { color: 0x000000, width: 3 },
+  });
+
   addSplat(worldX: number, worldY: number, damage: number, isCrit: boolean): void {
-    const style = damage === 0 ? this.missStyle : isCrit ? this.critStyle : this.hitStyle;
-    const label = damage === 0 ? "Miss" : isCrit ? `${damage}!` : String(damage);
+    const isHeal = damage < 0;
+    const style = isHeal ? this.healStyle : damage === 0 ? this.missStyle : isCrit ? this.critStyle : this.hitStyle;
+    const label = isHeal ? `+${Math.abs(damage)}` : damage === 0 ? "Miss" : isCrit ? `${damage}!` : String(damage);
 
     const text = new Text({ text: label, style });
     text.anchor.set(0.5);

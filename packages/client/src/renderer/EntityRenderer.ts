@@ -31,6 +31,7 @@ interface EntitySprite {
   slashArc?: Graphics;
   slashTimer?: number;
   hitFlash?: { filter: ColorMatrixFilter; timer: number };
+  statusTint?: { color: number; timer: number; duration: number };
   animState: AnimState;
   animator?: SpriteAnimator;
   isLocal: boolean;
@@ -115,6 +116,21 @@ export class EntityRenderer {
     }
   }
 
+  applyStatusTint(eid: number, color: number, duration: number): void {
+    const sprite = this.sprites.get(eid);
+    if (sprite) {
+      sprite.statusTint = { color, timer: 0, duration };
+    }
+  }
+
+  removeStatusTint(eid: number): void {
+    const sprite = this.sprites.get(eid);
+    if (sprite) {
+      sprite.statusTint = undefined;
+      sprite.mainSprite.tint = 0xffffff;
+    }
+  }
+
   updateEntity(eid: number, x: number, y: number, data?: RemoteEntity, dt = 0.016): void {
     this.globalTimer += dt;
     let sprite = this.sprites.get(eid);
@@ -193,12 +209,29 @@ export class EntityRenderer {
     // Hit flash decay
     if (sprite.hitFlash) {
       sprite.hitFlash.timer += dt;
-      const ft = sprite.hitFlash.timer / 0.12;
+      const ft = sprite.hitFlash.timer / 0.18;
       if (ft >= 1) {
         sprite.mainSprite.filters = [];
         sprite.hitFlash = undefined;
       } else {
-        sprite.hitFlash.filter.brightness(1 + (1 - ft) * 1.5, false);
+        const ease = (1 - ft) * (1 - ft);
+        sprite.hitFlash.filter.brightness(1 + ease * 1.5, false);
+      }
+    }
+
+    // Status effect tint pulse
+    if (sprite.statusTint) {
+      sprite.statusTint.timer += dt;
+      if (sprite.statusTint.timer >= sprite.statusTint.duration) {
+        sprite.statusTint = undefined;
+        sprite.mainSprite.tint = 0xffffff;
+      } else {
+        const pulse = 0.5 + 0.5 * Math.sin(sprite.statusTint.timer * 6 * Math.PI);
+        const sc = sprite.statusTint.color;
+        const r = Math.round(0xff + (((sc >> 16) & 0xff) - 0xff) * pulse * 0.3);
+        const g = Math.round(0xff + (((sc >> 8) & 0xff) - 0xff) * pulse * 0.3);
+        const b = Math.round(0xff + ((sc & 0xff) - 0xff) * pulse * 0.3);
+        sprite.mainSprite.tint = (r << 16) | (g << 8) | b;
       }
     }
 
@@ -253,12 +286,13 @@ export class EntityRenderer {
     // Hit flash decay
     if (sprite.hitFlash) {
       sprite.hitFlash.timer += dt;
-      const ft = sprite.hitFlash.timer / 0.12;
+      const ft = sprite.hitFlash.timer / 0.18;
       if (ft >= 1) {
         sprite.mainSprite.filters = [];
         sprite.hitFlash = undefined;
       } else {
-        sprite.hitFlash.filter.brightness(1 + (1 - ft) * 1.5, false);
+        const ease = (1 - ft) * (1 - ft);
+        sprite.hitFlash.filter.brightness(1 + ease * 1.5, false);
       }
     }
 

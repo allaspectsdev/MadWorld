@@ -53,6 +53,9 @@ export class TilemapRenderer {
   private animFrame = 0;
   private mapWidth = 0;
   private mapHeight = 0;
+  private tileData: TT[][] = [];
+  private foamGfx = new Graphics();
+  private foamTime = 0;
 
   setTiles(tileData: TT[][]): void {
     // Clear existing
@@ -62,6 +65,7 @@ export class TilemapRenderer {
 
     this.mapHeight = tileData.length;
     this.mapWidth = tileData[0]?.length ?? 0;
+    this.tileData = tileData;
 
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
@@ -92,6 +96,10 @@ export class TilemapRenderer {
 
     // Draw edge blending overlays
     this.drawEdgeBlending(tileData);
+
+    // Add foam overlay (redrawn each frame)
+    this.foamGfx = new Graphics();
+    this.container.addChild(this.foamGfx);
   }
 
   private drawEdgeBlending(tileData: TT[][]): void {
@@ -214,6 +222,83 @@ export class TilemapRenderer {
         const frameVariants = ts.textureSet.frames[this.animFrame];
         if (frameVariants) {
           ts.sprite.texture = frameVariants[ts.variantIndex % frameVariants.length];
+        }
+      }
+    }
+
+    // Animate water-edge foam
+    this.foamTime += dt;
+    this.drawFoam();
+  }
+
+  private drawFoam(): void {
+    const tiles = this.tileData;
+    if (tiles.length === 0) return;
+
+    const g = this.foamGfx;
+    g.clear();
+
+    const S = TILE_SIZE;
+    const t = this.foamTime;
+
+    for (let y = 0; y < this.mapHeight; y++) {
+      for (let x = 0; x < this.mapWidth; x++) {
+        const tileType = tiles[y][x];
+        if (tileType !== TileType.WATER) continue;
+
+        const px = x * S;
+        const py = y * S;
+
+        const foamAlpha =
+          0.15 + Math.sin(t * 2 + x * 0.5 + y * 0.7) * 0.08;
+        const foamOffset =
+          Math.sin(t * 1.5 + x * 0.3 + y * 0.5) * 1.5;
+
+        // Top edge foam
+        if (y > 0 && tiles[y - 1]?.[x] !== TileType.WATER) {
+          g.moveTo(px, py + foamOffset);
+          g.bezierCurveTo(
+            px + S * 0.25, py + foamOffset - 1,
+            px + S * 0.75, py + foamOffset + 1,
+            px + S,        py + foamOffset,
+          );
+          g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
+        }
+        // Bottom edge foam
+        if (
+          y < tiles.length - 1 &&
+          tiles[y + 1]?.[x] !== TileType.WATER
+        ) {
+          g.moveTo(px, py + S + foamOffset);
+          g.bezierCurveTo(
+            px + S * 0.25, py + S + foamOffset + 1,
+            px + S * 0.75, py + S + foamOffset - 1,
+            px + S,        py + S + foamOffset,
+          );
+          g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
+        }
+        // Left edge foam
+        if (x > 0 && tiles[y]?.[x - 1] !== TileType.WATER) {
+          g.moveTo(px + foamOffset, py);
+          g.bezierCurveTo(
+            px + foamOffset - 1, py + S * 0.25,
+            px + foamOffset + 1, py + S * 0.75,
+            px + foamOffset,     py + S,
+          );
+          g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
+        }
+        // Right edge foam
+        if (
+          x < (tiles[0]?.length ?? 0) - 1 &&
+          tiles[y]?.[x + 1] !== TileType.WATER
+        ) {
+          g.moveTo(px + S + foamOffset, py);
+          g.bezierCurveTo(
+            px + S + foamOffset + 1, py + S * 0.25,
+            px + S + foamOffset - 1, py + S * 0.75,
+            px + S + foamOffset,     py + S,
+          );
+          g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
         }
       }
     }

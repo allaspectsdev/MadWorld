@@ -312,6 +312,16 @@ export class Dispatcher {
             });
           }
 
+          // Delayed loot sparkle
+          const sparkleX = bx, sparkleY = by;
+          setTimeout(() => {
+            this.particles.emit(sparkleX, sparkleY, 5, {
+              texType: "star", tint: 0xffd700,
+              speed: 15, spread: Math.PI * 2, life: 1.0,
+              gravity: -15, baseScale: 0.7,
+            });
+          }, 400);
+
           this.entityRenderer.triggerDeathAnim(msg.d.eid);
           this.camera.shake(isBoss ? 8 : 4, isBoss ? 0.5 : 0.2);
         }
@@ -500,6 +510,29 @@ export class Dispatcher {
 
       case Op.S_SKILL_COOLDOWN: {
         store.setAbilityCooldown(msg.d.abilityId, msg.d.remainingMs);
+        // Ability cast particles
+        const lpCast = store.localPlayer;
+        if (lpCast) {
+          const px = lpCast.x * TILE_SIZE;
+          const py = lpCast.y * TILE_SIZE;
+          const ABILITY_VFX: Record<string, { tint: number; texType: "circle" | "glow" | "star" | "trail"; count: number; speed: number; spread: number; life: number; gravity: number }> = {
+            power_strike: { tint: 0xff6644, texType: "star", count: 10, speed: 60, spread: Math.PI, life: 0.4, gravity: 40 },
+            shield_bash: { tint: 0xffdd44, texType: "circle", count: 8, speed: 40, spread: Math.PI * 0.8, life: 0.3, gravity: 40 },
+            heal: { tint: 0x44ff88, texType: "glow", count: 15, speed: 30, spread: Math.PI * 2, life: 0.8, gravity: -30 },
+            sprint: { tint: 0x44aaff, texType: "trail", count: 8, speed: 50, spread: Math.PI * 0.5, life: 0.3, gravity: 40 },
+            poison_strike: { tint: 0x44ff44, texType: "circle", count: 10, speed: 50, spread: Math.PI, life: 0.5, gravity: 40 },
+            war_cry: { tint: 0xffaa00, texType: "star", count: 20, speed: 80, spread: Math.PI * 2, life: 0.6, gravity: 0 },
+            dodge_roll: { tint: 0xccccff, texType: "trail", count: 6, speed: 70, spread: Math.PI * 0.4, life: 0.25, gravity: 40 },
+          };
+          const vfx = ABILITY_VFX[msg.d.abilityId];
+          if (vfx) {
+            this.particles.emit(px, py, vfx.count, {
+              texType: vfx.texType, tint: vfx.tint, speed: vfx.speed,
+              spread: vfx.spread, life: vfx.life, gravity: vfx.gravity,
+              dirY: -1, baseScale: 1.0,
+            });
+          }
+        }
         break;
       }
 
@@ -523,6 +556,9 @@ export class Dispatcher {
             gravity: -15,
             baseScale: 0.6,
           });
+          this.entityRenderer.applyStatusTint(msg.d.targetEid, color, (msg.d.durationMs ?? 5000) / 1000);
+        } else if (msg.d.action === "remove") {
+          this.entityRenderer.removeStatusTint(msg.d.targetEid);
         } else if (msg.d.action === "tick") {
           const tx = targetEntity?.nextX ?? lp?.x ?? 0;
           const ty = targetEntity?.nextY ?? lp?.y ?? 0;

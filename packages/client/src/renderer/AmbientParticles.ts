@@ -6,6 +6,8 @@ export class AmbientParticles {
   private timer = 0;
   private zoneType: "forest" | "sand" | "dungeon" | "default" | "snow" | "sandstorm" = "default";
   onLightning: (() => void) | null = null;
+  isNight = false;
+  zoneLights: { x: number; y: number; radius: number; color: number }[] = [];
   private lightningTimer = 0;
   private cameraX = 0;
   private cameraY = 0;
@@ -69,7 +71,7 @@ export class AmbientParticles {
     }
   }
 
-  update(dt: number): void {
+  update(dt: number, playerX = 0, playerY = 0): void {
     if (this.zoneType === "default") return;
 
     this.updateRain(dt);
@@ -185,6 +187,30 @@ export class AmbientParticles {
             );
           }
           break;
+      }
+    }
+
+    // Fireflies at night
+    if (this.isNight) {
+      if (Math.random() < 0.02) {
+        const fx = (playerX + (Math.random() - 0.5) * 20) * TILE_SIZE;
+        const fy = (playerY + (Math.random() - 0.5) * 20) * TILE_SIZE;
+        this.particles.emit(fx, fy, 1, {
+          texType: "glow", tint: 0xffee44,
+          speed: 5, spread: Math.PI * 2, life: 3.0,
+          gravity: -3, baseScale: 0.6, scaleDecay: 0.3,
+        });
+      }
+    }
+
+    // Torch/campfire ember particles
+    for (const light of this.zoneLights) {
+      if (Math.random() < 0.05) {
+        this.particles.emit(light.x * TILE_SIZE, light.y * TILE_SIZE, 1, {
+          texType: "circle", tint: light.color ?? 0xff8844,
+          speed: 20, spread: Math.PI * 0.3, life: 0.6,
+          gravity: -40, dirY: -1, baseScale: 0.5,
+        });
       }
     }
   }
