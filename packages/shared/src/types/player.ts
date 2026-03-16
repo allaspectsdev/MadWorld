@@ -6,6 +6,7 @@ export interface Appearance {
   hairColor: number;
   skinColor: number;
   shirtColor: number;
+  bodyType?: number; // 0 = default, 1 = feminine
 }
 
 export interface PlayerState {

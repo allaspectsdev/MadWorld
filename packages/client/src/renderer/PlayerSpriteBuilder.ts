@@ -13,7 +13,7 @@ const cache = new Map<string, Texture>();
 
 function cacheKey(a: Appearance, equip?: Record<string, string>): string {
   const equipStr = equip ? Object.entries(equip).sort().map(([k,v]) => `${k}:${v}`).join(',') : '';
-  return `${a.hairStyle}_${a.hairColor}_${a.skinColor}_${a.shirtColor}_${equipStr}`;
+  return `${a.hairStyle}_${a.hairColor}_${a.skinColor}_${a.shirtColor}_${a.bodyType ?? 0}_${equipStr}`;
 }
 
 function darken(color: number, amount: number): number {
@@ -39,6 +39,7 @@ function drawPlayer(g: Graphics, a: Appearance, equip?: Record<string, string>):
   const hairLight = lighten(hair, 30);
   const pantColor = 0x3a3a5a;
   const shoeColor = 0x4a3a2a;
+  const isFeminine = (a.bodyType ?? 0) === 1;
 
   // Shadow
   g.ellipse(W / 2, H - 1, 9, 3);
@@ -46,60 +47,121 @@ function drawPlayer(g: Graphics, a: Appearance, equip?: Record<string, string>):
 
   // Shoes
   g.roundRect(10, H - 6, 5, 4, 1.5);
-  g.fill(shoeColor);
+  g.fill(isFeminine ? 0x5a3a3a : shoeColor);
   g.roundRect(20.5, H - 6, 5, 4, 1.5);
-  g.fill(shoeColor);
+  g.fill(isFeminine ? 0x5a3a3a : shoeColor);
   // Shoe specular highlights
   g.circle(12, H - 5, 1);
   g.fill({ color: 0xffffff, alpha: 0.06 });
   g.circle(22.5, H - 5, 1);
   g.fill({ color: 0xffffff, alpha: 0.06 });
 
-  // Legs (tapered polygons)
-  // Left leg
-  g.moveTo(11.5, H - 15);
-  g.lineTo(15.5, H - 15);
-  g.lineTo(15.5, H - 10);
-  g.lineTo(14.5, H - 5);
-  g.lineTo(11, H - 5);
-  g.lineTo(11, H - 10);
-  g.closePath();
-  g.fill(pantColor);
-  // Left leg inner highlight
-  g.rect(12, H - 14, 1, 8);
-  g.fill({ color: 0xffffff, alpha: 0.05 });
-  // Left leg shadow (right edge)
-  g.rect(14.5, H - 14, 1, 8);
-  g.fill({ color: 0x000000, alpha: 0.04 });
-  // Right leg
-  g.moveTo(20.5, H - 15);
-  g.lineTo(24.5, H - 15);
-  g.lineTo(25, H - 10);
-  g.lineTo(23.5, H - 5);
-  g.lineTo(20, H - 5);
-  g.lineTo(20, H - 10);
-  g.closePath();
-  g.fill(pantColor);
-  // Right leg inner highlight
-  g.rect(21, H - 14, 1, 8);
-  g.fill({ color: 0xffffff, alpha: 0.05 });
-  // Right leg shadow (right edge)
-  g.rect(24, H - 14, 1, 8);
-  g.fill({ color: 0x000000, alpha: 0.04 });
+  if (isFeminine) {
+    // Feminine legs — slimmer with skirt overlay
+    // Left leg
+    g.moveTo(12, H - 15);
+    g.lineTo(15, H - 15);
+    g.lineTo(15, H - 5);
+    g.lineTo(11.5, H - 5);
+    g.closePath();
+    g.fill(pantColor);
+    // Right leg
+    g.moveTo(21, H - 15);
+    g.lineTo(24, H - 15);
+    g.lineTo(24.5, H - 5);
+    g.lineTo(21, H - 5);
+    g.closePath();
+    g.fill(pantColor);
+    // Skirt (flared shape covering upper legs)
+    g.moveTo(10.5, 32);
+    g.lineTo(9, H - 13);
+    g.lineTo(27, H - 13);
+    g.lineTo(25.5, 32);
+    g.closePath();
+    g.fill(shirt);
+    g.moveTo(10.5, 32);
+    g.lineTo(9, H - 13);
+    g.lineTo(27, H - 13);
+    g.lineTo(25.5, 32);
+    g.closePath();
+    g.stroke({ width: 0.5, color: shirtDark, alpha: 0.15 });
+    // Skirt fold lines
+    g.moveTo(14, 33); g.lineTo(13, H - 13);
+    g.stroke({ width: 0.3, color: shirtDark, alpha: 0.1 });
+    g.moveTo(22, 33); g.lineTo(23, H - 13);
+    g.stroke({ width: 0.3, color: shirtDark, alpha: 0.1 });
+  } else {
+    // Default legs (tapered polygons)
+    // Left leg
+    g.moveTo(11.5, H - 15);
+    g.lineTo(15.5, H - 15);
+    g.lineTo(15.5, H - 10);
+    g.lineTo(14.5, H - 5);
+    g.lineTo(11, H - 5);
+    g.lineTo(11, H - 10);
+    g.closePath();
+    g.fill(pantColor);
+    // Left leg inner highlight
+    g.rect(12, H - 14, 1, 8);
+    g.fill({ color: 0xffffff, alpha: 0.05 });
+    // Left leg shadow (right edge)
+    g.rect(14.5, H - 14, 1, 8);
+    g.fill({ color: 0x000000, alpha: 0.04 });
+    // Right leg
+    g.moveTo(20.5, H - 15);
+    g.lineTo(24.5, H - 15);
+    g.lineTo(25, H - 10);
+    g.lineTo(23.5, H - 5);
+    g.lineTo(20, H - 5);
+    g.lineTo(20, H - 10);
+    g.closePath();
+    g.fill(pantColor);
+    // Right leg inner highlight
+    g.rect(21, H - 14, 1, 8);
+    g.fill({ color: 0xffffff, alpha: 0.05 });
+    // Right leg shadow (right edge)
+    g.rect(24, H - 14, 1, 8);
+    g.fill({ color: 0x000000, alpha: 0.04 });
+  }
 
-  // Torso (polygon wider at shoulders, narrower at waist)
-  g.moveTo(8.5, 18);   // left shoulder
-  g.lineTo(27.5, 18);  // right shoulder
-  g.lineTo(26, 32);    // right waist
-  g.lineTo(10, 32);    // left waist
-  g.closePath();
-  g.fill(shirt);
-  g.moveTo(8.5, 18);
-  g.lineTo(27.5, 18);
-  g.lineTo(26, 32);
-  g.lineTo(10, 32);
-  g.closePath();
-  g.stroke({ width: 1, color: shirtDark, alpha: 0.15 });
+  // Torso
+  if (isFeminine) {
+    // Feminine torso — narrower shoulders, defined waist, wider hips
+    g.moveTo(10, 18);    // left shoulder (narrower)
+    g.lineTo(26, 18);    // right shoulder
+    g.lineTo(25.5, 25);  // right mid
+    g.lineTo(24, 28);    // right waist (pinched)
+    g.lineTo(26, 32);    // right hip (flared)
+    g.lineTo(10, 32);    // left hip
+    g.lineTo(12, 28);    // left waist (pinched)
+    g.lineTo(10.5, 25);  // left mid
+    g.closePath();
+    g.fill(shirt);
+    g.moveTo(10, 18);
+    g.lineTo(26, 18);
+    g.lineTo(25.5, 25);
+    g.lineTo(24, 28);
+    g.lineTo(26, 32);
+    g.lineTo(10, 32);
+    g.lineTo(12, 28);
+    g.lineTo(10.5, 25);
+    g.closePath();
+    g.stroke({ width: 0.5, color: shirtDark, alpha: 0.15 });
+  } else {
+    // Default torso (polygon wider at shoulders, narrower at waist)
+    g.moveTo(8.5, 18);   // left shoulder
+    g.lineTo(27.5, 18);  // right shoulder
+    g.lineTo(26, 32);    // right waist
+    g.lineTo(10, 32);    // left waist
+    g.closePath();
+    g.fill(shirt);
+    g.moveTo(8.5, 18);
+    g.lineTo(27.5, 18);
+    g.lineTo(26, 32);
+    g.lineTo(10, 32);
+    g.closePath();
+    g.stroke({ width: 1, color: shirtDark, alpha: 0.15 });
+  }
   // Shirt highlight
   g.rect(10, 19, 5, 13);
   g.fill({ color: 0xffffff, alpha: 0.04 });
@@ -175,17 +237,26 @@ function drawPlayer(g: Graphics, a: Appearance, equip?: Record<string, string>):
   g.fill(skin);
 
   // Eyebrows
-  g.rect(12.5, 9, 3, 0.8);
-  g.fill({ color: hair, alpha: 0.4 });
-  g.rect(20.5, 9, 3, 0.8);
-  g.fill({ color: hair, alpha: 0.4 });
+  if (isFeminine) {
+    // Thinner, arched eyebrows
+    g.moveTo(12.5, 9.2); g.quadraticCurveTo(14, 8.4, 15.5, 9);
+    g.stroke({ width: 0.5, color: hair, alpha: 0.4 });
+    g.moveTo(20.5, 9); g.quadraticCurveTo(22, 8.4, 23.5, 9.2);
+    g.stroke({ width: 0.5, color: hair, alpha: 0.4 });
+  } else {
+    g.rect(12.5, 9, 3, 0.8);
+    g.fill({ color: hair, alpha: 0.4 });
+    g.rect(20.5, 9, 3, 0.8);
+    g.fill({ color: hair, alpha: 0.4 });
+  }
 
   // Eyes
-  g.circle(14, 10, 1.3);
+  const eyeRadius = isFeminine ? 1.5 : 1.3;
+  g.circle(14, 10, eyeRadius);
   g.fill(0xffffff);
   g.circle(14, 10, 0.8);
   g.fill(0x111111);
-  g.circle(22, 10, 1.3);
+  g.circle(22, 10, eyeRadius);
   g.fill(0xffffff);
   g.circle(22, 10, 0.8);
   g.fill(0x111111);
@@ -196,15 +267,34 @@ function drawPlayer(g: Graphics, a: Appearance, equip?: Record<string, string>):
   g.circle(22.5, 10, 0.4);
   g.fill({ color: 0xffffff, alpha: 0.8 });
 
-  // Nose (tiny dot between and below eyes)
-  g.circle(18, 12, 1.3);
+  // Eyelashes (feminine only)
+  if (isFeminine) {
+    g.moveTo(12.5, 9); g.lineTo(12, 8.5);
+    g.stroke({ width: 0.5, color: 0x111111, alpha: 0.5 });
+    g.moveTo(15.5, 9.2); g.lineTo(16, 8.7);
+    g.stroke({ width: 0.5, color: 0x111111, alpha: 0.5 });
+    g.moveTo(20.5, 9.2); g.lineTo(20, 8.7);
+    g.stroke({ width: 0.5, color: 0x111111, alpha: 0.5 });
+    g.moveTo(23.5, 9); g.lineTo(24, 8.5);
+    g.stroke({ width: 0.5, color: 0x111111, alpha: 0.5 });
+  }
+
+  // Nose
+  g.circle(18, 12, isFeminine ? 1 : 1.3);
   g.fill(skinDark);
 
   // Mouth
-  g.moveTo(15.5, 15.5);
-  g.lineTo(18, 16);
-  g.lineTo(20.5, 15.5);
-  g.stroke({ width: 0.8, color: skinDark, alpha: 0.4 });
+  if (isFeminine) {
+    // Softer lips with subtle color
+    g.moveTo(15.5, 15.5);
+    g.quadraticCurveTo(18, 16.5, 20.5, 15.5);
+    g.stroke({ width: 1, color: 0xcc8888, alpha: 0.4 });
+  } else {
+    g.moveTo(15.5, 15.5);
+    g.lineTo(18, 16);
+    g.lineTo(20.5, 15.5);
+    g.stroke({ width: 0.8, color: skinDark, alpha: 0.4 });
+  }
 
   // Hair based on style
   const style = a.hairStyle % 5;
