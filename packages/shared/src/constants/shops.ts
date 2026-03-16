@@ -25,5 +25,6 @@ export const SHOPS: Record<string, ShopEntry[]> = {
     { itemId: "bronze_helm", buyPrice: 120, stock: -1 },
     { itemId: "bronze_platebody", buyPrice: 240, stock: -1 },
     { itemId: "iron_sword", buyPrice: 400, stock: 3 },
+    { itemId: "steel_sword", buyPrice: 800, stock: -1 },
   ],
 };

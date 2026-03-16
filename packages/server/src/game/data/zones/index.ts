@@ -322,6 +322,10 @@ function createDarkwood(): ZoneDef {
   tiles[0][29] = TileType.PORTAL;
   tiles[0][30] = TileType.PORTAL;
 
+  // Portal to Scorched Highlands at east edge
+  tiles[38][79] = TileType.PORTAL;
+  tiles[39][79] = TileType.PORTAL;
+
   // Dungeon portal — Goblin Warren entrance
   tiles[38][30] = TileType.DUNGEON_PORTAL;
 
@@ -337,6 +341,7 @@ function createDarkwood(): ZoneDef {
       { x: 29, y: 0, targetZoneId: "greendale", targetX: 29, targetY: 58 },
       { x: 30, y: 0, targetZoneId: "greendale", targetX: 30, targetY: 58 },
       { x: 30, y: 38, targetZoneId: "goblin_warren", targetX: 6, targetY: 20, dungeonId: "goblin_warren" },
+      { x: 79, y: 38, targetZoneId: "scorched_highlands", targetX: 2, targetY: 35 },
     ],
     mobSpawns: [
       { mobId: "goblin", x: 14, y: 14, count: 4, wanderRadius: 5 },
@@ -355,6 +360,8 @@ function createDarkwood(): ZoneDef {
       { x: 30, y: 38, radius: 5, color: 0xe74c3c },
       // Portal back to Greendale
       { x: 29, y: 0, radius: 4, color: 0x9b59b6 },
+      // Portal to Scorched Highlands
+      { x: 79, y: 38, radius: 4, color: 0x9b59b6 },
     ],
   };
 }
@@ -469,8 +476,217 @@ function createFields(): ZoneDef {
   };
 }
 
+// --- Scorched Highlands ---
+function createScorchedHighlands(): ZoneDef {
+  const w = 70, h = 70;
+  const tiles = generateTiles(w, h, TileType.DIRT);
+
+  // === Mountain ridges along north and south borders ===
+  applyFeature(tiles, 0, 0, 70, 3, TileType.MOUNTAIN);
+  applyFeature(tiles, 0, 67, 70, 3, TileType.MOUNTAIN);
+
+  // === Central lava lake (sand border first, then water overwrites center) ===
+  applyOval(tiles, 35, 35, 9, 7, TileType.SAND);
+  applyOval(tiles, 35, 35, 8, 6, TileType.WATER);
+
+  // === BRIDGE crossing the lava lake ===
+  tiles[35][26] = TileType.BRIDGE;
+  tiles[35][27] = TileType.BRIDGE;
+  tiles[35][43] = TileType.BRIDGE;
+  tiles[35][44] = TileType.BRIDGE;
+
+  // === Ruined fortress NE (x=50-60, y=8-18): MOUNTAIN walls with BUILDING_FLOOR interior ===
+  applyFeature(tiles, 50, 8, 11, 1, TileType.MOUNTAIN);   // top wall
+  applyFeature(tiles, 50, 18, 11, 1, TileType.MOUNTAIN);   // bottom wall
+  applyFeature(tiles, 50, 8, 1, 11, TileType.MOUNTAIN);    // left wall
+  applyFeature(tiles, 60, 8, 1, 11, TileType.MOUNTAIN);    // right wall
+  applyFeature(tiles, 51, 9, 9, 9, TileType.BUILDING_FLOOR); // interior
+  // Door gap on south wall (x=54,55 at y=18)
+  setTile(tiles, 54, 18, TileType.BUILDING_FLOOR);
+  setTile(tiles, 55, 18, TileType.BUILDING_FLOOR);
+
+  // === Dried riverbed: SAND path winding from NW (x=10,y=10) to SE (x=55,y=55) ===
+  applyFeature(tiles, 10, 10, 3, 8, TileType.SAND);    // south from NW
+  applyFeature(tiles, 12, 17, 8, 3, TileType.SAND);     // east bend
+  applyFeature(tiles, 19, 19, 3, 8, TileType.SAND);     // south
+  applyFeature(tiles, 21, 26, 8, 3, TileType.SAND);     // east bend
+  applyFeature(tiles, 28, 28, 3, 6, TileType.SAND);     // south
+  applyFeature(tiles, 30, 33, 6, 3, TileType.SAND);     // east
+  applyFeature(tiles, 35, 35, 3, 6, TileType.SAND);     // south (through lake area, some overwritten)
+  applyFeature(tiles, 37, 40, 6, 3, TileType.SAND);     // east
+  applyFeature(tiles, 42, 42, 3, 6, TileType.SAND);     // south
+  applyFeature(tiles, 44, 47, 6, 3, TileType.SAND);     // east
+  applyFeature(tiles, 49, 49, 3, 4, TileType.SAND);     // south
+  applyFeature(tiles, 51, 52, 4, 3, TileType.SAND);     // final east to SE
+
+  // === Oasis in SW (x=10, y=55): SAND border, GRASS patch 5x5, WATER center 2x2 ===
+  applyFeature(tiles, 8, 53, 7, 7, TileType.SAND);       // sand border
+  applyFeature(tiles, 9, 54, 5, 5, TileType.GRASS);      // grass patch
+  applyFeature(tiles, 10, 55, 2, 2, TileType.WATER);     // water center
+
+  // === COBBLESTONE paths connecting portal entries to central area ===
+  applyFeature(tiles, 0, 35, 26, 2, TileType.COBBLESTONE);   // west portal to lake
+  applyFeature(tiles, 45, 35, 25, 2, TileType.COBBLESTONE);  // lake to east portal
+
+  // === Portals ===
+  // West edge → target darkwood (79, 38)
+  tiles[35][0] = TileType.PORTAL;
+  tiles[36][0] = TileType.PORTAL;
+  // East edge → target frozen_wastes (2, 35)
+  tiles[35][69] = TileType.PORTAL;
+  tiles[36][69] = TileType.PORTAL;
+  // Dungeon portal at (35, 20) → target dragons_lair (6, 25)
+  tiles[20][35] = TileType.DUNGEON_PORTAL;
+
+  return {
+    id: "scorched_highlands",
+    name: "Scorched Highlands",
+    width: w,
+    height: h,
+    tiles,
+    spawnX: 2,
+    spawnY: 35,
+    portals: [
+      { x: 0, y: 35, targetZoneId: "darkwood", targetX: 79, targetY: 38 },
+      { x: 0, y: 36, targetZoneId: "darkwood", targetX: 79, targetY: 38 },
+      { x: 69, y: 35, targetZoneId: "frozen_wastes", targetX: 2, targetY: 35 },
+      { x: 69, y: 36, targetZoneId: "frozen_wastes", targetX: 2, targetY: 35 },
+      { x: 35, y: 20, targetZoneId: "dragons_lair", targetX: 6, targetY: 25, dungeonId: "dragons_lair" },
+    ],
+    mobSpawns: [
+      { mobId: "fire_imp", x: 20, y: 25, count: 5, wanderRadius: 6 },
+      { mobId: "fire_imp", x: 50, y: 45, count: 4, wanderRadius: 5 },
+      { mobId: "lava_beetle", x: 30, y: 40, count: 3, wanderRadius: 4 },
+      { mobId: "lava_beetle", x: 40, y: 30, count: 3, wanderRadius: 4 },
+      { mobId: "scorched_warrior", x: 55, y: 13, count: 4, wanderRadius: 5 },
+      { mobId: "magma_elemental", x: 35, y: 35, count: 3, wanderRadius: 6 },
+    ],
+    npcSpawns: [
+      { npcId: "scout_ember", name: "Scout Ember", x: 12, y: 57, dialog: "The highlands are treacherous. The Dragon's Lair is to the north — only the bravest dare enter.", quests: ["highland_patrol", "lava_beetles", "dragon_lair_key", "slay_the_drake"] },
+    ],
+    lights: [
+      // Red lava glow around lake
+      { x: 35, y: 35, radius: 10, color: 0xff4422 },
+      { x: 28, y: 35, radius: 5, color: 0xff4422 },
+      { x: 42, y: 35, radius: 5, color: 0xff4422 },
+      // Orange torches at ruins
+      { x: 51, y: 9, radius: 3, color: 0xffaa55, flicker: true },
+      { x: 59, y: 9, radius: 3, color: 0xffaa55, flicker: true },
+      { x: 55, y: 17, radius: 3, color: 0xffaa55, flicker: true },
+      // Green oasis light
+      { x: 11, y: 56, radius: 4, color: 0x44ff88 },
+      // Portal glows
+      { x: 0, y: 35, radius: 4, color: 0x9b59b6 },
+      { x: 69, y: 35, radius: 4, color: 0x9b59b6 },
+      // Dungeon portal red glow
+      { x: 35, y: 20, radius: 5, color: 0xe74c3c },
+    ],
+  };
+}
+
+// --- Frozen Wastes ---
+function createFrozenWastes(): ZoneDef {
+  const w = 70, h = 70;
+  const tiles = generateTiles(w, h, TileType.SAND);
+
+  // === Mountain ice formations along north and east borders (3 tiles thick) ===
+  applyFeature(tiles, 0, 0, 70, 3, TileType.MOUNTAIN);
+  applyFeature(tiles, 67, 0, 3, 70, TileType.MOUNTAIN);
+
+  // === Large frozen lake center ===
+  applyOval(tiles, 35, 30, 10, 7, TileType.WATER);
+
+  // === Ice cave alcove (x=55-62, y=10-16): MOUNTAIN walls + BUILDING_FLOOR interior ===
+  applyFeature(tiles, 55, 10, 8, 1, TileType.MOUNTAIN);   // top wall
+  applyFeature(tiles, 55, 16, 8, 1, TileType.MOUNTAIN);   // bottom wall
+  applyFeature(tiles, 55, 10, 1, 7, TileType.MOUNTAIN);   // left wall
+  applyFeature(tiles, 62, 10, 1, 7, TileType.MOUNTAIN);   // right wall
+  applyFeature(tiles, 56, 11, 6, 5, TileType.BUILDING_FLOOR); // interior
+  // Door gap on south wall (x=58,59 at y=16)
+  setTile(tiles, 58, 16, TileType.BUILDING_FLOOR);
+  setTile(tiles, 59, 16, TileType.BUILDING_FLOOR);
+
+  // === Outpost (x=15, y=50): 6x5 BUILDING_FLOOR with COBBLESTONE path ===
+  applyFeature(tiles, 15, 50, 6, 5, TileType.BUILDING_FLOOR);
+  // Cobblestone path leading to outpost from the east
+  applyFeature(tiles, 21, 52, 14, 2, TileType.COBBLESTONE);
+
+  // === Dead forest patches in SE ===
+  applyNoisyRect(tiles, 45, 45, 15, 15, TileType.FOREST, 0.3, 42);
+
+  // === Crystal formations: small diamond-shaped MOUNTAIN clusters ===
+  // Crystal at (25, 15)
+  setTile(tiles, 25, 14, TileType.MOUNTAIN);
+  setTile(tiles, 24, 15, TileType.MOUNTAIN);
+  setTile(tiles, 25, 15, TileType.MOUNTAIN);
+  setTile(tiles, 26, 15, TileType.MOUNTAIN);
+  setTile(tiles, 25, 16, TileType.MOUNTAIN);
+  // Crystal at (50, 40)
+  setTile(tiles, 50, 39, TileType.MOUNTAIN);
+  setTile(tiles, 49, 40, TileType.MOUNTAIN);
+  setTile(tiles, 50, 40, TileType.MOUNTAIN);
+  setTile(tiles, 51, 40, TileType.MOUNTAIN);
+  setTile(tiles, 50, 41, TileType.MOUNTAIN);
+  // Crystal at (15, 30)
+  setTile(tiles, 15, 29, TileType.MOUNTAIN);
+  setTile(tiles, 14, 30, TileType.MOUNTAIN);
+  setTile(tiles, 15, 30, TileType.MOUNTAIN);
+  setTile(tiles, 16, 30, TileType.MOUNTAIN);
+  setTile(tiles, 15, 31, TileType.MOUNTAIN);
+
+  // === Portals ===
+  // West edge → target scorched_highlands (68, 35)
+  tiles[35][0] = TileType.PORTAL;
+  tiles[36][0] = TileType.PORTAL;
+  // Dungeon portal at (35, 55) → target dragons_lair (6, 25)
+  tiles[55][35] = TileType.DUNGEON_PORTAL;
+
+  return {
+    id: "frozen_wastes",
+    name: "Frozen Wastes",
+    width: w,
+    height: h,
+    tiles,
+    spawnX: 2,
+    spawnY: 35,
+    portals: [
+      { x: 0, y: 35, targetZoneId: "scorched_highlands", targetX: 68, targetY: 35 },
+      { x: 0, y: 36, targetZoneId: "scorched_highlands", targetX: 68, targetY: 35 },
+      { x: 35, y: 55, targetZoneId: "dragons_lair", targetX: 6, targetY: 25, dungeonId: "dragons_lair" },
+    ],
+    mobSpawns: [
+      { mobId: "frost_wolf", x: 20, y: 20, count: 4, wanderRadius: 6 },
+      { mobId: "frost_wolf", x: 50, y: 55, count: 3, wanderRadius: 5 },
+      { mobId: "ice_wraith", x: 35, y: 25, count: 3, wanderRadius: 5 },
+      { mobId: "ice_wraith", x: 15, y: 35, count: 2, wanderRadius: 4 },
+      { mobId: "yeti", x: 55, y: 30, count: 2, wanderRadius: 4 },
+      { mobId: "yeti", x: 25, y: 55, count: 2, wanderRadius: 5 },
+      { mobId: "crystal_golem", x: 25, y: 15, count: 2, wanderRadius: 3 },
+      { mobId: "crystal_golem", x: 50, y: 40, count: 2, wanderRadius: 3 },
+    ],
+    npcSpawns: [
+      { npcId: "ranger_frost", name: "Ranger Frost", x: 17, y: 52, dialog: "The Dragon's Lair lies beyond the frozen lake. Its minions have been terrorizing this land.", quests: ["frozen_hunt", "crystal_shards"] },
+    ],
+    lights: [
+      // Blue-white lights around frozen lake
+      { x: 35, y: 30, radius: 10, color: 0x88bbff },
+      { x: 26, y: 30, radius: 5, color: 0x88bbff },
+      { x: 44, y: 30, radius: 5, color: 0x88bbff },
+      // Warm orange at outpost
+      { x: 17, y: 51, radius: 3, color: 0xffaa55, flicker: true },
+      { x: 19, y: 53, radius: 3, color: 0xffaa55, flicker: true },
+      // Portal glow
+      { x: 0, y: 35, radius: 4, color: 0x9b59b6 },
+      // Dungeon portal red glow
+      { x: 35, y: 55, radius: 5, color: 0xe74c3c },
+    ],
+  };
+}
+
 export const ZONE_DEFS: ZoneDef[] = [
   createGreendale(),
   createDarkwood(),
   createFields(),
+  createScorchedHighlands(),
+  createFrozenWastes(),
 ];

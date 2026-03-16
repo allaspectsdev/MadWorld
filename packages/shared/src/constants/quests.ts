@@ -81,4 +81,52 @@ export const QUESTS: Record<string, QuestDef> = {
     ],
     rewards: { xp: { foraging: 75 }, items: [{ itemId: "bread", quantity: 10 }], gold: 60 },
   },
+  highland_patrol: {
+    id: "highland_patrol", name: "Highland Patrol", description: "Scout Ember needs help clearing the scorched highlands of dangerous creatures.",
+    requirements: { quests: ["goblin_menace"] },
+    steps: [
+      { description: "Kill 8 Fire Imps", type: "kill", target: "fire_imp", quantity: 8 },
+      { description: "Kill 5 Lava Beetles", type: "kill", target: "lava_beetle", quantity: 5 },
+    ],
+    rewards: { xp: { melee: 200 }, gold: 100 },
+  },
+  lava_beetles: {
+    id: "lava_beetles", name: "Elemental Threat", description: "The Magma Elementals near the lava lake are growing in power. Destroy them before they become unstoppable.",
+    requirements: { quests: ["highland_patrol"] },
+    steps: [{ description: "Kill 10 Magma Elementals", type: "kill", target: "magma_elemental", quantity: 10 }],
+    rewards: { xp: { melee: 300 }, gold: 150 },
+  },
+  dragon_lair_key: {
+    id: "dragon_lair_key", name: "Path to the Dragon", description: "Clear the Scorched Warriors guarding the Dragon's Lair entrance and venture inside.",
+    requirements: { quests: ["lava_beetles"] },
+    steps: [
+      { description: "Kill 5 Scorched Warriors", type: "kill", target: "scorched_warrior", quantity: 5 },
+      { description: "Enter the Dragon's Lair", type: "reach", target: "dragons_lair", quantity: 1 },
+    ],
+    rewards: { xp: { melee: 250 }, items: [{ itemId: "steel_sword", quantity: 1 }] },
+  },
+  frozen_hunt: {
+    id: "frozen_hunt", name: "Frozen Hunt", description: "Ranger Frost needs help thinning the predators in the Frozen Wastes.",
+    requirements: { quests: ["spider_silk"] },
+    steps: [
+      { description: "Kill 6 Frost Wolves", type: "kill", target: "frost_wolf", quantity: 6 },
+      { description: "Kill 4 Ice Wraiths", type: "kill", target: "ice_wraith", quantity: 4 },
+    ],
+    rewards: { xp: { melee: 400 }, gold: 200 },
+  },
+  crystal_shards: {
+    id: "crystal_shards", name: "Crystal Shards", description: "Ranger Frost believes Crystal Cores hold the key to weakening the Elder Drake's defenses.",
+    requirements: { quests: ["frozen_hunt"] },
+    steps: [
+      { description: "Collect 3 Crystal Cores", type: "gather", target: "crystal_core", quantity: 3 },
+      { description: "Deliver cores to Ranger Frost", type: "deliver", target: "ranger_frost", quantity: 3 },
+    ],
+    rewards: { xp: { melee: 500 }, gold: 300 },
+  },
+  slay_the_drake: {
+    id: "slay_the_drake", name: "Slay the Drake", description: "The Elder Drake threatens all the lands. Enter its lair and end its reign of fire.",
+    requirements: { quests: ["crystal_shards"] },
+    steps: [{ description: "Defeat the Elder Drake", type: "kill", target: "elder_drake", quantity: 1 }],
+    rewards: { xp: { melee: 1000 }, gold: 500 },
+  },
 };

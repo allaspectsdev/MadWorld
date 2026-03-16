@@ -246,4 +246,28 @@ export const MOBS: Record<string, MobDef> = {
       { itemId: "gold_coins", quantity: 100, chance: 1.0 },
     ],
   },
+
+  // --- Scorched Highlands Mobs ---
+  fire_imp: { id: "fire_imp", name: "Fire Imp", level: 12, maxHp: 130, attack: 14, defense: 6, attackSpeed: 3, aggroRange: 4, chaseRange: 8, respawnTicks: 400, xpReward: 65, lootTable: [{ itemId: "gold_coins", quantity: 10, chance: 0.8 }, { itemId: "herb", quantity: 1, chance: 0.2 }] },
+  lava_beetle: { id: "lava_beetle", name: "Lava Beetle", level: 14, maxHp: 160, attack: 16, defense: 12, attackSpeed: 6, aggroRange: 3, chaseRange: 6, respawnTicks: 500, xpReward: 80, lootTable: [{ itemId: "gold_coins", quantity: 15, chance: 0.7 }, { itemId: "iron_ore", quantity: 1, chance: 0.25 }] },
+  scorched_warrior: { id: "scorched_warrior", name: "Scorched Warrior", level: 16, maxHp: 200, attack: 20, defense: 14, attackSpeed: 4, aggroRange: 5, chaseRange: 10, respawnTicks: 500, xpReward: 100, lootTable: [{ itemId: "gold_coins", quantity: 20, chance: 0.8 }, { itemId: "steel_sword", quantity: 1, chance: 0.03 }] },
+  magma_elemental: { id: "magma_elemental", name: "Magma Elemental", level: 18, maxHp: 250, attack: 22, defense: 10, attackSpeed: 5, aggroRange: 5, chaseRange: 10, respawnTicks: 600, xpReward: 120, lootTable: [{ itemId: "gold_coins", quantity: 25, chance: 0.9 }, { itemId: "fire_ruby", quantity: 1, chance: 0.1 }] },
+
+  // --- Frozen Wastes Mobs ---
+  frost_wolf: { id: "frost_wolf", name: "Frost Wolf", level: 18, maxHp: 220, attack: 20, defense: 12, attackSpeed: 3, aggroRange: 6, chaseRange: 12, respawnTicks: 450, xpReward: 110, lootTable: [{ itemId: "gold_coins", quantity: 15, chance: 0.7 }, { itemId: "wolf_pelt", quantity: 1, chance: 0.3 }] },
+  ice_wraith: { id: "ice_wraith", name: "Ice Wraith", level: 20, maxHp: 180, attack: 24, defense: 8, attackSpeed: 4, aggroRange: 5, chaseRange: 10, respawnTicks: 500, xpReward: 130, lootTable: [{ itemId: "gold_coins", quantity: 20, chance: 0.8 }, { itemId: "frost_shard", quantity: 1, chance: 0.15 }] },
+  yeti: { id: "yeti", name: "Yeti", level: 22, maxHp: 350, attack: 26, defense: 18, attackSpeed: 5, aggroRange: 4, chaseRange: 8, respawnTicks: 600, xpReward: 160, lootTable: [{ itemId: "gold_coins", quantity: 30, chance: 0.9 }, { itemId: "yeti_fur", quantity: 1, chance: 0.2 }] },
+  crystal_golem: { id: "crystal_golem", name: "Crystal Golem", level: 25, maxHp: 400, attack: 22, defense: 25, attackSpeed: 6, aggroRange: 3, chaseRange: 6, respawnTicks: 700, xpReward: 200, lootTable: [{ itemId: "gold_coins", quantity: 40, chance: 0.9 }, { itemId: "crystal_core", quantity: 1, chance: 0.1 }] },
+
+  // --- Dragon's Lair Dungeon Mobs ---
+  dragonkin: { id: "dragonkin", name: "Dragonkin", level: 24, maxHp: 300, attack: 28, defense: 16, attackSpeed: 4, aggroRange: 5, chaseRange: 15, respawnTicks: 9999, xpReward: 180, lootTable: [{ itemId: "gold_coins", quantity: 35, chance: 0.9 }, { itemId: "dragon_scale", quantity: 1, chance: 0.15 }] },
+  elder_drake: {
+    id: "elder_drake", name: "Elder Drake", level: 30, maxHp: 1500, attack: 35, defense: 25, attackSpeed: 3, aggroRange: 12, chaseRange: 999, respawnTicks: 9999, xpReward: 1000, isBoss: true,
+    bossAbilities: [
+      { id: "fire_breath", name: "Fire Breath", damage: 30, radius: 5, cooldownTicks: 60, telegraphTicks: 12 },
+      { id: "tail_sweep", name: "Tail Sweep", damage: 25, radius: 3, cooldownTicks: 40, telegraphTicks: 8 },
+      { id: "summon_dragonkin", name: "Summon Dragonkin", damage: 0, radius: 0, cooldownTicks: 120, telegraphTicks: 0 },
+    ],
+    lootTable: [{ itemId: "dragon_slayer", quantity: 1, chance: 0.2 }, { itemId: "drake_plate", quantity: 1, chance: 0.25 }, { itemId: "dragon_scale", quantity: 3, chance: 1.0 }, { itemId: "gold_coins", quantity: 200, chance: 1.0 }],
+  },
 };

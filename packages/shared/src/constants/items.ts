@@ -51,7 +51,7 @@ export const ITEMS: Record<string, ItemDef> = {
     equipSlot: EquipSlot.WEAPON,
     stats: { attack: 38 },
     rarity: Rarity.RARE,
-    levelReq: { [SkillName.MELEE]: 45 },
+    levelReq: { [SkillName.MELEE]: 20 },
     value: 800,
   },
   wooden_bow: {
@@ -363,6 +363,19 @@ export const ITEMS: Record<string, ItemDef> = {
     levelReq: { [SkillName.DEFENSE]: 16 },
     value: 600,
   },
+
+  // --- New Materials ---
+  iron_ore: { id: "iron_ore", name: "Iron Ore", description: "Rough iron ore from the highlands.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.COMMON, value: 12 },
+  fire_ruby: { id: "fire_ruby", name: "Fire Ruby", description: "A gem pulsing with inner heat.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.UNCOMMON, value: 50 },
+  wolf_pelt: { id: "wolf_pelt", name: "Wolf Pelt", description: "Thick frost wolf fur.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.COMMON, value: 15 },
+  frost_shard: { id: "frost_shard", name: "Frost Shard", description: "A shard of living ice.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.UNCOMMON, value: 25 },
+  yeti_fur: { id: "yeti_fur", name: "Yeti Fur", description: "Incredibly warm and tough.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.UNCOMMON, value: 30 },
+  crystal_core: { id: "crystal_core", name: "Crystal Core", description: "Resonating crystalline energy.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.RARE, value: 60 },
+  dragon_scale: { id: "dragon_scale", name: "Dragon Scale", description: "Nearly indestructible scale.", category: ItemCategory.MATERIAL, stackable: true, maxStack: 99, rarity: Rarity.EPIC, value: 80 },
+
+  // --- New Equipment ---
+  dragon_slayer: { id: "dragon_slayer", name: "Dragon Slayer", description: "A legendary blade forged to slay dragons.", category: ItemCategory.WEAPON, stackable: false, maxStack: 1, equipSlot: EquipSlot.WEAPON, stats: { attack: 55 }, rarity: Rarity.EPIC, levelReq: { [SkillName.MELEE]: 28 }, value: 1500 },
+  drake_plate: { id: "drake_plate", name: "Drake Platebody", description: "Armor crafted from drake scales. Incredibly durable.", category: ItemCategory.ARMOR, stackable: false, maxStack: 1, equipSlot: EquipSlot.CHEST, stats: { defense: 35, hp: 30 }, rarity: Rarity.EPIC, levelReq: { [SkillName.DEFENSE]: 25 }, value: 1200 },
 
   // --- Currency ---
   gold_coins: {

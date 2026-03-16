@@ -1,5 +1,5 @@
-import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, STATUS_EFFECTS, FISHING_SPOTS, movementFormulas, combatFormulas } from "@madworld/shared";
-import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState } from "@madworld/shared";
+import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas } from "@madworld/shared";
+import { levelForXp, SkillName, PARTY_XP_RANGE, AIState, TileType } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
 import { Mob } from "../game/entities/Mob.js";
 import { GroundItem } from "../game/entities/GroundItem.js";
@@ -9,7 +9,7 @@ import { partyManager } from "../game/PartyManager.js";
 import { verifyToken } from "../auth/jwt.js";
 import { loadPlayer } from "../services/PlayerService.js";
 import { savePlayer } from "../services/PlayerService.js";
-import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQuests, cleanupQuestState, onItemPickup as questOnItemPickup, onZoneEnter as questOnZoneEnter } from "../game/systems/QuestSystem.js";
+import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQuests, cleanupQuestState, onItemPickup as questOnItemPickup } from "../game/systems/QuestSystem.js";
 import { handleMobDeath, grantXp } from "../game/systems/CombatSystem.js";
 import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
 import { getCurrentTick } from "../game/GameLoop.js";
@@ -733,7 +733,7 @@ export async function handleMessage(
         const tx = px + dx;
         const ty = py + dy;
         if (ty >= 0 && ty < fishZone.def.height && tx >= 0 && tx < fishZone.def.width) {
-          if (fishZone.def.tiles[ty][tx] === 3 /* TileType.WATER */) {
+          if (fishZone.def.tiles[ty][tx] === TileType.WATER) {
             hasWater = true;
             break;
           }

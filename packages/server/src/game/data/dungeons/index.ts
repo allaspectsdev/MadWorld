@@ -25,6 +25,18 @@ export const DUNGEON_DEFS: DungeonDef[] = [
     exitReturnY: 9,
     bossId: "lich_king",
   },
+  {
+    id: "dragons_lair",
+    name: "Dragon's Lair",
+    minLevel: 25,
+    entrancePortalZoneId: "scorched_highlands",
+    entrancePortalX: 35,
+    entrancePortalY: 20,
+    exitReturnZoneId: "scorched_highlands",
+    exitReturnX: 35,
+    exitReturnY: 19,
+    bossId: "elder_drake",
+  },
 ];
 
 function fill(tiles: TileType[][], x: number, y: number, w: number, h: number, type: TileType): void {
@@ -158,9 +170,71 @@ function buildCryptOfBones(): ZoneDef {
   };
 }
 
+function buildDragonsLair(): ZoneDef {
+  const w = 60, h = 50;
+  const tiles: TileType[][] = Array.from({ length: h }, () => Array(w).fill(TileType.MOUNTAIN));
+
+  // Room 1 — Entry Cavern (12x10 at x=2, y=20): COBBLESTONE floor
+  fill(tiles, 2, 20, 12, 10, TileType.COBBLESTONE);
+
+  // Corridor 1 (8x3 from x=14 to x=22, y=24): COBBLESTONE
+  fill(tiles, 14, 24, 8, 3, TileType.COBBLESTONE);
+
+  // Room 2 — Lava Corridor (20x6 at x=22, y=22): BUILDING_FLOOR with WATER (lava) strips
+  fill(tiles, 22, 22, 20, 6, TileType.BUILDING_FLOOR);
+  // Lava strips on y=22 and y=27 (1 tile wide each side)
+  fill(tiles, 22, 22, 20, 1, TileType.WATER);
+  fill(tiles, 22, 27, 20, 1, TileType.WATER);
+
+  // Corridor 2 (4x3 from x=42 to x=46, y=24): COBBLESTONE
+  fill(tiles, 42, 24, 4, 3, TileType.COBBLESTONE);
+
+  // Room 3 — Drake Nest (14x12 at x=22, y=10): BUILDING_FLOOR
+  fill(tiles, 22, 10, 14, 12, TileType.BUILDING_FLOOR);
+
+  // Corridor 3 (3x8 vertical from x=28, y=30 to x=28, y=38): COBBLESTONE
+  fill(tiles, 28, 30, 3, 8, TileType.COBBLESTONE);
+
+  // Room 4 — Treasure Vault (10x10 at x=35, y=10): COBBLESTONE border + BUILDING_FLOOR
+  fill(tiles, 35, 10, 10, 10, TileType.COBBLESTONE);
+  fill(tiles, 36, 11, 8, 8, TileType.BUILDING_FLOOR);
+
+  // Room 5 — Dragon's Throne (18x16 at x=30, y=32): BUILDING_FLOOR with WATER (lava) border
+  fill(tiles, 30, 32, 18, 16, TileType.WATER);
+  fill(tiles, 31, 33, 16, 14, TileType.BUILDING_FLOOR);
+
+  return {
+    id: "dragons_lair",
+    name: "Dragon's Lair",
+    width: w,
+    height: h,
+    tiles,
+    spawnX: 6,
+    spawnY: 25,
+    portals: [], // Exit portal added on boss kill
+    mobSpawns: [
+      { mobId: "fire_imp", x: 8, y: 25, count: 2, wanderRadius: 3 },
+      { mobId: "lava_beetle", x: 32, y: 24, count: 3, wanderRadius: 4 },
+      { mobId: "scorched_warrior", x: 28, y: 14, count: 2, wanderRadius: 4 },
+      { mobId: "dragonkin", x: 30, y: 14, count: 2, wanderRadius: 3 },
+      { mobId: "crystal_golem", x: 40, y: 14, count: 2, wanderRadius: 3 },
+      { mobId: "elder_drake", x: 39, y: 40, count: 1, wanderRadius: 0 },
+    ],
+    lights: [
+      { x: 8, y: 25, radius: 4, color: 0xff6622, flicker: true },
+      { x: 32, y: 24, radius: 5, color: 0xff4422 },
+      { x: 28, y: 14, radius: 4, color: 0xff6622, flicker: true },
+      { x: 40, y: 14, radius: 3, color: 0xffaa55, flicker: true },
+      { x: 39, y: 40, radius: 8, color: 0xff6622 },
+      { x: 39, y: 40, radius: 4, color: 0xff2200 },
+    ],
+  };
+}
+
 const BUILDERS: Record<string, () => ZoneDef> = {
   goblin_warren: buildGoblinWarren,
   crypt_of_bones: buildCryptOfBones,
+  dragons_lair: buildDragonsLair,
 };
 
 export function buildDungeonZone(dungeonId: string): ZoneDef {

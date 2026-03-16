@@ -958,6 +958,613 @@ const DEFS: Record<string, MobVisual> = {
     },
   },
 
+  // --- Scorched Highlands/Frozen Wastes/Dragon's Lair mobs ---
+
+  "Fire Imp": {
+    width: 22, height: 26,
+    draw(g, w, h) {
+      // Ember glow at feet
+      g.ellipse(w / 2, h / 2 + 10, 6, 2);
+      g.fill({ color: 0xff6600, alpha: 0.15 });
+      // Body
+      g.roundRect(6, 10, 10, 8, 2);
+      g.fill(0xcc3300);
+      g.roundRect(6, 10, 10, 8, 2);
+      g.stroke({ width: 1, color: 0x881100, alpha: 0.5 });
+      // Head
+      g.circle(w / 2, 7, 5);
+      g.fill(0xdd4411);
+      g.circle(w / 2, 7, 5);
+      g.stroke({ width: 1, color: 0x881100, alpha: 0.4 });
+      // Horns
+      g.moveTo(8, 4); g.lineTo(7, 0); g.lineTo(10, 4);
+      g.fill(0x881100);
+      g.moveTo(12, 4); g.lineTo(15, 0); g.lineTo(14, 4);
+      g.fill(0x881100);
+      // Eyes (glowing yellow)
+      g.circle(9, 6, 1.5);
+      g.fill(0xffcc00);
+      g.circle(9, 6, 0.6);
+      g.fill(0x111111);
+      g.circle(13, 6, 1.5);
+      g.fill(0xffcc00);
+      g.circle(13, 6, 0.6);
+      g.fill(0x111111);
+      // Pointed ears
+      g.moveTo(5, 6); g.lineTo(3, 3); g.lineTo(7, 6);
+      g.fill(0xdd4411);
+      g.moveTo(17, 6); g.lineTo(19, 3); g.lineTo(15, 6);
+      g.fill(0xdd4411);
+      // Arms
+      g.rect(4, 12, 2, 6);
+      g.fill(0xcc3300);
+      g.rect(16, 12, 2, 6);
+      g.fill(0xcc3300);
+      // Legs
+      g.rect(8, 18, 2, 5);
+      g.fill(0xaa2200);
+      g.rect(12, 18, 2, 5);
+      g.fill(0xaa2200);
+    },
+  },
+
+  "Lava Beetle": {
+    width: 30, height: 24,
+    draw(g, w, h) {
+      // Body ellipse
+      g.ellipse(w / 2, h / 2 + 1, 12, 7);
+      g.fill(0x661100);
+      // Shell
+      g.roundRect(5, 4, 20, 12, 4);
+      g.fill(0x882200);
+      g.roundRect(5, 4, 20, 12, 4);
+      g.stroke({ width: 1, color: 0x441100, alpha: 0.5 });
+      // Orange glow cracks on shell
+      g.moveTo(8, 7); g.lineTo(14, 9);
+      g.stroke({ width: 0.5, color: 0xff6600, alpha: 0.3 });
+      g.moveTo(16, 6); g.lineTo(22, 10);
+      g.stroke({ width: 0.5, color: 0xff6600, alpha: 0.3 });
+      g.moveTo(10, 12); g.lineTo(18, 11);
+      g.stroke({ width: 0.5, color: 0xff6600, alpha: 0.3 });
+      g.moveTo(12, 5); g.lineTo(15, 13);
+      g.stroke({ width: 0.5, color: 0xff6600, alpha: 0.3 });
+      // Head
+      g.circle(7, h / 2 + 1, 4);
+      g.fill(0x551100);
+      // Eyes
+      g.circle(5, h / 2, 1);
+      g.fill(0xff0000);
+      g.circle(5, h / 2 + 2, 1);
+      g.fill(0xff0000);
+      // Mandibles
+      g.moveTo(4, h / 2 - 1); g.lineTo(1, h / 2 - 2); g.lineTo(4, h / 2 + 1);
+      g.fill(0x661100);
+      g.moveTo(4, h / 2 + 1); g.lineTo(1, h / 2 + 3); g.lineTo(4, h / 2 + 3);
+      g.fill(0x661100);
+      // Legs (3 per side, angled bezier strokes)
+      // Left legs
+      g.moveTo(10, 16); g.bezierCurveTo(8, 19, 6, 21, 4, 22);
+      g.stroke({ width: 1.5, color: 0x441100 });
+      g.moveTo(14, 16); g.bezierCurveTo(12, 20, 10, 22, 8, 23);
+      g.stroke({ width: 1.5, color: 0x441100 });
+      g.moveTo(18, 16); g.bezierCurveTo(16, 20, 15, 22, 13, 23);
+      g.stroke({ width: 1.5, color: 0x441100 });
+      // Right legs
+      g.moveTo(10, 4); g.bezierCurveTo(8, 2, 6, 1, 4, 0);
+      g.stroke({ width: 1.5, color: 0x441100 });
+      g.moveTo(14, 4); g.bezierCurveTo(12, 2, 10, 0, 8, -1);
+      g.stroke({ width: 1.5, color: 0x441100 });
+      g.moveTo(18, 4); g.bezierCurveTo(16, 2, 15, 0, 13, -1);
+      g.stroke({ width: 1.5, color: 0x441100 });
+    },
+  },
+
+  "Scorched Warrior": {
+    width: 26, height: 32,
+    draw(g, w, h) {
+      // Body
+      g.roundRect(7, 12, 12, 10, 3);
+      g.fill(0x333333);
+      g.roundRect(7, 12, 12, 10, 3);
+      g.stroke({ width: 1, color: 0x111111, alpha: 0.5 });
+      // Chest plate
+      g.roundRect(8, 13, 10, 6, 2);
+      g.fill(0x555555);
+      // Scorch marks on chest
+      g.ellipse(11, 15, 3, 2);
+      g.fill({ color: 0xff4400, alpha: 0.2 });
+      g.ellipse(15, 17, 2, 1.5);
+      g.fill({ color: 0xff4400, alpha: 0.2 });
+      // Belt
+      g.rect(7, 19, 12, 2);
+      g.fill(0x3a2a1a);
+      // Head (skull-like)
+      g.circle(w / 2, 8, 5);
+      g.fill(0xddddbb);
+      g.circle(w / 2, 8, 5);
+      g.stroke({ width: 1, color: 0x999988, alpha: 0.5 });
+      // Eye sockets
+      g.circle(10, 7, 1.8);
+      g.fill(0x1a1a1a);
+      g.circle(16, 7, 1.8);
+      g.fill(0x1a1a1a);
+      // Red glowing eyes
+      g.circle(10, 7, 0.8);
+      g.fill(0xff2200);
+      g.circle(16, 7, 0.8);
+      g.fill(0xff2200);
+      // Jaw
+      g.roundRect(9, 10, 8, 2, 1);
+      g.fill(0xccccaa);
+      // Arms (dark gray)
+      g.rect(4, 13, 3, 7);
+      g.fill(0x333333);
+      g.rect(19, 13, 3, 7);
+      g.fill(0x333333);
+      // Sword in right hand (jagged blade with red glow)
+      g.moveTo(22, 8); g.lineTo(24, 9); g.lineTo(23, 14); g.lineTo(25, 16); g.lineTo(23, 20); g.lineTo(21, 20); g.lineTo(22, 16); g.lineTo(20, 14); g.lineTo(21, 9);
+      g.fill(0x666666);
+      g.moveTo(22, 8); g.lineTo(24, 9); g.lineTo(23, 14); g.lineTo(25, 16); g.lineTo(23, 20);
+      g.stroke({ width: 0.5, color: 0xff2200, alpha: 0.3 });
+      // Legs
+      g.rect(9, 22, 3, 6);
+      g.fill(0x333333);
+      g.rect(14, 22, 3, 6);
+      g.fill(0x333333);
+      // Boots
+      g.rect(8, 27, 4, 2);
+      g.fill(0x222222);
+      g.rect(14, 27, 4, 2);
+      g.fill(0x222222);
+    },
+  },
+
+  "Magma Elemental": {
+    width: 28, height: 34,
+    draw(g, w, h) {
+      // Outer aura glow
+      g.circle(w / 2, h / 2, 16);
+      g.fill({ color: 0xff4400, alpha: 0.08 });
+      // Inner glow
+      g.circle(w / 2, h / 2, 12);
+      g.fill({ color: 0xff6600, alpha: 0.06 });
+      // Body (irregular ellipse)
+      g.ellipse(w / 2, h / 2, 10, 14);
+      g.fill(0xcc2200);
+      g.ellipse(w / 2, h / 2, 10, 14);
+      g.stroke({ width: 1, color: 0x881100, alpha: 0.4 });
+      // Surface cracks (bright lines)
+      g.moveTo(8, 12); g.lineTo(14, 18);
+      g.stroke({ width: 0.5, color: 0xffaa00, alpha: 0.4 });
+      g.moveTo(18, 10); g.lineTo(12, 16);
+      g.stroke({ width: 0.5, color: 0xffaa00, alpha: 0.4 });
+      g.moveTo(10, 22); g.lineTo(16, 20);
+      g.stroke({ width: 0.5, color: 0xffaa00, alpha: 0.4 });
+      g.moveTo(14, 8); g.lineTo(18, 14);
+      g.stroke({ width: 0.5, color: 0xffaa00, alpha: 0.4 });
+      g.moveTo(9, 16); g.lineTo(15, 24);
+      g.stroke({ width: 0.5, color: 0xffaa00, alpha: 0.4 });
+      // Bright core
+      g.ellipse(w / 2, h / 2, 5, 7);
+      g.fill(0xff8800);
+      // Hot core center
+      g.ellipse(w / 2, h / 2, 2, 3);
+      g.fill(0xffcc44);
+      // Lava drips below body
+      g.circle(10, h / 2 + 14, 1.5);
+      g.fill(0xff4400);
+      g.circle(15, h / 2 + 15, 1.2);
+      g.fill(0xff4400);
+      g.circle(19, h / 2 + 13, 1);
+      g.fill(0xff4400);
+      g.circle(13, h / 2 + 16, 0.8);
+      g.fill(0xff4400);
+    },
+  },
+
+  "Frost Wolf": {
+    width: 30, height: 24,
+    draw(g, w, h) {
+      // Breath mist
+      g.ellipse(w - 2, h / 2 - 1, 3, 2);
+      g.fill({ color: 0xaaddff, alpha: 0.1 });
+      // Body
+      g.ellipse(w / 2, h / 2 + 1, 11, 7);
+      g.fill(0xddddee);
+      g.ellipse(w / 2, h / 2 + 1, 11, 7);
+      g.stroke({ width: 1, color: 0xaaaabb, alpha: 0.4 });
+      // Body shadow (lower half)
+      g.ellipse(w / 2, h / 2 + 4, 10, 4);
+      g.fill({ color: 0xbbbbcc, alpha: 0.3 });
+      // Head
+      g.circle(w / 2 + 8, h / 2 - 2, 5);
+      g.fill(0xeeeeff);
+      g.circle(w / 2 + 8, h / 2 - 2, 5);
+      g.stroke({ width: 1, color: 0xaaaabb, alpha: 0.3 });
+      // Snout (pointed triangle extending forward)
+      g.moveTo(w / 2 + 12, h / 2 - 3); g.lineTo(w / 2 + 17, h / 2 - 1); g.lineTo(w / 2 + 12, h / 2 + 1);
+      g.fill(0xddddee);
+      // Icy blue eyes
+      g.circle(w / 2 + 9, h / 2 - 4, 1.5);
+      g.fill(0x44aaff);
+      g.circle(w / 2 + 9, h / 2 - 4, 0.6);
+      g.fill(0x111111);
+      g.circle(w / 2 + 11, h / 2 - 3, 1.5);
+      g.fill(0x44aaff);
+      g.circle(w / 2 + 11, h / 2 - 3, 0.6);
+      g.fill(0x111111);
+      // Ears (pointed triangles)
+      g.moveTo(w / 2 + 6, h / 2 - 6); g.lineTo(w / 2 + 5, h / 2 - 11); g.lineTo(w / 2 + 8, h / 2 - 6);
+      g.fill(0xccccdd);
+      g.moveTo(w / 2 + 9, h / 2 - 6); g.lineTo(w / 2 + 10, h / 2 - 11); g.lineTo(w / 2 + 12, h / 2 - 6);
+      g.fill(0xccccdd);
+      // 4 legs
+      g.rect(7, h / 2 + 5, 3, 6);
+      g.fill(0xccccdd);
+      g.rect(12, h / 2 + 5, 3, 6);
+      g.fill(0xccccdd);
+      g.rect(18, h / 2 + 5, 3, 6);
+      g.fill(0xccccdd);
+      g.rect(23, h / 2 + 5, 3, 6);
+      g.fill(0xccccdd);
+      // Paw detail (small rects at feet)
+      g.rect(6, h / 2 + 10, 4, 1.5);
+      g.fill(0xbbbbcc);
+      g.rect(11, h / 2 + 10, 4, 1.5);
+      g.fill(0xbbbbcc);
+      g.rect(17, h / 2 + 10, 4, 1.5);
+      g.fill(0xbbbbcc);
+      g.rect(22, h / 2 + 10, 4, 1.5);
+      g.fill(0xbbbbcc);
+      // Tail
+      g.moveTo(3, h / 2 - 1); g.lineTo(0, h / 2 - 5); g.lineTo(5, h / 2 + 1);
+      g.fill(0xddddee);
+    },
+  },
+
+  "Ice Wraith": {
+    width: 24, height: 32,
+    draw(g, w, h) {
+      // Body glow
+      g.circle(w / 2, h / 2, 14);
+      g.fill({ color: 0x88bbff, alpha: 0.08 });
+      // Wispy trails below
+      g.moveTo(8, 26); g.bezierCurveTo(6, 28, 7, 30, 5, 32);
+      g.stroke({ width: 0.5, color: 0x88bbff, alpha: 0.2 });
+      g.moveTo(12, 27); g.bezierCurveTo(11, 29, 12, 31, 10, 33);
+      g.stroke({ width: 0.5, color: 0x88bbff, alpha: 0.2 });
+      g.moveTo(16, 26); g.bezierCurveTo(17, 29, 16, 31, 18, 33);
+      g.stroke({ width: 0.5, color: 0x88bbff, alpha: 0.2 });
+      // Body (flowing cloak shape)
+      g.moveTo(w / 2, 4); g.lineTo(w / 2 + 3, 6); g.lineTo(w / 2 + 6, 12);
+      g.lineTo(w / 2 + 8, 20); g.lineTo(w / 2 + 6, 26);
+      g.lineTo(w / 2 - 6, 26); g.lineTo(w / 2 - 8, 20);
+      g.lineTo(w / 2 - 6, 12); g.lineTo(w / 2 - 3, 6);
+      g.closePath();
+      g.fill(0xaaccff);
+      g.moveTo(w / 2, 4); g.lineTo(w / 2 + 3, 6); g.lineTo(w / 2 + 6, 12);
+      g.lineTo(w / 2 + 8, 20); g.lineTo(w / 2 + 6, 26);
+      g.lineTo(w / 2 - 6, 26); g.lineTo(w / 2 - 8, 20);
+      g.lineTo(w / 2 - 6, 12); g.lineTo(w / 2 - 3, 6);
+      g.closePath();
+      g.stroke({ width: 1, color: 0x88aadd, alpha: 0.4 });
+      // Face area (dark void)
+      g.ellipse(w / 2, 10, 4, 3);
+      g.fill(0x1a2a3a);
+      // Glowing eyes
+      g.circle(w / 2 - 2, 10, 1.5);
+      g.fill(0x44eeff);
+      g.circle(w / 2 + 2, 10, 1.5);
+      g.fill(0x44eeff);
+      // Eye glow
+      g.circle(w / 2 - 2, 10, 3);
+      g.fill({ color: 0x88ffff, alpha: 0.15 });
+      g.circle(w / 2 + 2, 10, 3);
+      g.fill({ color: 0x88ffff, alpha: 0.15 });
+      // Core glow in chest
+      g.circle(w / 2, 16, 2.5);
+      g.fill({ color: 0xccddff, alpha: 0.5 });
+    },
+  },
+
+  Yeti: {
+    width: 32, height: 36,
+    draw(g, w, h) {
+      // Large body
+      g.roundRect(8, 12, 16, 14, 4);
+      g.fill(0xeeeeff);
+      g.roundRect(8, 12, 16, 14, 4);
+      g.stroke({ width: 1, color: 0xbbbbcc, alpha: 0.4 });
+      // Fur texture (short strokes)
+      g.moveTo(10, 14); g.lineTo(10, 16); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(13, 13); g.lineTo(13, 15); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(16, 14); g.lineTo(16, 16); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(19, 13); g.lineTo(19, 15); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(22, 14); g.lineTo(22, 16); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(11, 19); g.lineTo(11, 21); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(15, 20); g.lineTo(15, 22); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(19, 19); g.lineTo(19, 21); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(21, 21); g.lineTo(21, 23); g.stroke({ width: 0.5, color: 0xddddee });
+      g.moveTo(12, 23); g.lineTo(12, 25); g.stroke({ width: 0.5, color: 0xddddee });
+      // Head
+      g.circle(w / 2, 9, 7);
+      g.fill(0xeeeeff);
+      g.circle(w / 2, 9, 7);
+      g.stroke({ width: 1, color: 0xbbbbcc, alpha: 0.3 });
+      // Red eyes with glow
+      g.circle(13, 8, 2);
+      g.fill(0xff2222);
+      g.circle(19, 8, 2);
+      g.fill(0xff2222);
+      g.circle(13, 8, 3);
+      g.fill({ color: 0xff4444, alpha: 0.1 });
+      g.circle(19, 8, 3);
+      g.fill({ color: 0xff4444, alpha: 0.1 });
+      // Open mouth (dark arc)
+      g.moveTo(13, 13); g.bezierCurveTo(14, 15, 18, 15, 19, 13);
+      g.stroke({ width: 1.5, color: 0x222222 });
+      // Large arms
+      g.rect(2, 14, 5, 10);
+      g.fill(0xddddee);
+      g.rect(25, 14, 5, 10);
+      g.fill(0xddddee);
+      // Fists
+      g.circle(4, 25, 3);
+      g.fill(0xeeeeff);
+      g.circle(28, 25, 3);
+      g.fill(0xeeeeff);
+      // Legs
+      g.rect(10, 26, 5, 7);
+      g.fill(0xccccdd);
+      g.rect(17, 26, 5, 7);
+      g.fill(0xccccdd);
+      // Feet
+      g.roundRect(9, 32, 6, 3, 1);
+      g.fill(0xbbbbcc);
+      g.roundRect(17, 32, 6, 3, 1);
+      g.fill(0xbbbbcc);
+    },
+  },
+
+  "Crystal Golem": {
+    width: 34, height: 36,
+    draw(g, w, h) {
+      // Body (hexagonal-ish polygon)
+      g.moveTo(w / 2, 6); g.lineTo(w / 2 + 10, 10); g.lineTo(w / 2 + 12, 20);
+      g.lineTo(w / 2 + 8, 28); g.lineTo(w / 2 - 8, 28);
+      g.lineTo(w / 2 - 12, 20); g.lineTo(w / 2 - 10, 10);
+      g.closePath();
+      g.fill(0x88ccee);
+      g.moveTo(w / 2, 6); g.lineTo(w / 2 + 10, 10); g.lineTo(w / 2 + 12, 20);
+      g.lineTo(w / 2 + 8, 28); g.lineTo(w / 2 - 8, 28);
+      g.lineTo(w / 2 - 12, 20); g.lineTo(w / 2 - 10, 10);
+      g.closePath();
+      g.stroke({ width: 1, color: 0x5599bb, alpha: 0.5 });
+      // Highlight facets (upper-left)
+      g.moveTo(w / 2, 6); g.lineTo(w / 2 - 10, 10); g.lineTo(w / 2 - 4, 14);
+      g.fill({ color: 0xaaddff, alpha: 0.3 });
+      g.moveTo(w / 2 - 10, 10); g.lineTo(w / 2 - 12, 20); g.lineTo(w / 2 - 4, 14);
+      g.fill({ color: 0xaaddff, alpha: 0.3 });
+      // Shadow facets (lower-right)
+      g.moveTo(w / 2 + 10, 10); g.lineTo(w / 2 + 12, 20); g.lineTo(w / 2 + 4, 18);
+      g.fill({ color: 0x5599bb, alpha: 0.3 });
+      g.moveTo(w / 2 + 12, 20); g.lineTo(w / 2 + 8, 28); g.lineTo(w / 2 + 4, 18);
+      g.fill({ color: 0x5599bb, alpha: 0.3 });
+      // Core glow
+      g.circle(w / 2, h / 2, 5);
+      g.fill({ color: 0x44eeff, alpha: 0.3 });
+      g.circle(w / 2, h / 2, 2.5);
+      g.fill({ color: 0xccffff, alpha: 0.5 });
+      // Crystalline protrusions on top/shoulders
+      g.moveTo(w / 2 - 2, 6); g.lineTo(w / 2 - 1, 1); g.lineTo(w / 2 + 1, 6);
+      g.fill(0xaaddff);
+      g.moveTo(w / 2 - 8, 9); g.lineTo(w / 2 - 9, 4); g.lineTo(w / 2 - 6, 9);
+      g.fill(0xaaddff);
+      g.moveTo(w / 2 + 6, 9); g.lineTo(w / 2 + 9, 4); g.lineTo(w / 2 + 8, 9);
+      g.fill(0xaaddff);
+      g.moveTo(w / 2 + 3, 7); g.lineTo(w / 2 + 4, 2); g.lineTo(w / 2 + 5, 7);
+      g.fill(0xaaddff);
+      // Arms (angular)
+      g.rect(1, 14, 4, 10);
+      g.fill(0x77bbdd);
+      g.rect(29, 14, 4, 10);
+      g.fill(0x77bbdd);
+      // Legs (angular)
+      g.rect(10, 28, 5, 7);
+      g.fill(0x6699aa);
+      g.rect(19, 28, 5, 7);
+      g.fill(0x6699aa);
+    },
+  },
+
+  Dragonkin: {
+    width: 28, height: 34,
+    draw(g, w, h) {
+      // Wings (folded, behind shoulders)
+      g.moveTo(4, 12); g.lineTo(0, 4); g.lineTo(8, 14);
+      g.fill(0x772222);
+      g.moveTo(24, 12); g.lineTo(28, 4); g.lineTo(20, 14);
+      g.fill(0x772222);
+      // Tail (curved thick line extending from back)
+      g.moveTo(w / 2, 24); g.bezierCurveTo(w / 2 - 4, 28, w / 2 - 8, 30, w / 2 - 10, 28);
+      g.stroke({ width: 3, color: 0x882222 });
+      // Body
+      g.roundRect(8, 12, 12, 12, 3);
+      g.fill(0x882222);
+      g.roundRect(8, 12, 12, 12, 3);
+      g.stroke({ width: 1, color: 0x551111, alpha: 0.5 });
+      // Chest scales (horizontal lines)
+      g.moveTo(9, 15); g.lineTo(19, 15);
+      g.stroke({ width: 0.5, color: 0xaa3333, alpha: 0.3 });
+      g.moveTo(9, 17); g.lineTo(19, 17);
+      g.stroke({ width: 0.5, color: 0xaa3333, alpha: 0.3 });
+      g.moveTo(9, 19); g.lineTo(19, 19);
+      g.stroke({ width: 0.5, color: 0xaa3333, alpha: 0.3 });
+      g.moveTo(9, 21); g.lineTo(19, 21);
+      g.stroke({ width: 0.5, color: 0xaa3333, alpha: 0.3 });
+      // Scales detail (small diamonds on shoulders)
+      g.moveTo(9, 13); g.lineTo(8, 14); g.lineTo(9, 15); g.lineTo(10, 14);
+      g.fill(0xaa3333);
+      g.moveTo(19, 13); g.lineTo(18, 14); g.lineTo(19, 15); g.lineTo(20, 14);
+      g.fill(0xaa3333);
+      // Head (slightly oval with short snout)
+      g.ellipse(w / 2, 8, 5, 4);
+      g.fill(0x993333);
+      g.ellipse(w / 2, 8, 5, 4);
+      g.stroke({ width: 1, color: 0x661111, alpha: 0.4 });
+      // Snout
+      g.moveTo(w / 2 + 3, 7); g.lineTo(w / 2 + 6, 8); g.lineTo(w / 2 + 3, 10);
+      g.fill(0x993333);
+      // Yellow-orange eyes with slit pupils
+      g.circle(w / 2 - 2, 7, 1.5);
+      g.fill(0xffaa00);
+      g.rect(w / 2 - 2.3, 6, 0.6, 2);
+      g.fill(0x111111);
+      g.circle(w / 2 + 2, 7, 1.5);
+      g.fill(0xffaa00);
+      g.rect(w / 2 + 1.7, 6, 0.6, 2);
+      g.fill(0x111111);
+      // Small horns
+      g.moveTo(w / 2 - 3, 5); g.lineTo(w / 2 - 4, 1); g.lineTo(w / 2 - 1, 5);
+      g.fill(0x661111);
+      g.moveTo(w / 2 + 1, 5); g.lineTo(w / 2 + 4, 1); g.lineTo(w / 2 + 3, 5);
+      g.fill(0x661111);
+      // Arms with clawed hands
+      g.rect(4, 14, 3, 8);
+      g.fill(0x993333);
+      g.rect(21, 14, 3, 8);
+      g.fill(0x993333);
+      // Claws (3 lines per hand)
+      g.moveTo(4, 22); g.lineTo(3, 24); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(5, 22); g.lineTo(4, 24); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(6, 22); g.lineTo(5, 24); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(22, 22); g.lineTo(23, 24); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(23, 22); g.lineTo(24, 24); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(24, 22); g.lineTo(25, 24); g.stroke({ width: 0.5, color: 0x661111 });
+      // Legs with clawed feet
+      g.rect(10, 24, 3, 6);
+      g.fill(0x772222);
+      g.rect(15, 24, 3, 6);
+      g.fill(0x772222);
+      // Foot claws
+      g.moveTo(10, 30); g.lineTo(9, 32); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(11, 30); g.lineTo(10, 32); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(12, 30); g.lineTo(11, 32); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(15, 30); g.lineTo(14, 32); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(16, 30); g.lineTo(15, 32); g.stroke({ width: 0.5, color: 0x661111 });
+      g.moveTo(17, 30); g.lineTo(16, 32); g.stroke({ width: 0.5, color: 0x661111 });
+    },
+  },
+
+  "Elder Drake": {
+    width: 42, height: 48, isBoss: true,
+    draw(g, w, h) {
+      // Aura glow
+      g.circle(w / 2, h / 2, 22);
+      g.fill({ color: 0xff4400, alpha: 0.08 });
+      // Inner aura
+      g.circle(w / 2, h / 2, 16);
+      g.fill({ color: 0xff6600, alpha: 0.06 });
+      // Wings (large triangular shapes with membrane lines)
+      // Left wing
+      g.moveTo(8, 16); g.lineTo(0, 6); g.lineTo(2, 28);
+      g.fill(0x881111);
+      g.moveTo(4, 10); g.lineTo(5, 22);
+      g.stroke({ width: 0.5, color: 0x661100 });
+      g.moveTo(2, 8); g.lineTo(4, 24);
+      g.stroke({ width: 0.5, color: 0x661100 });
+      g.moveTo(6, 12); g.lineTo(6, 20);
+      g.stroke({ width: 0.5, color: 0x661100 });
+      // Right wing
+      g.moveTo(34, 16); g.lineTo(42, 6); g.lineTo(40, 28);
+      g.fill(0x881111);
+      g.moveTo(38, 10); g.lineTo(37, 22);
+      g.stroke({ width: 0.5, color: 0x661100 });
+      g.moveTo(40, 8); g.lineTo(38, 24);
+      g.stroke({ width: 0.5, color: 0x661100 });
+      g.moveTo(36, 12); g.lineTo(36, 20);
+      g.stroke({ width: 0.5, color: 0x661100 });
+      // Tail (thick bezier curve extending behind)
+      g.moveTo(w / 2 - 4, 34); g.bezierCurveTo(w / 2 - 8, 38, w / 2 - 12, 42, w / 2 - 14, 40);
+      g.stroke({ width: 4, color: 0x882200 });
+      // Body (large ellipse)
+      g.ellipse(w / 2, h / 2 + 2, 16, 12);
+      g.fill(0xaa2200);
+      g.ellipse(w / 2, h / 2 + 2, 16, 12);
+      g.stroke({ width: 1.5, color: 0x661100, alpha: 0.5 });
+      // Belly scales
+      g.ellipse(w / 2, h / 2 + 5, 10, 6);
+      g.fill(0xcc4422);
+      // Scale texture (small arc marks across body)
+      for (let sx = -6; sx <= 6; sx += 3) {
+        for (let sy = -2; sy <= 4; sy += 3) {
+          g.arc(w / 2 + sx, h / 2 + 2 + sy, 1.5, 0, Math.PI);
+          g.stroke({ width: 0.5, color: 0x882200 });
+        }
+      }
+      // Neck (tapered polygon extending upward)
+      g.moveTo(w / 2 - 4, h / 2 - 8); g.lineTo(w / 2 - 2, h / 2 - 16);
+      g.lineTo(w / 2 + 2, h / 2 - 16); g.lineTo(w / 2 + 4, h / 2 - 8);
+      g.fill(0xaa2200);
+      // Head (elongated ellipse)
+      g.ellipse(w / 2, 6, 8, 6);
+      g.fill(0xbb2200);
+      g.ellipse(w / 2, 6, 8, 6);
+      g.stroke({ width: 1, color: 0x661100, alpha: 0.4 });
+      // Glowing orange eyes
+      g.circle(w / 2 - 3, 5, 2);
+      g.fill(0xff8800);
+      g.circle(w / 2 + 3, 5, 2);
+      g.fill(0xff8800);
+      // Eye glow
+      g.circle(w / 2 - 3, 5, 3.5);
+      g.fill({ color: 0xff4400, alpha: 0.15 });
+      g.circle(w / 2 + 3, 5, 3.5);
+      g.fill({ color: 0xff4400, alpha: 0.15 });
+      // Nostrils
+      g.circle(w / 2 - 2, 9, 0.8);
+      g.fill(0xff6600);
+      g.circle(w / 2 + 2, 9, 0.8);
+      g.fill(0xff6600);
+      // Horns (large backward-curving triangles)
+      g.moveTo(w / 2 - 5, 2); g.lineTo(w / 2 - 10, -4); g.lineTo(w / 2 - 3, 4);
+      g.fill(0x661100);
+      g.moveTo(w / 2 + 5, 2); g.lineTo(w / 2 + 10, -4); g.lineTo(w / 2 + 3, 4);
+      g.fill(0x661100);
+      // Jaw (lower mandible)
+      g.moveTo(w / 2 - 6, 8); g.lineTo(w / 2 - 4, 11); g.lineTo(w / 2 + 4, 11); g.lineTo(w / 2 + 6, 8);
+      g.fill(0x992200);
+      // Teeth (small white triangles)
+      g.moveTo(w / 2 - 3, 8); g.lineTo(w / 2 - 2, 10); g.lineTo(w / 2 - 1, 8);
+      g.fill(0xffffff);
+      g.moveTo(w / 2, 8); g.lineTo(w / 2 + 1, 10); g.lineTo(w / 2 + 2, 8);
+      g.fill(0xffffff);
+      g.moveTo(w / 2 + 3, 8); g.lineTo(w / 2 + 4, 10); g.lineTo(w / 2 + 5, 8);
+      g.fill(0xffffff);
+      // Fire breath hint (glow near mouth)
+      g.ellipse(w / 2, 12, 4, 2);
+      g.fill({ color: 0xff8800, alpha: 0.1 });
+      // Legs (4 thick rects with clawed feet)
+      g.rect(10, 34, 4, 8);
+      g.fill(0x882200);
+      g.rect(16, 34, 4, 8);
+      g.fill(0x882200);
+      g.rect(22, 34, 4, 8);
+      g.fill(0x882200);
+      g.rect(28, 34, 4, 8);
+      g.fill(0x882200);
+      // Clawed feet (3 lines each)
+      for (const lx of [10, 16, 22, 28]) {
+        g.moveTo(lx, 42); g.lineTo(lx - 1, 45);
+        g.stroke({ width: 0.5, color: 0x661100 });
+        g.moveTo(lx + 2, 42); g.lineTo(lx + 2, 45);
+        g.stroke({ width: 0.5, color: 0x661100 });
+        g.moveTo(lx + 4, 42); g.lineTo(lx + 5, 45);
+        g.stroke({ width: 0.5, color: 0x661100 });
+      }
+    },
+  },
+
   "Lich King": {
     width: 38, height: 44, isBoss: true,
     draw(g, w, h) {

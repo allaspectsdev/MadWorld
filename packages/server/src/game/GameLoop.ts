@@ -1,4 +1,4 @@
-import { TICK_MS, Op, FISHING_SPOTS, type ServerMessage } from "@madworld/shared";
+import { TICK_MS, Op, type ServerMessage } from "@madworld/shared";
 import { world } from "./World.js";
 import { partyManager } from "./PartyManager.js";
 import { processMovement } from "./systems/MovementSystem.js";

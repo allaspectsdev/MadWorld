@@ -13,6 +13,11 @@ function* allZones(): Iterable<Zone> {
 export function processAI(): void {
   for (const zone of allZones()) {
     for (const [, mob] of zone.mobs) {
+      // Dead mobs always process (respawn timer), stun skips everything else
+      if (mob.aiState === AIState.DEAD) {
+        processDead(mob, zone);
+        continue;
+      }
       if (mob.stunTicks > 0) continue;
       switch (mob.aiState) {
         case AIState.IDLE:
@@ -27,9 +32,6 @@ export function processAI(): void {
           break;
         case AIState.RETURN:
           processReturn(mob, zone);
-          break;
-        case AIState.DEAD:
-          processDead(mob, zone);
           break;
       }
     }
