@@ -42,6 +42,17 @@ export class Player extends Entity {
   attackCooldown: number = 0;
   lastRangeMsg: number = 0;
 
+  // Abilities
+  abilityCooldowns: Map<string, number> = new Map();
+  statusEffects: Map<string, { defId: string; ticksLeft: number; sourceEid: number }> = new Map();
+  stunTicks: number = 0;
+  invulnerableTicks: number = 0;
+  speedMultiplier: number = 1;
+  damageMultiplier: number = 1;
+
+  // Fishing
+  fishingState: { startTick: number; fish: string; catchTick: number; biteSent: boolean } | null = null;
+
   // Party
   partyId: string | null = null;
 

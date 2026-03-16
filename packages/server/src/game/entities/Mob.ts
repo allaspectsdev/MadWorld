@@ -14,6 +14,10 @@ export class Mob extends Entity {
   idleTicks: number = 0;
   patrolTarget: { x: number; y: number } | null = null;
 
+  // Status effects
+  statusEffects: Map<string, { defId: string; ticksLeft: number; sourceEid: number }> = new Map();
+  stunTicks: number = 0;
+
   // Boss fields
   isBoss: boolean;
   abilityCooldowns: Map<string, number> = new Map();
@@ -48,6 +52,8 @@ export class Mob extends Entity {
     this.idleTicks = 0;
     this.patrolTarget = null;
     this.threatMap.clear();
+    this.statusEffects.clear();
+    this.stunTicks = 0;
     if (this.isBoss && this.def.bossAbilities) {
       for (const ability of this.def.bossAbilities) {
         this.abilityCooldowns.set(ability.id, ability.cooldownTicks);

@@ -1,5 +1,7 @@
-import { Op, type ClientMessage, type ServerMessage, ITEMS, movementFormulas } from "@madworld/shared";
+import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, STATUS_EFFECTS, FISHING_SPOTS, movementFormulas, combatFormulas } from "@madworld/shared";
+import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
+import { Mob } from "../game/entities/Mob.js";
 import { GroundItem } from "../game/entities/GroundItem.js";
 import { NPC } from "../game/entities/NPC.js";
 import { world } from "../game/World.js";
@@ -7,7 +9,10 @@ import { partyManager } from "../game/PartyManager.js";
 import { verifyToken } from "../auth/jwt.js";
 import { loadPlayer } from "../services/PlayerService.js";
 import { savePlayer } from "../services/PlayerService.js";
-import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQuests, cleanupQuestState } from "../game/systems/QuestSystem.js";
+import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQuests, cleanupQuestState, onItemPickup as questOnItemPickup, onZoneEnter as questOnZoneEnter } from "../game/systems/QuestSystem.js";
+import { handleMobDeath, grantXp } from "../game/systems/CombatSystem.js";
+import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
+import { getCurrentTick } from "../game/GameLoop.js";
 import type { ServerWebSocket } from "bun";
 
 export interface SocketData {
@@ -195,6 +200,7 @@ export async function handleMessage(
       } satisfies ServerMessage);
 
       zone.removeEntity(groundItem.eid);
+      questOnItemPickup(player, groundItem.itemId);
       player.dirty = true;
       break;
     }
@@ -401,6 +407,18 @@ export async function handleMessage(
           turnInQuests: turnIn,
         },
       } satisfies ServerMessage);
+
+      // If the NPC has a shop, also send shop data
+      const npcShopItems = SHOPS[target.npcId];
+      if (npcShopItems) {
+        player.send({
+          op: Op.S_SHOP_OPEN,
+          d: {
+            npcName: target.name,
+            items: npcShopItems.map((e) => ({ itemId: e.itemId, buyPrice: e.buyPrice, stock: e.stock })),
+          },
+        } satisfies ServerMessage);
+      }
       break;
     }
 
@@ -411,6 +429,408 @@ export async function handleMessage(
 
     case Op.C_QUEST_TURN_IN: {
       turnInQuest(player, msg.d.questId);
+      break;
+    }
+
+    case Op.C_USE_SKILL: {
+      const abilityDef = ABILITIES[msg.d.abilityId];
+      if (!abilityDef) break;
+
+      // Check cooldown
+      const cd = player.abilityCooldowns.get(abilityDef.id) ?? 0;
+      if (cd > 0) break;
+
+      // Check stun
+      if (player.stunTicks > 0) break;
+
+      // Check level requirement
+      const skillData = player.skills.get(abilityDef.skillRequired as SkillName);
+      const skillLevel = skillData ? levelForXp(skillData.xp) : 1;
+      if (skillLevel < abilityDef.levelRequired) break;
+
+      const abilityZone = world.getZone(player.zoneId);
+      if (!abilityZone) break;
+
+      // Set cooldown
+      player.abilityCooldowns.set(abilityDef.id, abilityDef.cooldownTicks);
+      player.send({
+        op: Op.S_SKILL_COOLDOWN,
+        d: { abilityId: abilityDef.id, remainingMs: abilityDef.cooldownTicks * 100 },
+      } satisfies ServerMessage);
+
+      // Heal ability
+      if (abilityDef.healPercent) {
+        const healAmount = Math.floor(player.maxHp * abilityDef.healPercent);
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        player.dirty = true;
+        abilityZone.broadcastToNearby(player.x, player.y, {
+          op: Op.S_DAMAGE,
+          d: { sourceEid: player.eid, targetEid: player.eid, amount: -healAmount, isCrit: false, targetHpAfter: player.hp },
+        } satisfies ServerMessage);
+      }
+
+      // Enemy-targeted ability
+      if (abilityDef.targetType === "enemy" && msg.d.targetEid !== undefined) {
+        const abilityTarget = abilityZone.entities.get(msg.d.targetEid);
+        if (!abilityTarget) break;
+
+        const abilityDist = movementFormulas.distance(player.x, player.y, abilityTarget.x, abilityTarget.y);
+        if (abilityDist > (abilityDef.range ?? 2.5)) break;
+
+        if (abilityTarget instanceof Mob && abilityTarget.aiState !== AIState.DEAD) {
+          // Calculate damage
+          const aMeleeSkill = player.skills.get(SkillName.MELEE);
+          const aMeleeLevel = aMeleeSkill ? levelForXp(aMeleeSkill.xp) : 1;
+          let aEquipAttack = 0;
+          for (const [, itemId] of player.equipment) {
+            const item = ITEMS[itemId];
+            if (item?.stats?.attack) aEquipAttack += item.stats.attack;
+          }
+
+          const rollResult = combatFormulas.rollDamage(aMeleeLevel, aEquipAttack, abilityTarget.def.defense, 0);
+          let damage: number;
+          if (abilityDef.guaranteedHit) {
+            damage = Math.max(1, Math.floor(rollResult.damage * (abilityDef.damageMultiplier ?? 1)));
+          } else {
+            damage = rollResult.hit ? Math.floor(rollResult.damage * (abilityDef.damageMultiplier ?? 1)) : 0;
+          }
+
+          // Apply player damage multiplier from buffs
+          damage = Math.floor(damage * player.damageMultiplier);
+
+          if (damage > 0) {
+            abilityTarget.hp = Math.max(0, abilityTarget.hp - damage);
+            // Track threat for bosses
+            if (abilityTarget.isBoss) {
+              const current = abilityTarget.threatMap.get(player.eid) ?? 0;
+              abilityTarget.threatMap.set(player.eid, current + damage);
+            }
+          }
+
+          abilityZone.broadcastToNearby(abilityTarget.x, abilityTarget.y, {
+            op: Op.S_DAMAGE,
+            d: { sourceEid: player.eid, targetEid: abilityTarget.eid, amount: damage, isCrit: rollResult.isCrit, targetHpAfter: abilityTarget.hp },
+          } satisfies ServerMessage);
+
+          // Apply status effect if any (only on hit)
+          if (abilityDef.statusEffect && damage > 0) {
+            applyStatusEffect(abilityTarget.eid, abilityDef.statusEffect, player.eid, abilityZone);
+          }
+
+          if (abilityTarget.hp <= 0) {
+            handleMobDeath(abilityTarget, player, abilityZone);
+          }
+        }
+      }
+
+      // Self-targeted status effect (sprint, war cry)
+      if (abilityDef.statusEffect && abilityDef.targetType === "self") {
+        applyStatusEffect(player.eid, abilityDef.statusEffect, player.eid, abilityZone);
+
+        // War Cry: also apply to nearby party members
+        if (abilityDef.partyBuff) {
+          const party = partyManager.getPartyForPlayer(player.eid);
+          if (party) {
+            const members = partyManager.getPartyMembersInRange(party, player.x, player.y, player.zoneId, PARTY_XP_RANGE);
+            for (const member of members) {
+              if (member.eid !== player.eid) {
+                applyStatusEffect(member.eid, abilityDef.statusEffect!, player.eid, abilityZone);
+              }
+            }
+          }
+        }
+      }
+
+      // Dodge Roll
+      if (abilityDef.dashDistance) {
+        const lastMove = player.moveQueue.length > 0 ? player.moveQueue[player.moveQueue.length - 1] : null;
+        const dashDx = lastMove ? lastMove.dx : (player.dx || 0);
+        const dashDy = lastMove ? lastMove.dy : (player.dy || 1);
+        const len = Math.sqrt(dashDx * dashDx + dashDy * dashDy) || 1;
+        const newX = player.x + (dashDx / len) * abilityDef.dashDistance;
+        const newY = player.y + (dashDy / len) * abilityDef.dashDistance;
+
+        if (movementFormulas.isWalkable(abilityZone.def, newX, newY)) {
+          player.x = newX;
+          player.y = newY;
+          abilityZone.moveEntity(player.eid, player.x, player.y);
+          player.dirty = true;
+          abilityZone.broadcastToNearby(player.x, player.y, {
+            op: Op.S_ENTITY_MOVE,
+            d: { eid: player.eid, x: player.x, y: player.y, dx: dashDx / len, dy: dashDy / len, speed: player.speed * 3 },
+          } satisfies ServerMessage);
+        }
+        if (abilityDef.invulnerableTicks) {
+          player.invulnerableTicks = abilityDef.invulnerableTicks;
+          applyStatusEffect(player.eid, "invulnerable", player.eid, abilityZone);
+        }
+      }
+
+      break;
+    }
+
+    case Op.C_SHOP_BUY: {
+      const shopZone = world.getZone(player.zoneId);
+      if (!shopZone) break;
+      const shopNpc = shopZone.entities.get(msg.d.npcEid);
+      if (!shopNpc || !(shopNpc instanceof NPC)) break;
+      const shopDist = movementFormulas.distance(player.x, player.y, shopNpc.x, shopNpc.y);
+      if (shopDist > 3) break;
+
+      // Find shop for this NPC
+      const shopItems = SHOPS[shopNpc.npcId];
+      if (!shopItems) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "This NPC has nothing to sell." } } satisfies ServerMessage);
+        break;
+      }
+
+      const shopEntry = shopItems.find((e) => e.itemId === msg.d.itemId);
+      if (!shopEntry) break;
+
+      const buyQty = Math.max(1, msg.d.quantity);
+      const totalCost = shopEntry.buyPrice * buyQty;
+
+      // Check gold
+      let playerGold = 0;
+      for (const slot of player.inventory) {
+        if (slot?.itemId === "gold_coins") playerGold += slot.quantity;
+      }
+      if (playerGold < totalCost) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Not enough gold." } } satisfies ServerMessage);
+        break;
+      }
+
+      // Remove gold
+      let goldRemaining = totalCost;
+      for (let i = 0; i < player.inventory.length && goldRemaining > 0; i++) {
+        const slot = player.inventory[i];
+        if (slot?.itemId === "gold_coins") {
+          const take = Math.min(goldRemaining, slot.quantity);
+          slot.quantity -= take;
+          goldRemaining -= take;
+          if (slot.quantity <= 0) player.inventory[i] = null;
+        }
+      }
+
+      // Add purchased item to inventory
+      const buyItemDef = ITEMS[msg.d.itemId];
+      let buyTargetSlot = -1;
+      if (buyItemDef?.stackable) {
+        for (let i = 0; i < player.inventory.length; i++) {
+          if (player.inventory[i]?.itemId === msg.d.itemId) {
+            buyTargetSlot = i;
+            break;
+          }
+        }
+      }
+      if (buyTargetSlot === -1) buyTargetSlot = player.inventory.indexOf(null);
+      if (buyTargetSlot === -1) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Inventory full." } } satisfies ServerMessage);
+        break;
+      }
+
+      const existingBuySlot = player.inventory[buyTargetSlot];
+      if (existingBuySlot?.itemId === msg.d.itemId) {
+        existingBuySlot.quantity += buyQty;
+      } else {
+        player.inventory[buyTargetSlot] = { itemId: msg.d.itemId, quantity: buyQty };
+      }
+
+      // Send inventory updates for changed slots
+      const buyUpdatedSlots: Array<{ index: number; itemId: string | null; quantity: number }> = [];
+      for (let i = 0; i < player.inventory.length; i++) {
+        const s = player.inventory[i];
+        buyUpdatedSlots.push({ index: i, itemId: s?.itemId ?? null, quantity: s?.quantity ?? 0 });
+      }
+      player.send({ op: Op.S_INV_UPDATE, d: { slots: buyUpdatedSlots.filter((s) => s.itemId !== null || s.quantity === 0) } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Bought ${buyQty}x ${buyItemDef?.name ?? msg.d.itemId}.` } } satisfies ServerMessage);
+      player.dirty = true;
+      break;
+    }
+
+    case Op.C_SHOP_SELL: {
+      const sellZone = world.getZone(player.zoneId);
+      if (!sellZone) break;
+      const sellNpc = sellZone.entities.get(msg.d.npcEid);
+      if (!sellNpc || !(sellNpc instanceof NPC)) break;
+      const sellDist = movementFormulas.distance(player.x, player.y, sellNpc.x, sellNpc.y);
+      if (sellDist > 3) break;
+
+      const sellSlotIdx = msg.d.inventorySlot;
+      if (sellSlotIdx < 0 || sellSlotIdx >= player.inventory.length) break;
+      const sellSlot = player.inventory[sellSlotIdx];
+      if (!sellSlot) break;
+
+      const sellItemDef = ITEMS[sellSlot.itemId];
+      if (!sellItemDef) break;
+
+      const sellQty = Math.min(msg.d.quantity, sellSlot.quantity);
+      if (sellQty <= 0) break;
+
+      // Sell price is half buy price, or 1 if not in any shop
+      let sellPrice = 1;
+      const npcShop = SHOPS[sellNpc.npcId];
+      if (npcShop) {
+        const entry = npcShop.find((e) => e.itemId === sellSlot.itemId);
+        if (entry) {
+          sellPrice = Math.max(1, Math.floor(entry.buyPrice / 2));
+        }
+      }
+      const totalSellGold = sellPrice * sellQty;
+
+      // Remove item
+      sellSlot.quantity -= sellQty;
+      if (sellSlot.quantity <= 0) {
+        player.inventory[sellSlotIdx] = null;
+      }
+
+      // Add gold
+      let goldSlotIdx = -1;
+      for (let i = 0; i < player.inventory.length; i++) {
+        if (player.inventory[i]?.itemId === "gold_coins") {
+          goldSlotIdx = i;
+          break;
+        }
+      }
+      if (goldSlotIdx === -1) goldSlotIdx = player.inventory.indexOf(null);
+      if (goldSlotIdx === -1) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Inventory full, cannot receive gold." } } satisfies ServerMessage);
+        break;
+      }
+
+      const goldSlot = player.inventory[goldSlotIdx];
+      if (goldSlot?.itemId === "gold_coins") {
+        goldSlot.quantity += totalSellGold;
+      } else {
+        player.inventory[goldSlotIdx] = { itemId: "gold_coins", quantity: totalSellGold };
+      }
+
+      // Send inventory updates
+      const sellUpdatedSlots: Array<{ index: number; itemId: string | null; quantity: number }> = [];
+      for (const idx of [sellSlotIdx, goldSlotIdx]) {
+        const s = player.inventory[idx];
+        sellUpdatedSlots.push({ index: idx, itemId: s?.itemId ?? null, quantity: s?.quantity ?? 0 });
+      }
+      player.send({ op: Op.S_INV_UPDATE, d: { slots: sellUpdatedSlots } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Sold ${sellQty}x ${sellItemDef.name} for ${totalSellGold} gold.` } } satisfies ServerMessage);
+      player.dirty = true;
+      break;
+    }
+
+    case Op.C_FISH_CAST: {
+      // Check player is not already fishing
+      if (player.fishingState) break;
+      if (player.stunTicks > 0) break;
+
+      const fishZone = world.getZone(player.zoneId);
+      if (!fishZone) break;
+
+      // Check for adjacent water tile
+      const px = Math.floor(player.x);
+      const py = Math.floor(player.y);
+      let hasWater = false;
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        const tx = px + dx;
+        const ty = py + dy;
+        if (ty >= 0 && ty < fishZone.def.height && tx >= 0 && tx < fishZone.def.width) {
+          if (fishZone.def.tiles[ty][tx] === 3 /* TileType.WATER */) {
+            hasWater = true;
+            break;
+          }
+        }
+      }
+      if (!hasWater) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You need to be next to water to fish." } } satisfies ServerMessage);
+        break;
+      }
+
+      // Check fishing level and pick a fish
+      const fishingSkill = player.skills.get(SkillName.FISHING);
+      const fishingLevel = fishingSkill ? levelForXp(fishingSkill.xp) : 1;
+
+      // Find eligible fishing spots
+      const eligibleSpots = FISHING_SPOTS.filter((s) => fishingLevel >= s.levelReq);
+      if (eligibleSpots.length === 0) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Nothing to catch here." } } satisfies ServerMessage);
+        break;
+      }
+
+      // Pick a random spot
+      const spot = eligibleSpots[Math.floor(Math.random() * eligibleSpots.length)];
+
+      player.fishingState = {
+        startTick: getCurrentTick(),
+        fish: spot.fish,
+        catchTick: spot.catchTicks,
+        biteSent: false,
+      };
+
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You cast your line..." } } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_FISH_REEL: {
+      if (!player.fishingState) break;
+
+      const state = player.fishingState;
+      const elapsed = getCurrentTick() - state.startTick;
+
+      // Must wait for the bite (70% of catch time)
+      const biteAt = Math.floor(state.catchTick * 0.7);
+      if (elapsed < biteAt) {
+        // Too early - scare away the fish
+        player.send({ op: Op.S_FISH_RESULT, d: { success: false } } satisfies ServerMessage);
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You reeled in too early!" } } satisfies ServerMessage);
+        player.fishingState = null;
+        break;
+      }
+
+      // Success window: between bite and catch + grace period
+      if (elapsed <= state.catchTick + 20) {
+        // Find the spot for XP
+        const spot = FISHING_SPOTS.find((s) => s.fish === state.fish);
+        const xp = spot?.baseXp ?? 10;
+
+        // Add fish to inventory
+        let fishSlot = -1;
+        const fishDef = ITEMS[state.fish];
+        if (fishDef?.stackable) {
+          for (let i = 0; i < player.inventory.length; i++) {
+            if (player.inventory[i]?.itemId === state.fish) {
+              fishSlot = i;
+              break;
+            }
+          }
+        }
+        if (fishSlot === -1) fishSlot = player.inventory.indexOf(null);
+        if (fishSlot === -1) {
+          player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Inventory full!" } } satisfies ServerMessage);
+          player.fishingState = null;
+          break;
+        }
+
+        const existing = player.inventory[fishSlot];
+        if (existing?.itemId === state.fish) {
+          existing.quantity += 1;
+        } else {
+          player.inventory[fishSlot] = { itemId: state.fish, quantity: 1 };
+        }
+
+        player.send({
+          op: Op.S_INV_UPDATE,
+          d: { slots: [{ index: fishSlot, itemId: player.inventory[fishSlot]!.itemId, quantity: player.inventory[fishSlot]!.quantity }] },
+        } satisfies ServerMessage);
+
+        player.send({ op: Op.S_FISH_RESULT, d: { success: true, itemId: state.fish, xp } } satisfies ServerMessage);
+        grantXp(player, SkillName.FISHING, xp);
+        questOnItemPickup(player, state.fish);
+        player.dirty = true;
+      } else {
+        player.send({ op: Op.S_FISH_RESULT, d: { success: false } } satisfies ServerMessage);
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "The fish got away!" } } satisfies ServerMessage);
+      }
+
+      player.fishingState = null;
       break;
     }
 
@@ -516,6 +936,21 @@ async function handleAuth(
     // Initialize quest state and send quest list
     initQuestState(player);
     sendQuestList(player);
+
+    // Send unlocked abilities based on skill levels
+    const unlockedAbilities: { slot: number; abilityId: string; cooldownMs: number }[] = [];
+    for (const [abilityId, aDef] of Object.entries(ABILITIES)) {
+      const aSkillData = player.skills.get(aDef.skillRequired as SkillName);
+      const aSkillLevel = aSkillData ? levelForXp(aSkillData.xp) : 1;
+      if (aSkillLevel >= aDef.levelRequired) {
+        const remainingCd = player.abilityCooldowns.get(abilityId) ?? 0;
+        unlockedAbilities.push({ slot: aDef.slot, abilityId, cooldownMs: remainingCd * 100 });
+      }
+    }
+    player.send({
+      op: Op.S_ABILITY_LIST,
+      d: { abilities: unlockedAbilities },
+    } satisfies ServerMessage);
 
     // Welcome message
     ws.send(

@@ -213,10 +213,10 @@ function createGreendale(): ZoneDef {
     ],
     npcSpawns: [
       { npcId: "quest_giver", name: "Elder Theron", x: 33, y: 35, dialog: "Welcome, adventurer. I have tasks for those brave enough.", quests: ["pest_control", "goblin_menace", "spider_silk", "into_the_warren", "the_lichs_end"] },
-      { npcId: "shopkeeper", name: "Merchant Lyra", x: 25, y: 24, dialog: "Take a look at my wares!", quests: [] },
+      { npcId: "shopkeeper", name: "Merchant Lyra", x: 25, y: 24, dialog: "Take a look at my wares!", quests: ["lyras_supplies"] },
       { npcId: "blacksmith", name: "Smith Garrett", x: 24, y: 35, dialog: "Need something forged? Come back when I've set up shop.", quests: [] },
-      { npcId: "guard_south", name: "Guard", x: 29, y: 57, dialog: "The Darkwood Forest lies to the south. Be careful out there.", quests: [] },
-      { npcId: "guard_east", name: "Guard", x: 57, y: 29, dialog: "The open fields are to the east. Watch for goblins.", quests: [] },
+      { npcId: "guard_south", name: "Guard", x: 29, y: 57, dialog: "The Darkwood Forest lies to the south. Be careful out there.", quests: ["forest_exploration"] },
+      { npcId: "guard_east", name: "Guard", x: 57, y: 29, dialog: "The open fields are to the east. Watch for goblins.", quests: ["field_survey"] },
     ],
     lights: [
       // Market center campfire

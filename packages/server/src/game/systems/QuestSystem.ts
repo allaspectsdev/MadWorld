@@ -114,6 +114,76 @@ export function onMobKill(player: Player, mobId: string): void {
   }
 }
 
+export function onItemPickup(player: Player, itemId: string): void {
+  const state = getQuestState(player);
+
+  for (const [questId, questProgress] of state.active) {
+    const quest = QUESTS[questId];
+    if (!quest) continue;
+
+    const step = quest.steps[questProgress.stepIndex];
+    if (!step || step.type !== "gather") continue;
+    if (step.target !== itemId) continue;
+
+    const current = questProgress.progress.get(step.target) ?? 0;
+    const required = step.quantity ?? 1;
+    if (current >= required) continue;
+
+    const newCount = current + 1;
+    questProgress.progress.set(step.target, newCount);
+
+    const progress: Record<string, number> = {};
+    for (const [k, v] of questProgress.progress) {
+      progress[k] = v;
+    }
+
+    player.send({
+      op: Op.S_QUEST_UPDATE,
+      d: { questId, stepIndex: questProgress.stepIndex, progress },
+    } satisfies ServerMessage);
+
+    if (newCount >= required) {
+      player.send({
+        op: Op.S_SYSTEM_MESSAGE,
+        d: { message: `Quest objective complete: ${step.description}` },
+      } satisfies ServerMessage);
+    }
+  }
+}
+
+export function onZoneEnter(player: Player, zoneId: string): void {
+  const state = getQuestState(player);
+
+  for (const [questId, questProgress] of state.active) {
+    const quest = QUESTS[questId];
+    if (!quest) continue;
+
+    const step = quest.steps[questProgress.stepIndex];
+    if (!step || step.type !== "reach") continue;
+    if (step.target !== zoneId) continue;
+
+    const current = questProgress.progress.get(step.target) ?? 0;
+    if (current >= 1) continue;
+
+    questProgress.progress.set(step.target, 1);
+
+    const progress: Record<string, number> = {};
+    for (const [k, v] of questProgress.progress) {
+      progress[k] = v;
+    }
+
+    player.send({
+      op: Op.S_QUEST_UPDATE,
+      d: { questId, stepIndex: questProgress.stepIndex, progress },
+    } satisfies ServerMessage);
+
+    player.send({
+      op: Op.S_SYSTEM_MESSAGE,
+      d: { message: `Quest objective complete: ${step.description}` },
+    } satisfies ServerMessage);
+  }
+}
+
 function isQuestReadyToTurnIn(state: PlayerQuestState, questId: string): boolean {
   const questProgress = state.active.get(questId);
   if (!questProgress) return false;
@@ -125,10 +195,14 @@ function isQuestReadyToTurnIn(state: PlayerQuestState, questId: string): boolean
   for (let i = 0; i <= questProgress.stepIndex; i++) {
     const step = quest.steps[i];
     if (!step) continue;
-    if (step.type === "kill") {
+    if (step.type === "kill" || step.type === "gather") {
       const current = questProgress.progress.get(step.target) ?? 0;
       const required = step.quantity ?? 1;
       if (current < required) return false;
+    }
+    if (step.type === "reach") {
+      const current = questProgress.progress.get(step.target) ?? 0;
+      if (current < 1) return false;
     }
   }
 

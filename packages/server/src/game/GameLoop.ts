@@ -1,10 +1,11 @@
-import { TICK_MS, Op, type ServerMessage } from "@madworld/shared";
+import { TICK_MS, Op, FISHING_SPOTS, type ServerMessage } from "@madworld/shared";
 import { world } from "./World.js";
 import { partyManager } from "./PartyManager.js";
 import { processMovement } from "./systems/MovementSystem.js";
 import { processAI } from "./systems/AISystem.js";
 import { processBossAI } from "./systems/BossAISystem.js";
 import { processCombat } from "./systems/CombatSystem.js";
+import { processAbilities } from "./systems/AbilitySystem.js";
 import { instanceManager } from "./InstanceManager.js";
 import { GroundItem } from "./entities/GroundItem.js";
 import type { Zone } from "./Zone.js";
@@ -27,15 +28,19 @@ function tick(): void {
   // 4. Resolve combat (world + instance zones, shared XP)
   processCombat();
 
-  // 5. Despawn expired ground items
+  // 5. Process ability cooldowns, status effects, and fishing timers
+  processAbilities();
+  processFishing(currentTick);
+
+  // 6. Despawn expired ground items
   processGroundItemDespawn();
 
-  // 6. Sync party member HP cross-zone
+  // 7. Sync party member HP cross-zone
   for (const [, player] of world.playersByEid) {
     partyManager.syncPartyMemberHp(player);
   }
 
-  // 7. Send tick sync to all players
+  // 8. Send tick sync to all players
   const tickMsg: ServerMessage = {
     op: Op.S_TICK,
     d: { tick: currentTick, serverTime: Date.now() },
@@ -44,12 +49,12 @@ function tick(): void {
     player.send(tickMsg);
   }
 
-  // 8. Persist dirty players every 30 seconds (300 ticks)
+  // 9. Persist dirty players every 30 seconds (300 ticks)
   if (currentTick % 300 === 0) {
     persistDirtyPlayers();
   }
 
-  // 9. Cleanup idle dungeon instances every ~60s
+  // 10. Cleanup idle dungeon instances every ~60s
   if (currentTick % 600 === 0) {
     instanceManager.cleanupIdleInstances();
   }
@@ -58,6 +63,34 @@ function tick(): void {
 function* allZones(): Iterable<Zone> {
   yield* world.zones.values();
   yield* world.instances.values();
+}
+
+function processFishing(tick: number): void {
+  for (const [, player] of world.playersByEid) {
+    if (!player.fishingState) continue;
+
+    const state = player.fishingState;
+    const elapsed = tick - state.startTick;
+
+    // Send bite notification at ~70% of catch time
+    const biteAt = Math.floor(state.catchTick * 0.7);
+    if (!state.biteSent && elapsed >= biteAt) {
+      state.biteSent = true;
+      player.send({
+        op: Op.S_FISH_BITE,
+        d: { spotId: state.fish },
+      } satisfies ServerMessage);
+    }
+
+    // Auto-fail if player doesn't reel in within catch window + grace period
+    if (elapsed > state.catchTick + 20) {
+      player.send({
+        op: Op.S_FISH_RESULT,
+        d: { success: false },
+      } satisfies ServerMessage);
+      player.fishingState = null;
+    }
+  }
 }
 
 function processGroundItemDespawn(): void {

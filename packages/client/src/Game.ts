@@ -24,6 +24,7 @@ import { QuestLog } from "./ui/components/QuestLog.js";
 import { NPCDialog } from "./ui/components/NPCDialog.js";
 import { AudioManager } from "./audio/AudioManager.js";
 import { SkillBar } from "./ui/components/SkillBar.js";
+import { ShopPanel } from "./ui/components/ShopPanel.js";
 import { SettingsPanel } from "./ui/components/SettingsPanel.js";
 
 export class Game {
@@ -48,6 +49,7 @@ export class Game {
   private inventoryPanel: InventoryPanel;
   private audio: AudioManager;
   private skillBar: SkillBar;
+  private shopPanel: ShopPanel;
   private settingsPanel: SettingsPanel;
   private questLog: QuestLog;
   private npcDialog: NPCDialog;
@@ -101,6 +103,7 @@ export class Game {
     this.chatPanel = new ChatPanel(this.socket);
     this.inventoryPanel = new InventoryPanel(this.socket);
     this.skillBar = new SkillBar();
+    this.shopPanel = new ShopPanel(this.socket);
     this.settingsPanel = new SettingsPanel(this.audio, this.camera);
     this.questLog = new QuestLog();
     this.npcDialog = new NPCDialog(this.socket);
@@ -138,6 +141,18 @@ export class Game {
     this.partyInviteModal.start();
     this.questLog.start();
     this.npcDialog.start();
+    this.shopPanel.start();
+
+    // Subscribe to ability list changes from server
+    useGameStore.subscribe((state) => {
+      this.skillBar.setAbilities(state.abilities);
+    });
+    // Subscribe to individual cooldown changes
+    useGameStore.subscribe((state) => {
+      for (const ab of state.abilities) {
+        this.skillBar.setCooldown(ab.abilityId, ab.cooldownMs);
+      }
+    });
 
     // Initialize audio on first user interaction
     const initAudio = () => {
@@ -181,6 +196,21 @@ export class Game {
         if (loginScreen && loginScreen.style.display !== "none") return;
         e.preventDefault();
         this.settingsPanel.toggle();
+      }
+
+      // Keys 2-8 for skill bar abilities
+      if (e.key >= "2" && e.key <= "8" && !useGameStore.getState().chatOpen) {
+        const loginScreen = document.getElementById("login-screen");
+        if (loginScreen && loginScreen.style.display !== "none") return;
+        e.preventDefault();
+        const slotNum = parseInt(e.key);
+        const abilityId = this.skillBar.getAbilityForSlot(slotNum);
+        if (abilityId && abilityId !== "auto_attack") {
+          this.socket.send({
+            op: Op.C_USE_SKILL,
+            d: { abilityId, targetEid: this.currentTarget ?? undefined },
+          } as ClientMessage);
+        }
       }
     });
 
@@ -353,6 +383,9 @@ export class Game {
     // Lighting system
     this.lighting.setCamera(current.x, current.y, this.camera.zoom);
     this.lighting.update(dt, current.x, current.y);
+
+    // Skill bar cooldown ticking
+    this.skillBar.update(dt);
 
     // Chat
     this.chatPanel.update();

@@ -50,4 +50,35 @@ export const QUESTS: Record<string, QuestDef> = {
     ],
     rewards: { xp: { melee: 1000, defense: 500 }, gold: 500 },
   },
+  forest_exploration: {
+    id: "forest_exploration",
+    name: "Into the Wild",
+    description: "Explore the Darkwood Forest to learn the lay of the land.",
+    requirements: { quests: ["pest_control"] },
+    steps: [
+      { description: "Travel to Darkwood Forest", type: "reach", target: "darkwood", quantity: 1 },
+    ],
+    rewards: { xp: { agility: 100 }, gold: 30 },
+  },
+  field_survey: {
+    id: "field_survey",
+    name: "Field Survey",
+    description: "The Guard needs someone to scout the Open Fields.",
+    requirements: { quests: ["pest_control"] },
+    steps: [
+      { description: "Travel to the Open Fields", type: "reach", target: "fields", quantity: 1 },
+    ],
+    rewards: { xp: { agility: 100 }, gold: 30 },
+  },
+  lyras_supplies: {
+    id: "lyras_supplies",
+    name: "Lyra's Supplies",
+    description: "Merchant Lyra needs herbs from the forest. Gather some and bring them to her.",
+    requirements: { quests: ["pest_control"] },
+    steps: [
+      { description: "Collect 5 herbs", type: "gather", target: "herb", quantity: 5 },
+      { description: "Deliver herbs to Merchant Lyra", type: "deliver", target: "shopkeeper", quantity: 5 },
+    ],
+    rewards: { xp: { foraging: 75 }, items: [{ itemId: "bread", quantity: 10 }], gold: 60 },
+  },
 };

@@ -2,6 +2,7 @@ import { world } from "../World.js";
 import { Player } from "../entities/Player.js";
 import { partyManager } from "../PartyManager.js";
 import { instanceManager } from "../InstanceManager.js";
+import { onZoneEnter as questOnZoneEnter } from "./QuestSystem.js";
 import { Op, TICK_MS, TileType, type ServerMessage, type Portal } from "@madworld/shared";
 import { movementFormulas } from "@madworld/shared";
 
@@ -16,9 +17,18 @@ export function processMovement(): void {
     const zone = world.getZone(player.zoneId);
     if (!zone) continue;
 
+    // Cancel fishing on movement
+    if (player.fishingState) {
+      player.fishingState = null;
+    }
+
+    // Skip movement if player is stunned
+    if (player.stunTicks > 0) continue;
+
     const dt = TICK_MS / 1000;
-    const newX = player.x + move.dx * player.speed * dt;
-    const newY = player.y + move.dy * player.speed * dt;
+    const effectiveSpeed = player.speed * player.speedMultiplier;
+    const newX = player.x + move.dx * effectiveSpeed * dt;
+    const newY = player.y + move.dy * effectiveSpeed * dt;
 
     // Check walkability — but if player is currently stuck in a non-walkable tile,
     // allow movement to escape (don't trap them forever)
@@ -72,7 +82,7 @@ export function processMovement(): void {
         y: newY,
         dx: move.dx,
         dy: move.dy,
-        speed: player.speed,
+        speed: effectiveSpeed,
         seq: move.seq,
       },
     } satisfies ServerMessage);
@@ -97,6 +107,7 @@ function handleZoneTransition(
 
   newZone.addEntity(player);
   newZone.sendZoneData(player);
+  questOnZoneEnter(player, targetZoneId);
 }
 
 function handleDungeonEntry(player: Player, portal: Portal): void {

@@ -74,6 +74,13 @@ export interface GameState {
   toggleQuestLog: () => void;
   setNpcDialog: (dialog: { npcName: string; dialog: string; availableQuests: string[]; turnInQuests: string[] } | null) => void;
 
+  // Abilities & Shop
+  abilities: { slot: number; abilityId: string; cooldownMs: number }[];
+  shopData: { npcName: string; items: { itemId: string; buyPrice: number; stock: number }[] } | null;
+  setAbilities: (abilities: { slot: number; abilityId: string; cooldownMs: number }[]) => void;
+  setAbilityCooldown: (abilityId: string, remainingMs: number) => void;
+  setShopData: (data: { npcName: string; items: { itemId: string; buyPrice: number; stock: number }[] } | null) => void;
+
   // Inventory & Equipment
   inventory: (InventorySlot | null)[];
   equipment: Record<string, string>;
@@ -160,6 +167,17 @@ export const useGameStore = create<GameState>()((set, get) => ({
     })),
   toggleQuestLog: () => set((state) => ({ questLogOpen: !state.questLogOpen })),
   setNpcDialog: (dialog) => set({ npcDialog: dialog }),
+
+  abilities: [],
+  shopData: null,
+  setAbilities: (abilities) => set({ abilities }),
+  setAbilityCooldown: (abilityId, remainingMs) =>
+    set((state) => ({
+      abilities: state.abilities.map((a) =>
+        a.abilityId === abilityId ? { ...a, cooldownMs: remainingMs } : a,
+      ),
+    })),
+  setShopData: (data) => set({ shopData: data }),
 
   inventory: new Array<InventorySlot | null>(28).fill(null),
   equipment: {},

@@ -286,6 +286,58 @@ export interface S_QuestList {
   completed: string[];
 }
 
+// ---- Abilities ----
+export interface C_UseSkill {
+  abilityId: string;
+  targetEid?: number;
+}
+
+export interface S_SkillCooldown {
+  abilityId: string;
+  remainingMs: number;
+}
+
+export interface S_StatusEffect {
+  targetEid: number;
+  effectId: string;
+  action: "apply" | "remove" | "tick";
+  durationMs?: number;
+  stacks?: number;
+}
+
+export interface S_AbilityList {
+  abilities: { slot: number; abilityId: string; cooldownMs: number }[];
+}
+
+// ---- Shop ----
+export interface C_ShopBuy {
+  npcEid: number;
+  itemId: string;
+  quantity: number;
+}
+
+export interface C_ShopSell {
+  npcEid: number;
+  inventorySlot: number;
+  quantity: number;
+}
+
+export interface S_ShopOpen {
+  npcName: string;
+  items: { itemId: string; buyPrice: number; stock: number }[];
+}
+
+// ---- Fishing ----
+export interface S_FishBite {
+  spotId: string;
+}
+
+export interface S_FishResult {
+  success: boolean;
+  itemId?: string;
+  xp?: number;
+}
+
 // ---- Discriminated Unions ----
 
 export type ClientMessage =
@@ -318,6 +370,9 @@ export type ClientMessage =
   | { op: Op.C_NPC_INTERACT; d: C_NpcInteract }
   | { op: Op.C_QUEST_ACCEPT; d: C_QuestAccept }
   | { op: Op.C_QUEST_TURN_IN; d: C_QuestTurnIn }
+  | { op: Op.C_USE_SKILL; d: C_UseSkill }
+  | { op: Op.C_SHOP_BUY; d: C_ShopBuy }
+  | { op: Op.C_SHOP_SELL; d: C_ShopSell }
   | { op: Op.C_PING; d: { t: number } };
 
 export type ServerMessage =
@@ -351,5 +406,11 @@ export type ServerMessage =
   | { op: Op.S_QUEST_UPDATE; d: S_QuestUpdate }
   | { op: Op.S_QUEST_COMPLETE; d: S_QuestComplete }
   | { op: Op.S_QUEST_LIST; d: S_QuestList }
+  | { op: Op.S_SKILL_COOLDOWN; d: S_SkillCooldown }
+  | { op: Op.S_STATUS_EFFECT; d: S_StatusEffect }
+  | { op: Op.S_ABILITY_LIST; d: S_AbilityList }
+  | { op: Op.S_SHOP_OPEN; d: S_ShopOpen }
+  | { op: Op.S_FISH_BITE; d: S_FishBite }
+  | { op: Op.S_FISH_RESULT; d: S_FishResult }
   | { op: Op.S_TICK; d: S_Tick }
   | { op: Op.S_PONG; d: S_Pong };

@@ -17,6 +17,10 @@ export * from "./constants/skills.js";
 export { ITEMS, getItem } from "./constants/items.js";
 export { MOBS } from "./constants/mobs.js";
 export { QUESTS } from "./constants/quests.js";
+export { ABILITIES, type AbilityDef } from "./constants/abilities.js";
+export { SHOPS, type ShopEntry } from "./constants/shops.js";
+export { FISHING_SPOTS, type FishingSpotDef } from "./constants/fishing.js";
+export { STATUS_EFFECTS, type StatusEffectDef } from "./types/statusEffect.js";
 
 // Formulas
 export * as combatFormulas from "./formulas/combat.js";

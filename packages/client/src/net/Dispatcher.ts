@@ -491,6 +491,68 @@ export class Dispatcher {
         break;
       }
 
+      case Op.S_ABILITY_LIST: {
+        store.setAbilities(msg.d.abilities);
+        break;
+      }
+
+      case Op.S_SKILL_COOLDOWN: {
+        store.setAbilityCooldown(msg.d.abilityId, msg.d.remainingMs);
+        break;
+      }
+
+      case Op.S_STATUS_EFFECT: {
+        const targetEntity = store.entities.get(msg.d.targetEid);
+        const lp = store.localPlayer;
+        if (msg.d.action === "apply") {
+          const STATUS_COLORS: Record<string, number> = {
+            stun: 0xffff00, poison: 0x44ff44, speed_boost: 0x44aaff,
+            damage_boost: 0xffaa00, invulnerable: 0xffffff,
+          };
+          const color = STATUS_COLORS[msg.d.effectId] ?? 0xffffff;
+          const tx = targetEntity?.nextX ?? lp?.x ?? 0;
+          const ty = targetEntity?.nextY ?? lp?.y ?? 0;
+          this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 8, {
+            texType: "glow",
+            tint: color,
+            speed: 30,
+            spread: Math.PI * 2,
+            life: 0.8,
+            gravity: -15,
+            baseScale: 0.6,
+          });
+        } else if (msg.d.action === "tick") {
+          const tx = targetEntity?.nextX ?? lp?.x ?? 0;
+          const ty = targetEntity?.nextY ?? lp?.y ?? 0;
+          if (msg.d.effectId === "poison") {
+            this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 3, {
+              tint: 0x44ff44, speed: 15, spread: Math.PI, life: 0.4, gravity: 10, baseScale: 0.4,
+            });
+          }
+        }
+        break;
+      }
+
+      case Op.S_SHOP_OPEN: {
+        store.setShopData(msg.d);
+        break;
+      }
+
+      case Op.S_FISH_BITE: {
+        this.audio.playSfx("chat_blip");
+        this.showSystemMessage("Fish on the line! Reel in!");
+        break;
+      }
+
+      case Op.S_FISH_RESULT: {
+        if (msg.d.success) {
+          this.showSystemMessage(`Caught a fish! (+${msg.d.xp ?? 0} fishing XP)`);
+        } else {
+          this.showSystemMessage("The fish got away...");
+        }
+        break;
+      }
+
       case Op.S_TICK: {
         break;
       }

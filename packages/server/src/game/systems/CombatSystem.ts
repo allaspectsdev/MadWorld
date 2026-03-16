@@ -8,7 +8,7 @@ import { instanceManager } from "../InstanceManager.js";
 import { onMobKill as questOnMobKill } from "./QuestSystem.js";
 import { Op, AIState, PARTY_XP_RANGE, PARTY_XP_BONUS, type ServerMessage } from "@madworld/shared";
 import { combatFormulas, movementFormulas } from "@madworld/shared";
-import { levelForXp } from "@madworld/shared";
+import { levelForXp, xpForLevel } from "@madworld/shared";
 import { SkillName } from "@madworld/shared";
 import { ITEMS } from "@madworld/shared";
 
@@ -25,6 +25,9 @@ export function processCombat(): void {
       player.attackCooldown--;
       continue;
     }
+
+    // Skip if player is stunned
+    if (player.stunTicks > 0) continue;
 
     const zone = world.getZone(player.zoneId);
     if (!zone) continue;
@@ -108,6 +111,7 @@ export function processCombat(): void {
   for (const zone of allZones()) {
     for (const [, mob] of zone.mobs) {
       if (mob.aiState !== AIState.CHASE || mob.targetEid === null) continue;
+      if (mob.stunTicks > 0) continue;
       if (mob.attackCooldown > 0) {
         mob.attackCooldown--;
         continue;
@@ -134,6 +138,9 @@ export function processCombat(): void {
         equipDefense,
       );
 
+      // Skip damage if target is invulnerable
+      if (target.invulnerableTicks > 0) continue;
+
       if (result.hit) {
         target.hp = Math.max(0, target.hp - result.damage);
         target.dirty = true;
@@ -159,7 +166,7 @@ export function processCombat(): void {
   }
 }
 
-function grantXp(player: Player, skill: SkillName, xp: number): void {
+export function grantXp(player: Player, skill: SkillName, xp: number): void {
   const skillData = player.skills.get(skill);
   if (!skillData) return;
   const oldLevel = levelForXp(skillData.xp);
@@ -181,7 +188,7 @@ function grantXp(player: Player, skill: SkillName, xp: number): void {
   player.dirty = true;
 }
 
-function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
+export function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
   mob.aiState = AIState.DEAD;
   mob.respawnTimer = mob.def.respawnTicks;
   mob.dx = 0;
@@ -244,6 +251,56 @@ function handlePlayerDeath(player: Player, zone: Zone): void {
     d: { eid: player.eid },
   } satisfies ServerMessage);
 
+  // Death penalty: lose 5% XP in melee skill (cannot drop below current level floor)
+  const meleeSkill = player.skills.get(SkillName.MELEE);
+  if (meleeSkill && meleeSkill.xp > 0) {
+    const currentLevel = levelForXp(meleeSkill.xp);
+    const levelFloorXp = xpForLevel(currentLevel);
+    const loss = Math.floor(meleeSkill.xp * 0.05);
+    const actualLoss = Math.min(loss, meleeSkill.xp - levelFloorXp);
+    if (actualLoss > 0) {
+      meleeSkill.xp -= actualLoss;
+      player.send({
+        op: Op.S_XP_GAIN,
+        d: { skillId: SkillName.MELEE, xp: -actualLoss, totalXp: meleeSkill.xp },
+      } satisfies ServerMessage);
+    }
+  }
+
+  // Death penalty: drop 10% gold
+  let totalGold = 0;
+  for (const slot of player.inventory) {
+    if (slot && slot.itemId === "gold_coins") totalGold += slot.quantity;
+  }
+  const goldLoss = Math.floor(totalGold * 0.1);
+  if (goldLoss > 0) {
+    let remaining = goldLoss;
+    for (let i = 0; i < player.inventory.length && remaining > 0; i++) {
+      const slot = player.inventory[i];
+      if (slot && slot.itemId === "gold_coins") {
+        const take = Math.min(remaining, slot.quantity);
+        slot.quantity -= take;
+        remaining -= take;
+        if (slot.quantity <= 0) player.inventory[i] = null;
+      }
+    }
+    // Drop gold on ground
+    const groundItem = new GroundItem(
+      zone.id,
+      player.x,
+      player.y,
+      "gold_coins",
+      goldLoss,
+    );
+    zone.addEntity(groundItem);
+    player.dirty = true;
+
+    player.send({
+      op: Op.S_SYSTEM_MESSAGE,
+      d: { message: `You died and lost ${goldLoss} gold.` },
+    } satisfies ServerMessage);
+  }
+
   // In dungeon: check for wipe, don't auto-respawn
   if (zone.instanceId) {
     const allDead = [...zone.players.values()].every((p) => p.hp <= 0);
@@ -255,7 +312,7 @@ function handlePlayerDeath(player: Player, zone: Zone): void {
     return;
   }
 
-  // Overworld: respawn after 3 seconds
+  // Overworld: respawn after 5 seconds
   setTimeout(() => {
     player.hp = player.maxHp;
     const spawnZone = world.getZone(player.zoneId);
@@ -271,5 +328,5 @@ function handlePlayerDeath(player: Player, zone: Zone): void {
       op: Op.S_RESPAWN,
       d: { eid: player.eid, x: player.x, y: player.y, hp: player.hp },
     } satisfies ServerMessage);
-  }, 3000);
+  }, 5000);
 }

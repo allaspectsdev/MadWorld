@@ -28,6 +28,8 @@ export enum Op {
   C_EQUIP = 0x43,
   C_UNEQUIP = 0x44,
   C_PICKUP = 0x45,
+  C_SHOP_BUY = 0x46,
+  C_SHOP_SELL = 0x47,
 
   C_CHAT_SEND = 0x50,
 
@@ -63,6 +65,10 @@ export enum Op {
 
   S_XP_GAIN = 0xb8,
   S_LEVEL_UP = 0xb9,
+  S_SKILL_COOLDOWN = 0xba,
+  S_STATUS_EFFECT = 0xbb,
+  S_ABILITY_LIST = 0xbc,
+  S_SHOP_OPEN = 0xbd,
 
   S_CHAT_MESSAGE = 0xc0,
   S_SYSTEM_MESSAGE = 0xc1,

@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Text, TextStyle, Texture, ColorMatrixFilter } from "pixi.js";
 import { TILE_SIZE, EntityType } from "@madworld/shared";
-import type { RemoteEntity } from "../state/GameStore.js";
+import { useGameStore, type RemoteEntity } from "../state/GameStore.js";
 import { getEntityTexture } from "./SpriteFactory.js";
 import { isBossMob, getMobSize } from "./MobSpriteDefinitions.js";
 import {
@@ -416,10 +416,36 @@ export class EntityRenderer {
       cont.addChild(arrow);
     }
 
-    // Name label
+    // Name label - include level for mobs and color by level difference
+    let displayName = isLocal ? "You" : name;
+    let selectedNameStyle: TextStyle = isLocal ? localNameStyle : isNpc ? npcNameStyle : nameStyle;
+
+    if (type === EntityType.MOB && data?.level) {
+      displayName = `${name} [Lv.${data.level}]`;
+      const playerLevel = useGameStore.getState().localPlayer?.level ?? 1;
+      const mobLevel = data.level;
+      let mobNameColor: number;
+      if (mobLevel > playerLevel + 5) {
+        mobNameColor = 0xff4444; // Red
+      } else if (mobLevel > playerLevel + 2) {
+        mobNameColor = 0xff8844; // Orange
+      } else if (mobLevel <= playerLevel - 5) {
+        mobNameColor = 0x55ff55; // Green
+      } else {
+        mobNameColor = 0xffffff; // White
+      }
+      selectedNameStyle = new TextStyle({
+        fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+        fontSize: 11,
+        fontWeight: "bold",
+        fill: mobNameColor,
+        stroke: { color: 0x000000, width: 3 },
+      });
+    }
+
     const nameText = new Text({
-      text: isLocal ? "You" : name,
-      style: isLocal ? localNameStyle : isNpc ? npcNameStyle : nameStyle,
+      text: displayName,
+      style: selectedNameStyle,
     });
     nameText.anchor.set(0.5, 1);
     nameText.y = topY - (isLocal ? 22 : 4);

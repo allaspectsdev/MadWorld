@@ -1,5 +1,5 @@
 import { useGameStore } from "../../state/GameStore.js";
-import { QUESTS, Op, type ClientMessage } from "@madworld/shared";
+import { QUESTS, SHOPS, Op, type ClientMessage } from "@madworld/shared";
 import type { Socket } from "../../net/Socket.js";
 
 export class NPCDialog {
@@ -36,6 +36,18 @@ export class NPCDialog {
           d: { questId: turnInId },
         } as ClientMessage);
         useGameStore.getState().setNpcDialog(null);
+        return;
+      }
+
+      if (target.classList.contains("npc-shop-btn")) {
+        const shopKey = target.dataset.shopKey;
+        if (shopKey && SHOPS[shopKey]) {
+          useGameStore.getState().setShopData({
+            npcName: target.dataset.npcName ?? shopKey,
+            items: SHOPS[shopKey],
+          });
+          useGameStore.getState().setNpcDialog(null);
+        }
         return;
       }
     });
@@ -96,7 +108,16 @@ export class NPCDialog {
       html += "</div>";
     }
 
-    if (dialog.availableQuests.length === 0 && dialog.turnInQuests.length === 0) {
+    // Check if NPC has a shop - try common key formats
+    const npcKey = dialog.npcName.toLowerCase().replace(/\s+/g, "_");
+    const hasShop = SHOPS[npcKey] !== undefined;
+    if (hasShop) {
+      html += `<div class="npc-quest-section">
+        <button class="npc-quest-btn npc-shop-btn" data-shop-key="${npcKey}" data-npc-name="${dialog.npcName}" style="background:linear-gradient(135deg,#ffd700,#ff8c00);color:#111;font-weight:bold;">Browse Shop</button>
+      </div>`;
+    }
+
+    if (dialog.availableQuests.length === 0 && dialog.turnInQuests.length === 0 && !hasShop) {
       html += '<div class="npc-no-quests">No quests available.</div>';
     }
 
