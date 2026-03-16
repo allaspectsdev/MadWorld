@@ -23,6 +23,7 @@ export class Player extends Entity {
   userId: number;
   name: string;
   appearance: Appearance;
+  isGod: boolean;
 
   hp: number;
   maxHp: number;
@@ -83,6 +84,7 @@ export class Player extends Entity {
     hp: number,
     maxHp: number,
     appearance: Appearance,
+    isGod: boolean = false,
   ) {
     super(EntityType.PLAYER, zoneId, x, y);
     this.playerId = playerId;
@@ -91,6 +93,7 @@ export class Player extends Entity {
     this.hp = hp;
     this.maxHp = maxHp;
     this.appearance = appearance;
+    this.isGod = isGod;
     this.speed = PLAYER_SPEED;
 
     this.inventory = new Array(INVENTORY_SIZE).fill(null);

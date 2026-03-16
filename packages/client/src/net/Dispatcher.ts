@@ -69,6 +69,7 @@ export class Dispatcher {
             zoneId: "",
             zoneName: "",
             isDead: false,
+            isGod: msg.d.isGod,
           });
         } else {
           // Reconnect: update EID in case it changed
@@ -119,6 +120,7 @@ export class Dispatcher {
           hp: msg.d.hp,
           maxHp: msg.d.maxHp,
           level: msg.d.level,
+          isGod: msg.d.isGod,
           prevX: msg.d.x,
           prevY: msg.d.y,
           prevTime: now,

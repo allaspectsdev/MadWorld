@@ -17,6 +17,7 @@ export interface RemoteEntity {
   hp?: number;
   maxHp?: number;
   level?: number;
+  isGod?: boolean;
   // Interpolation state
   prevX: number;
   prevY: number;
@@ -38,6 +39,7 @@ export interface LocalPlayer {
   zoneId: string;
   zoneName: string;
   isDead: boolean;
+  isGod?: boolean;
 }
 
 export interface GameState {

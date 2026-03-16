@@ -72,6 +72,37 @@ export async function handleMessage(
       player.dy = 0;
       break;
 
+    case Op.C_GOD_TELEPORT: {
+      if (!player.isGod) break;
+      const tpX = msg.d.x;
+      const tpY = msg.d.y;
+      if (!Number.isFinite(tpX) || !Number.isFinite(tpY)) break;
+      const tpZone = world.getZone(player.zoneId);
+      if (!tpZone) break;
+      if (tpX < 0 || tpX >= tpZone.def.width || tpY < 0 || tpY >= tpZone.def.height) break;
+      if (!movementFormulas.isWalkable(tpZone.def, tpX, tpY)) break;
+      // Clear state
+      player.moveQueue = [];
+      player.dx = 0;
+      player.dy = 0;
+      player.combatTarget = null;
+      player.fishingState = null;
+      // Teleport
+      tpZone.moveEntity(player.eid, tpX, tpY);
+      player.dirty = true;
+      // Broadcast to nearby players
+      tpZone.broadcastToNearby(tpX, tpY, {
+        op: Op.S_ENTITY_MOVE,
+        d: { eid: player.eid, x: tpX, y: tpY, dx: 0, dy: 0, speed: 0, seq: player.lastMoveSeq },
+      } satisfies ServerMessage);
+      // Confirm to self
+      player.send({
+        op: Op.S_ENTITY_STOP,
+        d: { eid: player.eid, x: tpX, y: tpY },
+      } satisfies ServerMessage);
+      break;
+    }
+
     case Op.C_ATTACK: {
       const zone = world.getZone(player.zoneId);
       if (!zone) break;
@@ -908,6 +939,13 @@ async function handleAuth(
       return;
     }
 
+    // Apply God buffs
+    if (player.isGod) {
+      player.maxHp = 99999;
+      player.hp = 99999;
+      player.speed = player.speed * 1.5;
+    }
+
     ws.data.userId = userId;
     ws.data.player = player;
     player.ws = ws;
@@ -917,7 +955,7 @@ async function handleAuth(
     ws.send(
       JSON.stringify({
         op: Op.S_AUTH_OK,
-        d: { token: "", playerId: player.playerId, eid: player.eid },
+        d: { token: "", playerId: player.playerId, eid: player.eid, ...(player.isGod ? { isGod: true } : {}) },
       }),
     );
 

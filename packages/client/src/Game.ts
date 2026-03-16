@@ -476,7 +476,16 @@ export class Game {
 
     this.input.onGroundClick = (worldX: number, worldY: number) => {
       this.clearTarget();
-      const tiles = useGameStore.getState().tiles;
+      const store = useGameStore.getState();
+      const tiles = store.tiles;
+
+      // God players teleport instantly
+      if (store.localPlayer?.isGod) {
+        this.socket.send({ op: Op.C_GOD_TELEPORT, d: { x: worldX, y: worldY } });
+        useGameStore.getState().updateLocalPlayer({ x: worldX, y: worldY });
+        return;
+      }
+
       const lp = useGameStore.getState().localPlayer;
       if (!tiles || !lp) return;
       const path = findPath(tiles, lp.x, lp.y, worldX, worldY);

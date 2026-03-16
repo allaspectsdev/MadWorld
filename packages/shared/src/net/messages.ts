@@ -57,6 +57,7 @@ export interface S_AuthOk {
   token: string;
   playerId: number;
   eid: number;
+  isGod?: boolean;
 }
 
 export interface S_AuthError {
@@ -85,6 +86,12 @@ export interface S_EntitySpawn {
   hp?: number;
   maxHp?: number;
   level?: number;
+  isGod?: boolean;
+}
+
+export interface C_GodTeleport {
+  x: number;
+  y: number;
 }
 
 export interface S_EntityDespawn {
@@ -373,6 +380,7 @@ export type ClientMessage =
   | { op: Op.C_USE_SKILL; d: C_UseSkill }
   | { op: Op.C_SHOP_BUY; d: C_ShopBuy }
   | { op: Op.C_SHOP_SELL; d: C_ShopSell }
+  | { op: Op.C_GOD_TELEPORT; d: C_GodTeleport }
   | { op: Op.C_PING; d: { t: number } };
 
 export type ServerMessage =

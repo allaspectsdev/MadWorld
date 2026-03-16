@@ -1,5 +1,5 @@
 import { db } from "../db/index.js";
-import { players, skills, inventory, equipment } from "../db/schema.js";
+import { players, skills, inventory, equipment, users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { Player } from "../game/entities/Player.js";
 import { type SkillName, type Appearance, levelForXp, movementFormulas } from "@madworld/shared";
@@ -35,6 +35,14 @@ export async function loadPlayer(userId: number): Promise<Player | null> {
     posY = defaultZone.spawnY;
   }
 
+  // Check if user is a God
+  const [userRow] = await db
+    .select({ isGod: users.isGod })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const isGod = userRow?.isGod ?? false;
+
   const player = new Player(
     row.id,
     userId,
@@ -45,6 +53,7 @@ export async function loadPlayer(userId: number): Promise<Player | null> {
     row.currentHp,
     row.maxHp,
     (row.appearance as Appearance) ?? { hairStyle: 0, hairColor: 0, skinColor: 0, shirtColor: 0 },
+    isGod,
   );
 
   // Load skills

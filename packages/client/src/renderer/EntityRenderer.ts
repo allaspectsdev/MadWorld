@@ -35,6 +35,7 @@ interface EntitySprite {
   animator?: SpriteAnimator;
   isLocal: boolean;
   isBoss: boolean;
+  isGod: boolean;
   entityType: EntityType;
 }
 
@@ -60,6 +61,14 @@ const localNameStyle = new TextStyle({
   fontWeight: "bold",
   fill: 0x88ffaa,
   stroke: { color: 0x000000, width: 3 },
+});
+
+const godNameStyle = new TextStyle({
+  fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+  fontSize: 13,
+  fontWeight: "bold",
+  fill: 0xffd700,
+  stroke: { color: 0x885500, width: 3 },
 });
 
 export class EntityRenderer {
@@ -140,8 +149,8 @@ export class EntityRenderer {
     // Shadow stays at feet (doesn't bob)
     sprite.shadow.y = TILE_SIZE * 0.35 - anim.offsetY;
 
-    // Boss aura pulse
-    if (sprite.aura && sprite.isBoss) {
+    // Boss/God aura pulse
+    if (sprite.aura && (sprite.isBoss || sprite.isGod)) {
       sprite.aura.alpha = 0.08 + Math.sin(this.globalTimer * 1.5) * 0.06;
     }
 
@@ -331,6 +340,7 @@ export class EntityRenderer {
     const type = data?.type ?? EntityType.PLAYER;
     const name = data?.name ?? (isLocal ? "You" : `Entity ${eid}`);
     const boss = type === EntityType.MOB && isBossMob(name);
+    const isGod = (data?.isGod) || (isLocal && useGameStore.getState().localPlayer?.isGod);
 
     // Aura for bosses
     let aura: Graphics | undefined;
@@ -343,6 +353,18 @@ export class EntityRenderer {
       aura.fill({ color: auraColor, alpha: 0.06 });
       aura.zIndex = -2;
       cont.addChild(aura);
+    }
+
+    // God aura (golden glow)
+    let godAura: Graphics | undefined;
+    if (isGod && type === EntityType.PLAYER) {
+      godAura = new Graphics();
+      godAura.circle(0, 0, TILE_SIZE * 0.9);
+      godAura.fill({ color: 0xffd700, alpha: 0.1 });
+      godAura.circle(0, 0, TILE_SIZE * 0.6);
+      godAura.fill({ color: 0xffd700, alpha: 0.06 });
+      godAura.zIndex = -2;
+      cont.addChild(godAura);
     }
 
     // Glow ring for local player
@@ -382,8 +404,13 @@ export class EntityRenderer {
 
     // Determine display size based on entity type
     if (type === EntityType.PLAYER) {
-      mainSprite.width = TILE_SIZE * 0.85;
-      mainSprite.height = TILE_SIZE * 1.1;
+      if (isGod) {
+        mainSprite.width = TILE_SIZE * 1.1;
+        mainSprite.height = TILE_SIZE * 1.4;
+      } else {
+        mainSprite.width = TILE_SIZE * 0.85;
+        mainSprite.height = TILE_SIZE * 1.1;
+      }
     } else if (type === EntityType.MOB) {
       const size = getMobSize(name);
       const scale = boss ? 1.4 : 1.0;
@@ -416,9 +443,37 @@ export class EntityRenderer {
       cont.addChild(arrow);
     }
 
+    // Crown for God players
+    let crown: Graphics | undefined;
+    if (isGod && type === EntityType.PLAYER) {
+      crown = new Graphics();
+      // Crown base
+      crown.rect(-8, 0, 16, 4);
+      crown.fill(0xffd700);
+      // 5 crown points
+      for (let i = 0; i < 5; i++) {
+        const cx = -8 + i * 4;
+        crown.moveTo(cx, 0);
+        crown.lineTo(cx + 2, -5);
+        crown.lineTo(cx + 4, 0);
+        crown.fill(0xffd700);
+      }
+      // Red gem in center
+      crown.circle(0, -2, 1.5);
+      crown.fill(0xff0000);
+      // Side gems
+      crown.circle(-4, -1.5, 1);
+      crown.fill(0x4488ff);
+      crown.circle(4, -1.5, 1);
+      crown.fill(0x4488ff);
+      crown.y = topY - (isLocal ? 28 : 10);
+      crown.zIndex = 10;
+      cont.addChild(crown);
+    }
+
     // Name label - include level for mobs and color by level difference
     let displayName = isLocal ? "You" : name;
-    let selectedNameStyle: TextStyle = isLocal ? localNameStyle : isNpc ? npcNameStyle : nameStyle;
+    let selectedNameStyle: TextStyle = isGod ? godNameStyle : isLocal ? localNameStyle : isNpc ? npcNameStyle : nameStyle;
 
     if (type === EntityType.MOB && data?.level) {
       displayName = `${name} [Lv.${data.level}]`;
@@ -514,6 +569,7 @@ export class EntityRenderer {
       animator,
       isLocal,
       isBoss: boss,
+      isGod: !!isGod,
       entityType: type,
       targetRing,
       questMarker,
@@ -539,6 +595,7 @@ export class EntityRenderer {
     }
 
     if (aura) sprite.aura = aura;
+    if (godAura) sprite.aura = godAura;
     if (arrow) sprite.arrow = arrow;
     if (glowRing) sprite.glowRing = glowRing;
 

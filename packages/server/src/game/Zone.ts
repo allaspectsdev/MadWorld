@@ -57,7 +57,7 @@ export class Zone {
         x: entity.x,
         y: entity.y,
         ...(entity instanceof Player
-          ? { name: entity.name, appearance: entity.appearance, hp: entity.hp, maxHp: entity.maxHp }
+          ? { name: entity.name, appearance: entity.appearance, hp: entity.hp, maxHp: entity.maxHp, ...(entity.isGod ? { isGod: true } : {}) }
           : {}),
         ...(entity instanceof Mob
           ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.def.maxHp, level: entity.def.level }
@@ -138,7 +138,7 @@ export class Zone {
           x: entity.x,
           y: entity.y,
           ...(entity instanceof Player
-            ? { name: entity.name, appearance: entity.appearance, hp: entity.hp, maxHp: entity.maxHp }
+            ? { name: entity.name, appearance: entity.appearance, hp: entity.hp, maxHp: entity.maxHp, ...(entity.isGod ? { isGod: true } : {}) }
             : {}),
           ...(entity instanceof Mob
             ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.def.maxHp, level: entity.def.level }

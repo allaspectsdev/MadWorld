@@ -5,6 +5,7 @@ export enum Op {
 
   C_MOVE = 0x10,
   C_STOP = 0x11,
+  C_GOD_TELEPORT = 0x12,
 
   C_ATTACK = 0x20,
   C_USE_SKILL = 0x21,
