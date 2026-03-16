@@ -26,6 +26,7 @@ export class InputManager {
   onAttack: ((eid: number) => void) | null = null;
   onPartyInvite: ((eid: number) => void) | null = null;
   onEmptyClick: (() => void) | null = null;
+  onGroundClick: ((worldX: number, worldY: number) => void) | null = null;
 
   constructor(
     socket: Socket,
@@ -63,12 +64,15 @@ export class InputManager {
     this.actionButtons = new ActionButtons(this.socket);
     this.actionButtons.start();
 
-    // Tap → attack entity
+    // Tap → attack entity or walk to ground
     this.touchInput.onTap = (worldX, worldY, screenX, screenY) => {
       this.suppressMouseUntil = Date.now() + 500;
       const eid = this.entities.getEntityAtScreen(screenX, screenY, worldX, worldY, 2.5);
       if (eid !== null) {
         this.onAttack?.(eid);
+      } else {
+        this.onGroundClick?.(worldX, worldY);
+        this.onEmptyClick?.();
       }
     };
 
@@ -93,6 +97,7 @@ export class InputManager {
       if (eid !== null) {
         this.onAttack?.(eid);
       } else {
+        this.onGroundClick?.(worldPos.x, worldPos.y);
         this.onEmptyClick?.();
       }
     });

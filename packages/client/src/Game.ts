@@ -26,6 +26,8 @@ import { AudioManager } from "./audio/AudioManager.js";
 import { SkillBar } from "./ui/components/SkillBar.js";
 import { ShopPanel } from "./ui/components/ShopPanel.js";
 import { SettingsPanel } from "./ui/components/SettingsPanel.js";
+import { PathFollower, type PendingAction } from "./pathfinding/PathFollower.js";
+import { findPath, trimPathToRange } from "./pathfinding/Pathfinder.js";
 
 export class Game {
   private app: Application;
@@ -59,6 +61,9 @@ export class Game {
   private currentTarget: number | null = null;
   private autoAttackTimer = 0;
   private deadEntities = new Set<number>();
+  private pathFollower = new PathFollower();
+  private pathSendTimer = 0;
+  private pathSeq = 10000; // offset to avoid collision with input seq
   private static readonly AUTO_ATTACK_INTERVAL = 0.5;
 
   constructor(app: Application) {
@@ -314,11 +319,40 @@ export class Game {
     // Process input and local prediction
     const move = this.input.update(dt);
     if (move) {
+      // Keyboard/joystick input cancels any active pathfinding
+      this.pathFollower.cancel();
       state.updateLocalPlayer({
         x: lp.x + move.dx * PLAYER_SPEED * dt,
         y: lp.y + move.dy * PLAYER_SPEED * dt,
       });
       this.camera.setMovementLead(move.dx, move.dy);
+    } else if (this.pathFollower.isActive()) {
+      // Follow computed path
+      const pathDir = this.pathFollower.getDirection(lp.x, lp.y);
+      if (pathDir) {
+        state.updateLocalPlayer({
+          x: lp.x + pathDir.dx * PLAYER_SPEED * dt,
+          y: lp.y + pathDir.dy * PLAYER_SPEED * dt,
+        });
+        this.camera.setMovementLead(pathDir.dx, pathDir.dy);
+        // Send to server at tick rate
+        this.pathSendTimer += dt;
+        if (this.pathSendTimer >= 0.1) {
+          this.pathSendTimer -= 0.1;
+          this.pathSeq++;
+          this.socket.send({
+            op: Op.C_MOVE,
+            d: { seq: this.pathSeq, dx: pathDir.dx, dy: pathDir.dy, timestamp: Date.now() },
+          } as ClientMessage);
+        }
+      } else {
+        // Arrived at destination — execute pending action if any
+        const action = this.pathFollower.getPendingAction();
+        if (action) {
+          this.executePendingAction(action);
+        }
+        this.camera.setMovementLead(0, 0);
+      }
     } else {
       this.camera.setMovementLead(0, 0);
     }
@@ -409,47 +443,47 @@ export class Game {
     this.input.onAttack = (eid: number) => {
       const entity = useGameStore.getState().entities.get(eid);
       if (!entity || this.deadEntities.has(eid)) return;
+      const lp = useGameStore.getState().localPlayer;
+      if (!lp) return;
 
-      if (entity.type === EntityType.NPC) {
-        // NPC interaction instead of attack
-        this.socket.send({
-          op: Op.C_NPC_INTERACT,
-          d: { targetEid: eid },
-        } as ClientMessage);
-        this.clearTarget();
-        return;
+      const dist = Math.sqrt((lp.x - entity.nextX) ** 2 + (lp.y - entity.nextY) ** 2);
+      const actionRange = 2.0;
+
+      if (dist <= actionRange) {
+        // In range — execute immediately
+        this.executeEntityAction(eid, entity);
+      } else {
+        // Out of range — pathfind to within range, then act
+        const tiles = useGameStore.getState().tiles;
+        if (!tiles) return;
+        const path = findPath(tiles, lp.x, lp.y, entity.nextX, entity.nextY);
+        if (path && path.length > 0) {
+          const trimmed = trimPathToRange(path, entity.nextX, entity.nextY, actionRange - 0.3);
+          const actionType: PendingAction["type"] =
+            entity.type === EntityType.NPC ? "interact"
+            : entity.type === EntityType.GROUND_ITEM ? "pickup"
+            : "attack";
+          this.pathFollower.setPath(trimmed, { type: actionType, targetEid: eid });
+          // Show target ring for visual feedback
+          if (entity.type !== EntityType.NPC && entity.type !== EntityType.GROUND_ITEM) {
+            this.entities.setTargetHighlight(eid);
+          }
+        }
       }
+    };
 
-      if (entity.type === EntityType.GROUND_ITEM) {
-        // Pick up ground item
-        this.socket.send({
-          op: Op.C_PICKUP,
-          d: { targetEid: eid },
-        } as ClientMessage);
-        this.clearTarget();
-        return;
+    this.input.onGroundClick = (worldX: number, worldY: number) => {
+      this.clearTarget();
+      const tiles = useGameStore.getState().tiles;
+      const lp = useGameStore.getState().localPlayer;
+      if (!tiles || !lp) return;
+      const path = findPath(tiles, lp.x, lp.y, worldX, worldY);
+      if (path && path.length > 0) {
+        this.pathFollower.setPath(path);
       }
-
-      // Immediate client-side feedback
-      this.audio.playSfx("swing");
-      this.entities.triggerAttackAnim(
-        useGameStore.getState().localPlayer?.eid ?? 0,
-      );
-
-      // Set target and show selection ring
-      this.currentTarget = eid;
-      this.autoAttackTimer = 0;
-      this.entities.setTargetHighlight(eid);
-
-      // Send attack to server
-      this.socket.send({
-        op: Op.C_ATTACK,
-        d: { targetEid: eid },
-      } as ClientMessage);
     };
 
     this.input.onEmptyClick = () => {
-      this.audio.playSfx("whoosh", { volume: 0.4 });
       this.clearTarget();
     };
 
@@ -462,6 +496,64 @@ export class Game {
         } as ClientMessage);
       }
     };
+  }
+
+  /** Execute an action on an entity that's in range. */
+  private executeEntityAction(eid: number, entity: { type: string }): void {
+    if (entity.type === EntityType.NPC) {
+      this.socket.send({
+        op: Op.C_NPC_INTERACT,
+        d: { targetEid: eid },
+      } as ClientMessage);
+      this.clearTarget();
+      return;
+    }
+
+    if (entity.type === EntityType.GROUND_ITEM) {
+      this.socket.send({
+        op: Op.C_PICKUP,
+        d: { targetEid: eid },
+      } as ClientMessage);
+      this.clearTarget();
+      return;
+    }
+
+    // Combat — immediate client-side feedback
+    this.audio.playSfx("swing");
+    this.entities.triggerAttackAnim(
+      useGameStore.getState().localPlayer?.eid ?? 0,
+    );
+    this.currentTarget = eid;
+    this.autoAttackTimer = 0;
+    this.entities.setTargetHighlight(eid);
+    this.socket.send({
+      op: Op.C_ATTACK,
+      d: { targetEid: eid },
+    } as ClientMessage);
+  }
+
+  /** Execute a pending action after pathfinding arrival. */
+  private executePendingAction(action: PendingAction): void {
+    const entity = useGameStore.getState().entities.get(action.targetEid);
+    if (!entity || this.deadEntities.has(action.targetEid)) return;
+
+    switch (action.type) {
+      case "attack":
+        this.executeEntityAction(action.targetEid, entity);
+        break;
+      case "pickup":
+        this.socket.send({
+          op: Op.C_PICKUP,
+          d: { targetEid: action.targetEid },
+        } as ClientMessage);
+        break;
+      case "interact":
+        this.socket.send({
+          op: Op.C_NPC_INTERACT,
+          d: { targetEid: action.targetEid },
+        } as ClientMessage);
+        break;
+    }
   }
 
   private clearTarget(): void {
