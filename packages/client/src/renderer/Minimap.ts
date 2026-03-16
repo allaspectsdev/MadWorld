@@ -13,6 +13,7 @@ const TILE_COLORS: Record<number, string> = {
   [TileType.BUILDING_FLOOR]: "#a0522d",
   [TileType.PORTAL]: "#9b59b6",
   [TileType.DUNGEON_PORTAL]: "#e74c3c",
+  [TileType.FENCE]: "#8b6914",
 };
 
 // Friendly zone name labels for portals

@@ -21,14 +21,28 @@ const TILE_PRIORITY: Partial<Record<number, number>> = {
   [TileType.SAND]: 3,
   [TileType.COBBLESTONE]: 2,
   [TileType.DIRT]: 1,
+  [TileType.FENCE]: 3,
 };
 
-// Edge blend colors for tiles that should darken/tint adjacent tiles
+// Default edge blend colors (used when no pair-specific color exists)
 const EDGE_COLORS: Partial<Record<number, number>> = {
   [TileType.WATER]: 0x1a4a7a,
   [TileType.FOREST]: 0x1a3a15,
   [TileType.MOUNTAIN]: 0x333333,
   [TileType.SAND]: 0x9a9060,
+  [TileType.FENCE]: 0x5a4020,
+};
+
+// Pair-specific edge colors: `(myType << 8) | neighborType` → color
+const PAIR_EDGE_COLORS: Record<number, number> = {
+  [(TileType.GRASS << 8) | TileType.WATER]: 0x2a5a7a,
+  [(TileType.DIRT << 8) | TileType.WATER]: 0x4a5a6a,
+  [(TileType.GRASS << 8) | TileType.DIRT]: 0x5a6a40,
+  [(TileType.GRASS << 8) | TileType.FOREST]: 0x1e4a1e,
+  [(TileType.SAND << 8) | TileType.WATER]: 0x3a6080,
+  [(TileType.GRASS << 8) | TileType.SAND]: 0x7a9060,
+  [(TileType.GRASS << 8) | TileType.MOUNTAIN]: 0x4a5a4a,
+  [(TileType.DIRT << 8) | TileType.FOREST]: 0x3a4a28,
 };
 
 export class TilemapRenderer {
@@ -82,14 +96,19 @@ export class TilemapRenderer {
 
   private drawEdgeBlending(tileData: TT[][]): void {
     const edgeGfx = new Graphics();
-    const EDGE_W = 3; // edge overlay width in pixels
+    const STEPS = [0.35, 0.20, 0.08]; // alpha per gradient step
 
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
         const type = tileData[y][x];
         const myPri = TILE_PRIORITY[type] ?? 0;
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
 
-        // Check each neighbor (N, S, E, W)
+        // Track which sides have higher-priority neighbors (for corner blending)
+        let hasTop = false, hasBottom = false, hasLeft = false, hasRight = false;
+        let topColor = 0, bottomColor = 0, leftColor = 0, rightColor = 0;
+
         const neighbors: [number, number, "top" | "bottom" | "left" | "right"][] = [
           [x, y - 1, "top"],
           [x, y + 1, "bottom"],
@@ -105,19 +124,53 @@ export class TilemapRenderer {
           const nPri = TILE_PRIORITY[nType] ?? 0;
           if (nPri <= myPri) continue;
 
-          const color = EDGE_COLORS[nType];
+          // Use pair-specific color if available, else default
+          const pairKey = (type << 8) | nType;
+          const color = PAIR_EDGE_COLORS[pairKey] ?? EDGE_COLORS[nType];
           if (color === undefined) continue;
 
-          const px = x * TILE_SIZE;
-          const py = y * TILE_SIZE;
+          // Track for corner blending
+          if (side === "top") { hasTop = true; topColor = color; }
+          else if (side === "bottom") { hasBottom = true; bottomColor = color; }
+          else if (side === "left") { hasLeft = true; leftColor = color; }
+          else { hasRight = true; rightColor = color; }
 
-          edgeGfx.rect(
-            side === "right" ? px + TILE_SIZE - EDGE_W : side === "left" ? px : px,
-            side === "bottom" ? py + TILE_SIZE - EDGE_W : side === "top" ? py : py,
-            side === "left" || side === "right" ? EDGE_W : TILE_SIZE,
-            side === "top" || side === "bottom" ? EDGE_W : TILE_SIZE,
-          );
-          edgeGfx.fill({ color, alpha: 0.35 });
+          // Draw 3-step gradient fade instead of single rect
+          for (let step = 0; step < 3; step++) {
+            const alpha = STEPS[step];
+            let rx: number, ry: number, rw: number, rh: number;
+
+            if (side === "top") {
+              rx = px; ry = py + step; rw = TILE_SIZE; rh = 1;
+            } else if (side === "bottom") {
+              rx = px; ry = py + TILE_SIZE - 1 - step; rw = TILE_SIZE; rh = 1;
+            } else if (side === "left") {
+              rx = px + step; ry = py; rw = 1; rh = TILE_SIZE;
+            } else {
+              rx = px + TILE_SIZE - 1 - step; ry = py; rw = 1; rh = TILE_SIZE;
+            }
+
+            edgeGfx.rect(rx, ry, rw, rh);
+            edgeGfx.fill({ color, alpha });
+          }
+        }
+
+        // Corner blending: where two perpendicular edges meet
+        const corners: [boolean, boolean, number, number, number, number][] = [
+          [hasTop, hasLeft, px, py, 1, 1],
+          [hasTop, hasRight, px + TILE_SIZE - 3, py, -1, 1],
+          [hasBottom, hasLeft, px, py + TILE_SIZE - 3, 1, -1],
+          [hasBottom, hasRight, px + TILE_SIZE - 3, py + TILE_SIZE - 3, -1, -1],
+        ];
+
+        for (const [sideA, sideB, cx, cy] of corners) {
+          if (!sideA || !sideB) continue;
+          // Blend the two edge colors (just use the first)
+          const cColor = sideA ? topColor || bottomColor : leftColor || rightColor;
+          edgeGfx.moveTo(cx, cy);
+          edgeGfx.lineTo(cx + 3, cy);
+          edgeGfx.lineTo(cx, cy + 3);
+          edgeGfx.fill({ color: cColor || 0x333333, alpha: 0.25 });
         }
       }
     }

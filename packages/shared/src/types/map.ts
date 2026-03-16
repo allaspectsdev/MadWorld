@@ -10,6 +10,7 @@ export enum TileType {
   BUILDING_FLOOR = 8,
   PORTAL = 9,
   DUNGEON_PORTAL = 10,
+  FENCE = 11,
 }
 
 export const WALKABLE_TILES = new Set<TileType>([

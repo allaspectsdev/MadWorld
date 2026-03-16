@@ -20,11 +20,21 @@ const DEFS: Record<string, MobVisual> = {
   Chicken: {
     width: 22, height: 22,
     draw(g, w, h) {
-      // Body
-      g.ellipse(w / 2, h / 2 + 2, 6, 5);
+      // Ground shadow
+      g.ellipse(w / 2, h / 2 + 8, 5, 2);
+      g.fill({ color: 0x000000, alpha: 0.15 });
+      // Body (slightly larger: 7x6)
+      g.ellipse(w / 2, h / 2 + 2, 7, 6);
       g.fill(0xf0c040);
-      g.ellipse(w / 2, h / 2 + 2, 6, 5);
+      g.ellipse(w / 2, h / 2 + 2, 7, 6);
       g.stroke({ width: 1, color: 0xc09020, alpha: 0.5 });
+      // Tail fan: 3 overlapping triangles
+      g.moveTo(w / 2 - 6, h / 2); g.lineTo(w / 2 - 10, h / 2 - 4); g.lineTo(w / 2 - 7, h / 2 + 1);
+      g.fill(0xe8c040);
+      g.moveTo(w / 2 - 6, h / 2 + 1); g.lineTo(w / 2 - 9, h / 2 - 2); g.lineTo(w / 2 - 6, h / 2 + 2);
+      g.fill(0xe0b030);
+      g.moveTo(w / 2 - 5, h / 2 + 1); g.lineTo(w / 2 - 8, h / 2 - 1); g.lineTo(w / 2 - 5, h / 2 + 3);
+      g.fill(0xd8a828);
       // Wing
       g.ellipse(w / 2 - 2, h / 2 + 2, 3, 3);
       g.fill(0xe0b030);
@@ -49,9 +59,21 @@ const DEFS: Record<string, MobVisual> = {
       g.stroke({ width: 1, color: 0xf09020 });
       g.moveTo(w / 2 + 2, h / 2 + 6); g.lineTo(w / 2 + 3, h / 2 + 10); g.lineTo(w / 2 + 5, h / 2 + 10);
       g.stroke({ width: 1, color: 0xf09020 });
-      // Tail feathers
-      g.moveTo(w / 2 - 5, h / 2); g.lineTo(w / 2 - 8, h / 2 - 2); g.lineTo(w / 2 - 6, h / 2 + 1);
-      g.fill(0xe0b030);
+      // Toe detail: 3 forward-splaying lines per foot
+      // Left foot toes
+      g.moveTo(w / 2 - 3, h / 2 + 10); g.lineTo(w / 2 - 5, h / 2 + 10);
+      g.stroke({ width: 0.5, color: 0xf09020 });
+      g.moveTo(w / 2 - 3, h / 2 + 10); g.lineTo(w / 2 - 4, h / 2 + 11);
+      g.stroke({ width: 0.5, color: 0xf09020 });
+      g.moveTo(w / 2 - 3, h / 2 + 10); g.lineTo(w / 2 - 2, h / 2 + 11);
+      g.stroke({ width: 0.5, color: 0xf09020 });
+      // Right foot toes
+      g.moveTo(w / 2 + 3, h / 2 + 10); g.lineTo(w / 2 + 5, h / 2 + 10);
+      g.stroke({ width: 0.5, color: 0xf09020 });
+      g.moveTo(w / 2 + 3, h / 2 + 10); g.lineTo(w / 2 + 4, h / 2 + 11);
+      g.stroke({ width: 0.5, color: 0xf09020 });
+      g.moveTo(w / 2 + 3, h / 2 + 10); g.lineTo(w / 2 + 2, h / 2 + 11);
+      g.stroke({ width: 0.5, color: 0xf09020 });
     },
   },
 
@@ -66,6 +88,9 @@ const DEFS: Record<string, MobVisual> = {
       // Belly highlight
       g.ellipse(18, 17, 10, 4);
       g.fill(0xc2a060);
+      // Udder (pink ellipse beneath belly)
+      g.ellipse(18, 21, 3, 2);
+      g.fill(0xffaaaa);
       // Spots
       g.ellipse(12, 12, 3, 2.5);
       g.fill(0x222222);
@@ -76,6 +101,15 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x8b6914);
       g.circle(28, 8, 5);
       g.stroke({ width: 1, color: 0x5a4008, alpha: 0.4 });
+      // Ears (angled ellipses on head sides)
+      g.ellipse(24, 5, 2.5, 1.2);
+      g.fill(0x8b6914);
+      g.ellipse(24, 5, 2.5, 1.2);
+      g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.4 });
+      g.ellipse(32, 5, 2.5, 1.2);
+      g.fill(0x8b6914);
+      g.ellipse(32, 5, 2.5, 1.2);
+      g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.4 });
       // Snout
       g.ellipse(30, 10, 3, 2);
       g.fill(0xc2a060);
@@ -84,6 +118,15 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0xccccaa);
       g.moveTo(31, 3); g.lineTo(32, 0); g.lineTo(30, 3);
       g.fill(0xccccaa);
+      // Fur tuft between horns
+      g.moveTo(27, 3); g.lineTo(27.5, 1);
+      g.stroke({ width: 0.5, color: 0xa07a20 });
+      g.moveTo(28, 3); g.lineTo(28.5, 0.5);
+      g.stroke({ width: 0.5, color: 0xa07a20 });
+      g.moveTo(29, 3); g.lineTo(29, 1);
+      g.stroke({ width: 0.5, color: 0xa07a20 });
+      g.moveTo(28, 2.5); g.lineTo(28, 0);
+      g.stroke({ width: 0.5, color: 0xa07a20 });
       // Eyes
       g.circle(27, 7, 1.2);
       g.fill(0x111111);
@@ -114,11 +157,25 @@ const DEFS: Record<string, MobVisual> = {
       // Belt
       g.rect(7, 18, 12, 2);
       g.fill(0x5c3a1e);
+      // Loincloth detail: 3 small downward triangles at body bottom edge
+      g.moveTo(9, 22); g.lineTo(10, 24); g.lineTo(11, 22);
+      g.fill(0x4a3018);
+      g.moveTo(12, 22); g.lineTo(13, 24.5); g.lineTo(14, 22);
+      g.fill(0x4a3018);
+      g.moveTo(15, 22); g.lineTo(16, 24); g.lineTo(17, 22);
+      g.fill(0x4a3018);
       // Head
       g.circle(w / 2, 9, 6);
       g.fill(0x4a9a4a);
       g.circle(w / 2, 9, 6);
       g.stroke({ width: 1, color: 0x2a6a2a, alpha: 0.4 });
+      // Wart bumps (tiny darker green circles on face)
+      g.circle(9, 10, 1);
+      g.fill(0x2a6a2a);
+      g.circle(15, 6, 1);
+      g.fill(0x2a6a2a);
+      g.circle(17, 10, 1);
+      g.fill(0x2a6a2a);
       // Ears
       g.moveTo(5, 7); g.lineTo(2, 2); g.lineTo(7, 7);
       g.fill(0x4a9a4a);
@@ -228,13 +285,30 @@ const DEFS: Record<string, MobVisual> = {
       // Spine/Torso
       g.rect(10, 13, 4, 10);
       g.fill(0xddddbb);
-      // Ribs
-      for (let ry = 14; ry < 22; ry += 2) {
-        g.rect(7, ry, 10, 1);
+      // Spinal column: vertical series of small circles between ribs
+      for (let sy = 13; sy <= 22; sy += 1.3) {
+        g.circle(12, sy, 1);
         g.fill(0xccccaa);
+        g.circle(12, sy, 1);
+        g.stroke({ width: 0.3, color: 0xaaaaaa, alpha: 0.4 });
+      }
+      // Ribs (slightly curved arcs instead of straight rects)
+      for (let ry = 14; ry < 22; ry += 2) {
+        // Left rib arc
+        g.moveTo(7, ry + 0.5);
+        g.bezierCurveTo(9, ry - 0.5, 10, ry - 0.3, 12, ry + 0.5);
+        g.stroke({ width: 1, color: 0xccccaa });
+        // Right rib arc
+        g.moveTo(12, ry + 0.5);
+        g.bezierCurveTo(14, ry - 0.3, 15, ry - 0.5, 17, ry + 0.5);
+        g.stroke({ width: 1, color: 0xccccaa });
         // Rib shadow
-        g.rect(7, ry + 1, 10, 0.5);
-        g.fill({ color: 0x000000, alpha: 0.1 });
+        g.moveTo(7, ry + 1.2);
+        g.bezierCurveTo(9, ry + 0.2, 10, ry + 0.4, 12, ry + 1.2);
+        g.stroke({ width: 0.5, color: 0x000000, alpha: 0.1 });
+        g.moveTo(12, ry + 1.2);
+        g.bezierCurveTo(14, ry + 0.4, 15, ry + 0.2, 17, ry + 1.2);
+        g.stroke({ width: 0.5, color: 0x000000, alpha: 0.1 });
       }
       // Arms (bone segments)
       g.rect(4, 13, 3, 4);
@@ -382,6 +456,11 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x5a4a3a);
       g.circle(24, 14, 1);
       g.fill(0x5a4a3a);
+      // Spinnerets: 2 small dots at rear of abdomen
+      g.circle(28, 14, 0.8);
+      g.fill(0x2a1a0a);
+      g.circle(29, 12.5, 0.8);
+      g.fill(0x2a1a0a);
       // Cephalothorax
       g.circle(12, 13, 5);
       g.fill(0x4a3a2a);
@@ -411,6 +490,17 @@ const DEFS: Record<string, MobVisual> = {
         const ly2 = 13 + Math.sin(Math.PI + a) * 9;
         g.moveTo(12, 13); g.lineTo(lx1, ly1); g.lineTo(lx2, ly2);
         g.stroke({ width: 2, color: 0x3a2a1a });
+        // Bristle lines perpendicular to leg segments
+        const lmx = (lx1 + lx2) / 2, lmy = (ly1 + ly2) / 2;
+        const ldx = lx2 - lx1, ldy = ly2 - ly1;
+        const llen = Math.sqrt(ldx * ldx + ldy * ldy);
+        const lnx = -ldy / llen, lny = ldx / llen;
+        g.moveTo(lmx - lnx * 1.5, lmy - lny * 1.5); g.lineTo(lmx + lnx * 1.5, lmy + lny * 1.5);
+        g.stroke({ width: 0.5, color: 0x4a3a2a });
+        g.moveTo(lmx - lnx * 1.2 + ldx * 0.15, lmy - lny * 1.2 + ldy * 0.15); g.lineTo(lmx + lnx * 1.2 + ldx * 0.15, lmy + lny * 1.2 + ldy * 0.15);
+        g.stroke({ width: 0.5, color: 0x4a3a2a });
+        g.moveTo(lmx - lnx * 1.2 - ldx * 0.15, lmy - lny * 1.2 - ldy * 0.15); g.lineTo(lmx + lnx * 1.2 - ldx * 0.15, lmy + lny * 1.2 - ldy * 0.15);
+        g.stroke({ width: 0.5, color: 0x4a3a2a });
         // Right legs
         const rx1 = 12 + Math.cos(a) * 5;
         const ry1 = 13 + Math.sin(a) * 4;
@@ -418,6 +508,17 @@ const DEFS: Record<string, MobVisual> = {
         const ry2 = 13 + Math.sin(a) * 9;
         g.moveTo(12, 13); g.lineTo(rx1, ry1); g.lineTo(rx2, ry2);
         g.stroke({ width: 2, color: 0x3a2a1a });
+        // Bristle lines on right legs
+        const rmx = (rx1 + rx2) / 2, rmy = (ry1 + ry2) / 2;
+        const rdx = rx2 - rx1, rdy = ry2 - ry1;
+        const rlen = Math.sqrt(rdx * rdx + rdy * rdy);
+        const rnx = -rdy / rlen, rny = rdx / rlen;
+        g.moveTo(rmx - rnx * 1.5, rmy - rny * 1.5); g.lineTo(rmx + rnx * 1.5, rmy + rny * 1.5);
+        g.stroke({ width: 0.5, color: 0x4a3a2a });
+        g.moveTo(rmx - rnx * 1.2 + rdx * 0.15, rmy - rny * 1.2 + rdy * 0.15); g.lineTo(rmx + rnx * 1.2 + rdx * 0.15, rmy + rny * 1.2 + rdy * 0.15);
+        g.stroke({ width: 0.5, color: 0x4a3a2a });
+        g.moveTo(rmx - rnx * 1.2 - rdx * 0.15, rmy - rny * 1.2 - rdy * 0.15); g.lineTo(rmx + rnx * 1.2 - rdx * 0.15, rmy + rny * 1.2 - rdy * 0.15);
+        g.stroke({ width: 0.5, color: 0x4a3a2a });
       }
       // Fangs
       g.moveTo(10, 15); g.lineTo(9, 18);

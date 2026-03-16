@@ -33,6 +33,32 @@ function setTile(tiles: TileType[][], x: number, y: number, type: TileType): voi
   }
 }
 
+function applyOval(tiles: TileType[][], cx: number, cy: number, rx: number, ry: number, type: TileType): void {
+  for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) {
+    for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
+      if ((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1) {
+        setTile(tiles, cx + dx, cy + dy, type);
+      }
+    }
+  }
+}
+
+function applyNoisyRect(tiles: TileType[][], x: number, y: number, w: number, h: number, type: TileType, roughness: number, seed: number): void {
+  const rng = simpleRng(seed);
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) {
+      const isEdge = dx === 0 || dx === w - 1 || dy === 0 || dy === h - 1;
+      if (isEdge && rng() < roughness) continue;
+      setTile(tiles, x + dx, y + dy, type);
+    }
+  }
+}
+
+function simpleRng(seed: number): () => number {
+  let s = seed | 0;
+  return () => { s = (s * 1664525 + 1013904223) | 0; return (s >>> 0) / 4294967296; };
+}
+
 // --- Greendale Village (Starter Zone) ---
 function createGreendale(): ZoneDef {
   const w = 60, h = 60;
@@ -47,26 +73,73 @@ function createGreendale(): ZoneDef {
   applyFeature(tiles, 0, 28, 22, 4, TileType.DIRT);   // west road
   applyFeature(tiles, 38, 28, 22, 4, TileType.DIRT);  // east road
 
+  // === Road borders — cobblestone edges along market district roads ===
+  // N-S road cobblestone borders within market area (x=27 and x=32, y=22-38)
+  for (let y = 22; y <= 38; y++) {
+    setTile(tiles, 27, y, TileType.COBBLESTONE);
+    setTile(tiles, 32, y, TileType.COBBLESTONE);
+  }
+  // E-W road cobblestone borders within market area (y=27 and y=32, x=22-38)
+  for (let x = 22; x <= 38; x++) {
+    setTile(tiles, x, 27, TileType.COBBLESTONE);
+    setTile(tiles, x, 32, TileType.COBBLESTONE);
+  }
+
   // === Well in market center (small water tile surrounded by cobblestone) ===
   setTile(tiles, 30, 29, TileType.WATER);
   setTile(tiles, 30, 30, TileType.WATER);
 
-  // === Buildings ===
-  // General store (NW of market)
-  applyFeature(tiles, 23, 23, 5, 4, TileType.BUILDING_FLOOR);
-  // Inn (NE of market)
-  applyFeature(tiles, 32, 23, 5, 4, TileType.BUILDING_FLOOR);
-  // Blacksmith (SW of market)
-  applyFeature(tiles, 23, 33, 4, 4, TileType.BUILDING_FLOOR);
-  // Town hall (SE of market, larger)
-  applyFeature(tiles, 31, 33, 6, 4, TileType.BUILDING_FLOOR);
+  // === Buildings with MOUNTAIN walls and door gaps ===
 
-  // === Farm area (NW) with fences (mountain tiles as fences) ===
-  // Fences around the farm
-  applyFeature(tiles, 4, 14, 12, 1, TileType.MOUNTAIN);  // top fence
-  applyFeature(tiles, 4, 24, 12, 1, TileType.MOUNTAIN);  // bottom fence
-  applyFeature(tiles, 4, 14, 1, 11, TileType.MOUNTAIN);   // left fence
-  applyFeature(tiles, 15, 14, 1, 11, TileType.MOUNTAIN);  // right fence
+  // General store (NW of market) — floor at (23,23,5,4)
+  applyFeature(tiles, 23, 23, 5, 4, TileType.BUILDING_FLOOR);
+  // Walls: MOUNTAIN border around (22,22)-(28,27)
+  applyFeature(tiles, 22, 22, 7, 1, TileType.MOUNTAIN);  // top wall
+  applyFeature(tiles, 22, 27, 7, 1, TileType.MOUNTAIN);  // bottom wall
+  applyFeature(tiles, 22, 22, 1, 6, TileType.MOUNTAIN);   // left wall
+  applyFeature(tiles, 28, 22, 1, 6, TileType.MOUNTAIN);   // right wall
+  // Door gap on bottom edge facing market (x=24,25 at y=27)
+  setTile(tiles, 24, 27, TileType.BUILDING_FLOOR);
+  setTile(tiles, 25, 27, TileType.BUILDING_FLOOR);
+
+  // Inn (NE of market) — floor at (32,23,5,4)
+  applyFeature(tiles, 32, 23, 5, 4, TileType.BUILDING_FLOOR);
+  // Walls: MOUNTAIN border around (31,22)-(37,27)
+  applyFeature(tiles, 31, 22, 7, 1, TileType.MOUNTAIN);  // top wall
+  applyFeature(tiles, 31, 27, 7, 1, TileType.MOUNTAIN);  // bottom wall
+  applyFeature(tiles, 31, 22, 1, 6, TileType.MOUNTAIN);   // left wall
+  applyFeature(tiles, 37, 22, 1, 6, TileType.MOUNTAIN);   // right wall
+  // Door gap on bottom edge facing market (x=33,34 at y=27)
+  setTile(tiles, 33, 27, TileType.BUILDING_FLOOR);
+  setTile(tiles, 34, 27, TileType.BUILDING_FLOOR);
+
+  // Blacksmith (SW of market) — floor at (23,33,4,4)
+  applyFeature(tiles, 23, 33, 4, 4, TileType.BUILDING_FLOOR);
+  // Walls: MOUNTAIN border around (22,32)-(27,37)
+  applyFeature(tiles, 22, 32, 6, 1, TileType.MOUNTAIN);  // top wall
+  applyFeature(tiles, 22, 37, 6, 1, TileType.MOUNTAIN);  // bottom wall
+  applyFeature(tiles, 22, 32, 1, 6, TileType.MOUNTAIN);   // left wall
+  applyFeature(tiles, 27, 32, 1, 6, TileType.MOUNTAIN);   // right wall
+  // Door gap on top edge facing market (x=24,25 at y=32)
+  setTile(tiles, 24, 32, TileType.BUILDING_FLOOR);
+  setTile(tiles, 25, 32, TileType.BUILDING_FLOOR);
+
+  // Town hall (SE of market, larger) — floor at (31,33,6,4)
+  applyFeature(tiles, 31, 33, 6, 4, TileType.BUILDING_FLOOR);
+  // Walls: MOUNTAIN border around (30,32)-(37,37)
+  applyFeature(tiles, 30, 32, 8, 1, TileType.MOUNTAIN);  // top wall
+  applyFeature(tiles, 30, 37, 8, 1, TileType.MOUNTAIN);  // bottom wall
+  applyFeature(tiles, 30, 32, 1, 6, TileType.MOUNTAIN);   // left wall
+  applyFeature(tiles, 37, 32, 1, 6, TileType.MOUNTAIN);   // right wall
+  // Door gap on top edge facing market (x=33,34 at y=32)
+  setTile(tiles, 33, 32, TileType.BUILDING_FLOOR);
+  setTile(tiles, 34, 32, TileType.BUILDING_FLOOR);
+
+  // === Farm area (NW) with FENCE borders ===
+  applyFeature(tiles, 4, 14, 12, 1, TileType.FENCE);  // top fence
+  applyFeature(tiles, 4, 24, 12, 1, TileType.FENCE);  // bottom fence
+  applyFeature(tiles, 4, 14, 1, 11, TileType.FENCE);   // left fence
+  applyFeature(tiles, 15, 14, 1, 11, TileType.FENCE);  // right fence
   // Farmland strips inside
   applyFeature(tiles, 5, 15, 10, 1, TileType.DIRT);
   applyFeature(tiles, 5, 17, 10, 1, TileType.DIRT);
@@ -77,12 +150,12 @@ function createGreendale(): ZoneDef {
   setTile(tiles, 9, 24, TileType.DIRT);
   setTile(tiles, 10, 24, TileType.DIRT);
 
-  // === Pond (NE area, larger with sand edge) ===
-  applyFeature(tiles, 44, 4, 10, 2, TileType.SAND);
-  applyFeature(tiles, 43, 6, 12, 1, TileType.SAND);
-  applyFeature(tiles, 43, 13, 12, 1, TileType.SAND);
-  applyFeature(tiles, 44, 14, 10, 1, TileType.SAND);
-  applyFeature(tiles, 44, 6, 10, 7, TileType.WATER);
+  // === Farm irrigation — 1-wide water channel through the farm ===
+  applyFeature(tiles, 10, 15, 1, 8, TileType.WATER);
+
+  // === Pond (NE area) — oval shape ===
+  applyOval(tiles, 49, 9, 6, 4, TileType.SAND);
+  applyOval(tiles, 49, 9, 5, 3, TileType.WATER);
 
   // === Gardens / flower patches (decorative dirt patches near buildings) ===
   // Garden behind general store
@@ -91,13 +164,13 @@ function createGreendale(): ZoneDef {
   applyFeature(tiles, 33, 27, 3, 1, TileType.DIRT);
 
   // === Forest edges ===
-  applyFeature(tiles, 0, 50, 15, 10, TileType.FOREST);
-  applyFeature(tiles, 0, 45, 5, 5, TileType.FOREST);
-  applyFeature(tiles, 45, 0, 15, 3, TileType.FOREST);
+  applyNoisyRect(tiles, 0, 50, 15, 10, TileType.FOREST, 0.4, 101);
+  applyNoisyRect(tiles, 0, 45, 5, 5, TileType.FOREST, 0.3, 102);
+  applyNoisyRect(tiles, 45, 0, 15, 3, TileType.FOREST, 0.35, 103);
   // Small decorative tree patches
-  applyFeature(tiles, 0, 0, 3, 4, TileType.FOREST);
-  applyFeature(tiles, 18, 0, 4, 3, TileType.FOREST);
-  applyFeature(tiles, 0, 35, 3, 5, TileType.FOREST);
+  applyNoisyRect(tiles, 0, 0, 3, 4, TileType.FOREST, 0.3, 104);
+  applyNoisyRect(tiles, 18, 0, 4, 3, TileType.FOREST, 0.25, 105);
+  applyNoisyRect(tiles, 0, 35, 3, 5, TileType.FOREST, 0.3, 106);
 
   // === Mountains (impassable, SE corner) ===
   applyFeature(tiles, 50, 50, 10, 10, TileType.MOUNTAIN);
@@ -189,23 +262,29 @@ function createDarkwood(): ZoneDef {
 
   // === Clearings (grass patches in forest) ===
   // North clearing — larger, more organic shape
-  applyFeature(tiles, 8, 8, 14, 14, TileType.GRASS);
-  applyFeature(tiles, 6, 10, 2, 10, TileType.GRASS);
-  applyFeature(tiles, 22, 10, 2, 10, TileType.GRASS);
+  applyNoisyRect(tiles, 8, 8, 14, 14, TileType.GRASS, 0.35, 201);
+  applyNoisyRect(tiles, 6, 10, 2, 10, TileType.GRASS, 0.3, 202);
+  applyNoisyRect(tiles, 22, 10, 2, 10, TileType.GRASS, 0.3, 203);
+
+  // Campfire in north clearing center (~x=14, y=14)
+  applyFeature(tiles, 13, 13, 3, 3, TileType.COBBLESTONE);
 
   // East clearing with ruins
-  applyFeature(tiles, 50, 8, 14, 12, TileType.GRASS);
-  // Ruined building fragments
+  applyNoisyRect(tiles, 50, 8, 14, 12, TileType.GRASS, 0.3, 204);
+  // Ruined building fragments — original
   applyFeature(tiles, 53, 10, 3, 2, TileType.BUILDING_FLOOR);
   applyFeature(tiles, 58, 12, 2, 3, TileType.BUILDING_FLOOR);
   setTile(tiles, 55, 14, TileType.BUILDING_FLOOR);
+  // Additional ruins in L-shape
+  applyFeature(tiles, 53, 14, 2, 4, TileType.BUILDING_FLOOR);
+  applyFeature(tiles, 53, 17, 6, 2, TileType.BUILDING_FLOOR);
 
   // South clearing
-  applyFeature(tiles, 52, 52, 18, 18, TileType.GRASS);
-  applyFeature(tiles, 50, 55, 2, 12, TileType.GRASS);
+  applyNoisyRect(tiles, 52, 52, 18, 18, TileType.GRASS, 0.35, 205);
+  applyNoisyRect(tiles, 50, 55, 2, 12, TileType.GRASS, 0.3, 206);
 
   // Small mysterious clearing
-  applyFeature(tiles, 10, 55, 8, 8, TileType.GRASS);
+  applyNoisyRect(tiles, 10, 55, 8, 8, TileType.GRASS, 0.3, 207);
   applyFeature(tiles, 13, 58, 2, 2, TileType.COBBLESTONE); // old stone circle
 
   // === Lake ===
@@ -214,6 +293,25 @@ function createDarkwood(): ZoneDef {
   applyFeature(tiles, 10, 47, 14, 1, TileType.SAND); // north shore
   applyFeature(tiles, 10, 56, 14, 1, TileType.SAND); // south shore
   applyFeature(tiles, 12, 48, 10, 8, TileType.WATER);
+
+  // Lake shore — marshy dirt patches along the edges for organic look
+  setTile(tiles, 10, 49, TileType.DIRT);
+  setTile(tiles, 10, 51, TileType.DIRT);
+  setTile(tiles, 10, 53, TileType.DIRT);
+  setTile(tiles, 11, 48, TileType.DIRT);
+  setTile(tiles, 11, 50, TileType.DIRT);
+  setTile(tiles, 11, 54, TileType.DIRT);
+  setTile(tiles, 22, 49, TileType.DIRT);
+  setTile(tiles, 22, 52, TileType.DIRT);
+  setTile(tiles, 22, 54, TileType.DIRT);
+  setTile(tiles, 23, 50, TileType.DIRT);
+  setTile(tiles, 23, 53, TileType.DIRT);
+  setTile(tiles, 12, 47, TileType.DIRT);
+  setTile(tiles, 15, 47, TileType.DIRT);
+  setTile(tiles, 19, 47, TileType.DIRT);
+  setTile(tiles, 13, 56, TileType.DIRT);
+  setTile(tiles, 16, 56, TileType.DIRT);
+  setTile(tiles, 20, 56, TileType.DIRT);
 
   // === Mountains ===
   applyFeature(tiles, 0, 70, 25, 10, TileType.MOUNTAIN);
@@ -274,40 +372,66 @@ function createFields(): ZoneDef {
   for (let row = 0; row < 6; row++) {
     applyFeature(tiles, 5, 8 + row * 3, 15, 1, TileType.DIRT);
   }
-  // Farm fences
-  applyFeature(tiles, 4, 7, 1, 13, TileType.MOUNTAIN);
-  applyFeature(tiles, 21, 7, 1, 13, TileType.MOUNTAIN);
-  applyFeature(tiles, 4, 7, 18, 1, TileType.MOUNTAIN);
-  applyFeature(tiles, 4, 20, 18, 1, TileType.MOUNTAIN);
+  // Farm fences (FENCE instead of MOUNTAIN)
+  applyFeature(tiles, 4, 7, 1, 13, TileType.FENCE);
+  applyFeature(tiles, 21, 7, 1, 13, TileType.FENCE);
+  applyFeature(tiles, 4, 7, 18, 1, TileType.FENCE);
+  applyFeature(tiles, 4, 20, 18, 1, TileType.FENCE);
   // Gate
   setTile(tiles, 12, 20, TileType.DIRT);
   setTile(tiles, 13, 20, TileType.DIRT);
 
-  // === Sandy beach (south) with gradual transition ===
-  applyFeature(tiles, 0, 47, 60, 3, TileType.SAND);   // transition strip
-  applyFeature(tiles, 0, 50, 60, 10, TileType.SAND);
+  // === Meandering river ===
+  // y=0-7: water at x=25-27 (straight section)
+  applyFeature(tiles, 25, 0, 3, 8, TileType.WATER);
+  // y=8-13: water shifts to x=23-25 (bend west)
+  applyFeature(tiles, 23, 8, 3, 6, TileType.WATER);
+  // y=14-19: water at x=24-26 (back center)
+  applyFeature(tiles, 24, 14, 3, 6, TileType.WATER);
+  // y=20-27: water at x=26-28 (bend east)
+  applyFeature(tiles, 26, 20, 3, 8, TileType.WATER);
+  // y=32-39: water at x=24-26 (south of bridge, center)
+  applyFeature(tiles, 24, 32, 3, 8, TileType.WATER);
+  // y=40-46: water at x=25-27 (straight south)
+  applyFeature(tiles, 25, 40, 3, 7, TileType.WATER);
 
-  // === Water (river) — wider, with more bridges ===
-  applyFeature(tiles, 25, 0, 3, 28, TileType.WATER);
-  applyFeature(tiles, 25, 32, 3, 15, TileType.WATER);
-  // Main bridge on road
-  tiles[29][25] = TileType.BRIDGE;
-  tiles[29][26] = TileType.BRIDGE;
-  tiles[29][27] = TileType.BRIDGE;
-  tiles[30][25] = TileType.BRIDGE;
-  tiles[30][26] = TileType.BRIDGE;
-  tiles[30][27] = TileType.BRIDGE;
-  // Second bridge (north)
+  // First bridge at y=12-13 spanning x=23-27
+  tiles[12][23] = TileType.BRIDGE;
+  tiles[12][24] = TileType.BRIDGE;
   tiles[12][25] = TileType.BRIDGE;
   tiles[12][26] = TileType.BRIDGE;
   tiles[12][27] = TileType.BRIDGE;
+  tiles[13][23] = TileType.BRIDGE;
+  tiles[13][24] = TileType.BRIDGE;
   tiles[13][25] = TileType.BRIDGE;
   tiles[13][26] = TileType.BRIDGE;
   tiles[13][27] = TileType.BRIDGE;
 
+  // Second bridge (main road) at y=29-30 spanning x=24-28
+  tiles[29][24] = TileType.BRIDGE;
+  tiles[29][25] = TileType.BRIDGE;
+  tiles[29][26] = TileType.BRIDGE;
+  tiles[29][27] = TileType.BRIDGE;
+  tiles[29][28] = TileType.BRIDGE;
+  tiles[30][24] = TileType.BRIDGE;
+  tiles[30][25] = TileType.BRIDGE;
+  tiles[30][26] = TileType.BRIDGE;
+  tiles[30][27] = TileType.BRIDGE;
+  tiles[30][28] = TileType.BRIDGE;
+
+  // === Sandy beach (south) with gradient transition ===
+  // Beach gradient at y=45-46: checkerboard sand pattern
+  for (let x = 0; x < w; x++) {
+    if ((x + 45) % 2 === 0) setTile(tiles, x, 45, TileType.SAND);
+    if ((x + 46) % 2 === 0) setTile(tiles, x, 46, TileType.SAND);
+  }
+  // Solid sand from y=47 onward
+  applyFeature(tiles, 0, 47, 60, 3, TileType.SAND);
+  applyFeature(tiles, 0, 50, 60, 10, TileType.SAND);
+
   // === Small forest patches ===
-  applyFeature(tiles, 45, 5, 8, 6, TileType.FOREST);
-  applyFeature(tiles, 0, 40, 6, 7, TileType.FOREST);
+  applyNoisyRect(tiles, 45, 5, 8, 6, TileType.FOREST, 0.35, 301);
+  applyNoisyRect(tiles, 0, 40, 6, 7, TileType.FOREST, 0.3, 302);
 
   // === Portals ===
   // Portal back to Greendale at west edge

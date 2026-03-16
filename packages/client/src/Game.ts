@@ -12,6 +12,7 @@ import { ScreenEffects } from "./renderer/ScreenEffects.js";
 import { LightingSystem } from "./renderer/LightingSystem.js";
 import { AmbientParticles } from "./renderer/AmbientParticles.js";
 import { TelegraphRenderer } from "./renderer/TelegraphRenderer.js";
+import { DecorationRenderer } from "./renderer/DecorationRenderer.js";
 import { Minimap } from "./renderer/Minimap.js";
 import { InputManager } from "./input/InputManager.js";
 import { initDeviceDetection, isTouchDevice } from "./input/DeviceDetection.js";
@@ -39,6 +40,7 @@ export class Game {
   private lighting: LightingSystem;
   private ambientParticles: AmbientParticles;
   private telegraphs: TelegraphRenderer;
+  private decorations: DecorationRenderer;
   private minimap: Minimap;
   private partyHUD: PartyHUD;
   private partyInviteModal: PartyInviteModal;
@@ -68,6 +70,7 @@ export class Game {
     this.lighting = new LightingSystem(app);
     this.ambientParticles = new AmbientParticles(this.particles);
     this.telegraphs = new TelegraphRenderer();
+    this.decorations = new DecorationRenderer();
     this.minimap = new Minimap();
     this.audio = new AudioManager();
     this.dispatcher = new Dispatcher(
@@ -105,6 +108,7 @@ export class Game {
 
     // Build scene graph
     this.camera.container.addChild(this.tilemap.container);
+    this.camera.container.addChild(this.decorations.container);
     this.camera.container.addChild(this.telegraphs.container);
     this.camera.container.addChild(this.entities.container);
     this.camera.container.addChild(this.particles.container);
@@ -184,6 +188,7 @@ export class Game {
       const state = useGameStore.getState();
       if (state.tiles) {
         this.tilemap.setTiles(state.tiles);
+        this.decorations.setTiles(state.tiles);
         this.minimap.renderTiles(state.tiles);
         this.entities.clear();
 
