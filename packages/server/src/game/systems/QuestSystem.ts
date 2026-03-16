@@ -1,7 +1,8 @@
 import { Player } from "../entities/Player.js";
 import { Op, QUESTS, ITEMS, type ServerMessage, type SkillName, levelForXp } from "@madworld/shared";
+import { loadQuestProgress, saveQuestProgress } from "../../services/PlayerService.js";
 
-// Player quest state (in-memory, persisted via dirty flag)
+// Player quest state (in-memory, backed by DB)
 export interface PlayerQuestState {
   active: Map<string, { stepIndex: number; progress: Map<string, number> }>;
   completed: Set<string>;
@@ -19,13 +20,46 @@ export function getQuestState(player: Player): PlayerQuestState {
   return state;
 }
 
-export function initQuestState(player: Player): void {
-  // Create a fresh state for the player session
+export async function initQuestState(player: Player): Promise<void> {
   const state: PlayerQuestState = {
     active: new Map(),
     completed: new Set(),
   };
+
+  // Load saved quest progress from DB
+  const saved = await loadQuestProgress(player.playerId);
+  for (const row of saved) {
+    if (row.completed) {
+      state.completed.add(row.questId);
+    } else {
+      const progress = new Map<string, number>();
+      if (row.data) {
+        for (const [k, v] of Object.entries(row.data)) {
+          progress.set(k, v as number);
+        }
+      }
+      state.active.set(row.questId, { stepIndex: row.step, progress });
+    }
+  }
+
   questStates.set(player.eid, state);
+}
+
+export async function persistQuestState(player: Player): Promise<void> {
+  const state = questStates.get(player.eid);
+  if (!state) return;
+
+  // Save active quests
+  for (const [questId, quest] of state.active) {
+    const data: Record<string, number> = {};
+    for (const [k, v] of quest.progress) data[k] = v;
+    await saveQuestProgress(player.playerId, questId, quest.stepIndex, false, data);
+  }
+
+  // Save completed quests
+  for (const questId of state.completed) {
+    await saveQuestProgress(player.playerId, questId, 0, true);
+  }
 }
 
 export function cleanupQuestState(playerEid: number): void {

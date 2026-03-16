@@ -9,7 +9,7 @@ import { partyManager } from "../game/PartyManager.js";
 import { verifyToken } from "../auth/jwt.js";
 import { loadPlayer } from "../services/PlayerService.js";
 import { savePlayer } from "../services/PlayerService.js";
-import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQuests, cleanupQuestState, onItemPickup as questOnItemPickup } from "../game/systems/QuestSystem.js";
+import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQuests, cleanupQuestState, persistQuestState, onItemPickup as questOnItemPickup } from "../game/systems/QuestSystem.js";
 import { handleMobDeath, grantXp } from "../game/systems/CombatSystem.js";
 import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
 import { getCurrentTick } from "../game/GameLoop.js";
@@ -1120,7 +1120,7 @@ async function handleAuth(
     }
 
     // Initialize quest state and send quest list
-    initQuestState(player);
+    await initQuestState(player);
     sendQuestList(player);
 
     // Send unlocked abilities based on skill levels
@@ -1157,6 +1157,9 @@ export async function handleDisconnect(ws: GameWebSocket): Promise<void> {
   const player = ws.data.player;
   if (player) {
     player.ws = null;
+    await persistQuestState(player).catch((err) =>
+      console.error(`[Disconnect] Failed to save quests for ${player.name}:`, err),
+    );
     cleanupQuestState(player.eid);
     if (player.partyId) {
       partyManager.leaveParty(player);

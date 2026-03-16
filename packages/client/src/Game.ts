@@ -154,6 +154,13 @@ export class Game {
       this.input.keyboard.enabled = !focused;
     });
 
+    // Confirm before leaving page (prevents accidental logout)
+    window.addEventListener("beforeunload", (e) => {
+      if (useGameStore.getState().localPlayer) {
+        e.preventDefault();
+      }
+    });
+
     // Build scene graph
     this.camera.container.addChild(this.tilemap.container);
     this.camera.container.addChild(this.decorations.container);

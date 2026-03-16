@@ -1,5 +1,5 @@
 import { db } from "../db/index.js";
-import { players, skills, inventory, equipment, users } from "../db/schema.js";
+import { players, skills, inventory, equipment, users, questProgress } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { Player } from "../game/entities/Player.js";
 import { type SkillName, type Appearance, levelForXp, movementFormulas } from "@madworld/shared";
@@ -125,4 +125,72 @@ export async function savePlayer(player: Player): Promise<void> {
         set: { xp: data.xp },
       });
   }
+
+  // Save inventory
+  await db.delete(inventory).where(eq(inventory.playerId, player.playerId));
+  for (let i = 0; i < player.inventory.length; i++) {
+    const slot = player.inventory[i];
+    if (slot) {
+      await db.insert(inventory).values({
+        playerId: player.playerId,
+        slotIndex: i,
+        itemId: slot.itemId,
+        quantity: slot.quantity,
+      });
+    }
+  }
+
+  // Save equipment
+  await db.delete(equipment).where(eq(equipment.playerId, player.playerId));
+  for (const [slot, itemId] of player.equipment) {
+    await db.insert(equipment).values({
+      playerId: player.playerId,
+      slot,
+      itemId,
+    });
+  }
+}
+
+export async function saveQuestProgress(
+  playerId: number,
+  questId: string,
+  step: number,
+  completed: boolean,
+  data?: Record<string, number>,
+): Promise<void> {
+  const existing = await db
+    .select()
+    .from(questProgress)
+    .where(eq(questProgress.playerId, playerId))
+    .then((rows) => rows.find((r) => r.questId === questId));
+
+  if (existing) {
+    await db
+      .update(questProgress)
+      .set({ step, completed, data: data ?? null })
+      .where(eq(questProgress.id, existing.id));
+  } else {
+    await db.insert(questProgress).values({
+      playerId,
+      questId,
+      step,
+      completed,
+      data: data ?? null,
+    });
+  }
+}
+
+export async function loadQuestProgress(
+  playerId: number,
+): Promise<{ questId: string; step: number; completed: boolean; data: Record<string, number> | null }[]> {
+  return db
+    .select()
+    .from(questProgress)
+    .where(eq(questProgress.playerId, playerId))
+    .then((rows) => rows.map((r) => ({
+      questId: r.questId,
+      step: r.step,
+      completed: r.completed,
+      data: r.data as Record<string, number> | null,
+    })));
 }
