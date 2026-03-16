@@ -248,6 +248,17 @@ export class EntityRenderer {
     sprite.container.zIndex = y;
   }
 
+  /** Force recreation of the local player sprite (e.g., when appearance loads). */
+  refreshLocalPlayer(): void {
+    if (this.localPlayerEid === null) return;
+    const existing = this.sprites.get(this.localPlayerEid);
+    if (existing) {
+      this.container.removeChild(existing.container);
+      existing.container.destroy({ children: true });
+      this.sprites.delete(this.localPlayerEid);
+    }
+  }
+
   updateLocalPlayer(x: number, y: number, dt = 0.016): void {
     if (this.localPlayerEid === null) return;
     let sprite = this.sprites.get(this.localPlayerEid);

@@ -113,6 +113,10 @@ export class Dispatcher {
             ...(msg.d.name ? { name: msg.d.name } : {}),
             ...(msg.d.appearance ? { appearance: msg.d.appearance } : {}),
           });
+          // Refresh sprite so appearance/equipment/god visuals take effect
+          if (msg.d.appearance) {
+            this.entityRenderer.refreshLocalPlayer();
+          }
           break;
         }
 
