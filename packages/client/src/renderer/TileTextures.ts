@@ -33,21 +33,28 @@ function drawGrass(variant: number): Texture {
   g.rect(0, 0, S, S);
   g.fill(0x4a7c59);
 
-  // 6-8 soft mottled ellipses for color variation
-  const mottleCount = 6 + Math.floor(rng() * 3);
-  for (let i = 0; i < mottleCount; i++) {
-    const mx = rng() * S;
-    const my = rng() * S;
-    const rx = 3 + rng() * 2;
-    const ry = 3 + rng() * 2;
-    const alpha = 0.15 + rng() * 0.1;
-    g.ellipse(mx, my, rx, ry);
-    g.fill({ color: greens[Math.floor(rng() * greens.length)], alpha });
-  }
+  // Smooth gradient tonal variation: large overlapping fills at very low alpha
+  g.rect(0, 0, S, S);
+  g.fill({ color: 0x3a6040, alpha: 0.04 });
+  g.rect(2, 2, S - 4, S - 4);
+  g.fill({ color: 0x5a8c69, alpha: 0.03 });
+  g.rect(4, 4, S - 8, S - 8);
+  g.fill({ color: 0x4a7c59, alpha: 0.05 });
 
-  // 8-12 grass tufts as curved bezier arcs leaning in a seeded wind direction
+  // Subtle horizontal bands for tonal variation
+  const grassBandH = Math.ceil(S / 4);
+  g.rect(0, 0, S, grassBandH);
+  g.fill({ color: 0x3d6b4a, alpha: 0.02 });
+  g.rect(0, grassBandH, S, grassBandH);
+  g.fill({ color: 0x5a8c69, alpha: 0.02 });
+  g.rect(0, grassBandH * 2, S, grassBandH);
+  g.fill({ color: 0x3a6040, alpha: 0.02 });
+  g.rect(0, grassBandH * 3, S, grassBandH);
+  g.fill({ color: 0x6a9c79, alpha: 0.02 });
+
+  // 6-8 grass tufts as curved bezier arcs leaning in a seeded wind direction
   const windAngle = (rng() - 0.5) * 1.2; // consistent wind per variant
-  const tuftCount = 8 + Math.floor(rng() * 5);
+  const tuftCount = 6 + Math.floor(rng() * 3);
   for (let i = 0; i < tuftCount; i++) {
     const bx = 2 + rng() * (S - 4);
     const by = 4 + rng() * (S - 5);
@@ -80,17 +87,17 @@ function drawGrass(variant: number): Texture {
       const fx = 5 + rng() * (S - 10);
       const fy = 5 + rng() * (S - 10);
       const fc = flowerColors[Math.floor(rng() * flowerColors.length)];
-      const petalR = 1.2;
+      const petalR = 1.0;
       const petalOff = 1.8;
       // 4 petals
       g.ellipse(fx - petalOff, fy, petalR, petalR * 0.7);
-      g.fill({ color: fc, alpha: 0.8 });
+      g.fill({ color: fc, alpha: 0.7 });
       g.ellipse(fx + petalOff, fy, petalR, petalR * 0.7);
-      g.fill({ color: fc, alpha: 0.8 });
+      g.fill({ color: fc, alpha: 0.7 });
       g.ellipse(fx, fy - petalOff, petalR * 0.7, petalR);
-      g.fill({ color: fc, alpha: 0.8 });
+      g.fill({ color: fc, alpha: 0.7 });
       g.ellipse(fx, fy + petalOff, petalR * 0.7, petalR);
-      g.fill({ color: fc, alpha: 0.8 });
+      g.fill({ color: fc, alpha: 0.7 });
       // Center dot
       g.circle(fx, fy, 0.8);
       g.fill(0xffcc00);
@@ -99,9 +106,9 @@ function drawGrass(variant: number): Texture {
 
   // Directional light: subtle top highlight, bottom shadow
   g.rect(0, 0, S, 4);
-  g.fill({ color: 0xffffff, alpha: 0.04 });
+  g.fill({ color: 0xffffff, alpha: 0.02 });
   g.rect(0, S - 4, S, 4);
-  g.fill({ color: 0x000000, alpha: 0.04 });
+  g.fill({ color: 0x000000, alpha: 0.02 });
 
   return TextureFactory.generate(g, S, S);
 }
@@ -442,8 +449,8 @@ function drawSand(variant: number): Texture {
   const g = new Graphics();
   const rng = seededRandom(variant * 5101);
 
-  // Base gradient: 3 horizontal bands from darker bottom to lighter top
-  const bandColors = [0xb5a573, 0xc0b480, 0xccbe8d];
+  // Base gradient: 4 horizontal bands from darker bottom to lighter top
+  const bandColors = [0xb5a573, 0xbcb07c, 0xc0b480, 0xc8bb88];
   const bandH = Math.ceil(S / bandColors.length);
   for (let i = bandColors.length - 1; i >= 0; i--) {
     g.rect(0, i * bandH, S, bandH);
@@ -462,24 +469,14 @@ function drawSand(variant: number): Texture {
     for (let x = 0; x <= S; x += 2) {
       g.lineTo(x, ry + Math.sin(x * freq + variant * 1.3 + i) * amp);
     }
-    g.stroke({ width: 0.6, color: 0xa89860, alpha: 0.35 });
+    g.stroke({ width: 1.0, color: 0xa89860, alpha: 0.25 });
 
     // Highlight line one pixel above
     g.moveTo(0, ry - 1);
     for (let x = 0; x <= S; x += 2) {
       g.lineTo(x, ry - 1 + Math.sin(x * freq + variant * 1.3 + i) * amp);
     }
-    g.stroke({ width: 0.6, color: 0xd6c898, alpha: 0.25 });
-  }
-
-  // 30-40 single-pixel grain dots at very low alpha
-  const grainCount = 30 + Math.floor(rng() * 11);
-  for (let i = 0; i < grainCount; i++) {
-    const gx = rng() * S;
-    const gy = rng() * S;
-    const alpha = 0.08 + rng() * 0.07;
-    g.rect(gx, gy, 1, 1);
-    g.fill({ color: rng() > 0.5 ? 0xc8b888 : 0xa09060, alpha });
+    g.stroke({ width: 1.0, color: 0xd6c898, alpha: 0.18 });
   }
 
   // Variant 0: Small spiral shell using arc segments
@@ -525,18 +522,14 @@ function drawDirt(variant: number): Texture {
   g.rect(0, 0, S, S);
   g.fill(0x8b7355);
 
-  // 4-5 large soft blotch ellipses for tonal variation
-  const blotchCount = 4 + Math.floor(rng() * 2);
-  const blotchColors = [0x7b6345, 0x9b8365, 0x6b5335, 0xa08a6a, 0x7a6a50];
-  for (let i = 0; i < blotchCount; i++) {
-    const bx = rng() * S;
-    const by = rng() * S;
-    const rx = 4 + rng() * 3;
-    const ry = 4 + rng() * 3;
-    const alpha = 0.08 + rng() * 0.04;
-    g.ellipse(bx, by, rx, ry);
-    g.fill({ color: blotchColors[Math.floor(rng() * blotchColors.length)], alpha });
-  }
+  // Smooth horizontal bands for subtle tonal variation
+  const bandH = Math.ceil(S / 3);
+  g.rect(0, 0, S, bandH);
+  g.fill({ color: 0x7b6345, alpha: 0.03 });
+  g.rect(0, bandH, S, bandH);
+  g.fill({ color: 0x9b8365, alpha: 0.02 });
+  g.rect(0, bandH * 2, S, bandH);
+  g.fill({ color: 0x7a6a50, alpha: 0.03 });
 
   // Variants 0-1: Lighter worn oval in center
   if (variant < 2) {
@@ -590,11 +583,11 @@ function drawDirt(variant: number): Texture {
       cx = Math.max(0, Math.min(S, nx));
       cy = Math.max(0, Math.min(S, ny));
     }
-    g.stroke({ width: 0.8, color: 0x5a4230, alpha: 0.6 });
+    g.stroke({ width: 0.5, color: 0x5a4230, alpha: 0.4 });
   }
 
-  // 4-6 pebble ellipses with shadow offset
-  const pebbleCount = 4 + Math.floor(rng() * 3);
+  // 2-3 pebble ellipses with shadow offset
+  const pebbleCount = 2 + Math.floor(rng() * 2);
   const pebbleGrays = [0x888888, 0x999999, 0x777777, 0xaaaaaa, 0x8a8a8a];
   for (let p = 0; p < pebbleCount; p++) {
     const px = 2 + rng() * (S - 4);
@@ -603,7 +596,7 @@ function drawDirt(variant: number): Texture {
     const pry = 0.8 + rng() * 0.7;
     // Shadow
     g.ellipse(px + 0.5, py + 0.5, prx, pry);
-    g.fill({ color: 0x000000, alpha: 0.15 });
+    g.fill({ color: 0x000000, alpha: 0.12 });
     // Pebble
     g.ellipse(px, py, prx, pry);
     g.fill(pebbleGrays[Math.floor(rng() * pebbleGrays.length)]);
@@ -639,9 +632,9 @@ function drawCobblestone(variant: number): Texture {
   const g = new Graphics();
   const rng = seededRandom(variant * 4391);
 
-  // Darker mortar base
+  // Lighter mortar base
   g.rect(0, 0, S, S);
-  g.fill(0x2a2a2a);
+  g.fill(0x3a3a3a);
 
   // Row-based stone placement with rounded corners
   let y = 1;
@@ -662,49 +655,21 @@ function drawCobblestone(variant: number): Texture {
       g.roundRect(sx, y, w, h, 2 + rng() * 0.5);
       g.fill(baseShade);
 
-      // Boosted highlight (top-left)
+      // Reduced highlight (top-left)
       g.rect(sx + 1, y + 1, w - 2, 1);
-      g.fill({ color: 0xffffff, alpha: 0.14 });
+      g.fill({ color: 0xffffff, alpha: 0.06 });
       g.rect(sx + 1, y + 1, 1, h - 2);
-      g.fill({ color: 0xffffff, alpha: 0.08 });
+      g.fill({ color: 0xffffff, alpha: 0.04 });
 
-      // Boosted shadow (bottom-right)
+      // Reduced shadow (bottom-right)
       g.rect(sx, y + h - 1, w, 1);
-      g.fill({ color: 0x000000, alpha: 0.2 });
+      g.fill({ color: 0x000000, alpha: 0.06 });
       g.rect(sx + w - 1, y, 1, h);
-      g.fill({ color: 0x000000, alpha: 0.16 });
-
-      // Subtle surface texture speckles
-      for (let sp = 0; sp < 2; sp++) {
-        g.rect(sx + 1 + rng() * (w - 2), y + 1 + rng() * (h - 2), 1, 1);
-        g.fill({ color: rng() > 0.5 ? 0xffffff : 0x000000, alpha: 0.05 });
-      }
+      g.fill({ color: 0x000000, alpha: 0.06 });
 
       x += w + 1;
     }
     y += 5 + Math.floor(rng() * 4);
-  }
-
-  // Variant 0: Small puddle ellipse
-  if (variant === 0) {
-    const px = 8 + rng() * (S - 16);
-    const py = 10 + rng() * (S - 16);
-    g.ellipse(px, py, 3 + rng() * 2, 2 + rng());
-    g.fill({ color: 0x4a5a6a, alpha: 0.2 });
-    // Puddle highlight
-    g.ellipse(px - 0.5, py - 0.5, 1.5, 0.8);
-    g.fill({ color: 0x8aafcc, alpha: 0.1 });
-  }
-
-  // Variant 2: 2-3 moss dots along mortar lines
-  if (variant === 2) {
-    const mossCount = 2 + Math.floor(rng() * 2);
-    for (let m = 0; m < mossCount; m++) {
-      const mx = 2 + rng() * (S - 4);
-      const my = 2 + rng() * (S - 4);
-      g.circle(mx, my, 1 + rng() * 0.5);
-      g.fill({ color: 0x3a5a3a, alpha: 0.4 });
-    }
   }
 
   // Directional light: subtle top highlight, bottom shadow
@@ -725,7 +690,7 @@ function drawBuildingFloor(variant: number): Texture {
 
   // Grout base
   g.rect(0, 0, S, S);
-  g.fill(0x6a3a1e);
+  g.fill(0x7a4a2e);
 
   // Mix of 8x8 and 6x10 flagstones with seeded pattern
   let ty = 0;
@@ -742,49 +707,34 @@ function drawBuildingFloor(variant: number): Texture {
       if (w < 2 || h < 2) { tx += tileW; continue; }
 
       const light = (Math.floor(tx / tileW) + rowIdx) % 2 === 0;
-      const baseColor = light ? 0xa8582e : 0x954a24;
+      const baseColor = light ? 0xa05028 : 0x984820;
       const shade = baseColor + Math.floor(rng() * 0x0a0a0a);
 
-      g.rect(tx + 0.5, ty + 0.5, w - 1, h - 1);
+      g.rect(tx + 0.75, ty + 0.75, w - 1.5, h - 1.5);
       g.fill(shade);
 
-      // Subtle highlight
-      g.rect(tx + 1, ty + 1, w - 2, 1);
-      g.fill({ color: 0xffffff, alpha: 0.06 });
-      // Shadow bottom
-      g.rect(tx + 1, ty + h - 1.5, w - 2, 0.5);
-      g.fill({ color: 0x000000, alpha: 0.1 });
-
-      // 1-3 scratch marks per flagstone
-      const scratchCount = 1 + Math.floor(rng() * 3);
-      for (let sc = 0; sc < scratchCount; sc++) {
-        const sx1 = tx + 1 + rng() * (w - 3);
-        const sy1 = ty + 1 + rng() * (h - 3);
-        const sx2 = sx1 + (rng() - 0.5) * 3;
-        const sy2 = sy1 + (rng() - 0.5) * 3;
-        g.moveTo(sx1, sy1);
-        g.lineTo(sx2, sy2);
-        g.stroke({ width: 0.3, color: 0x000000, alpha: 0.12 });
-      }
+      // 0.5px inner shadow all around each flagstone
+      g.rect(tx + 0.75, ty + 0.75, w - 1.5, 0.5);
+      g.fill({ color: 0x000000, alpha: 0.04 });
+      g.rect(tx + 0.75, ty + h - 1.25, w - 1.5, 0.5);
+      g.fill({ color: 0x000000, alpha: 0.04 });
+      g.rect(tx + 0.75, ty + 0.75, 0.5, h - 1.5);
+      g.fill({ color: 0x000000, alpha: 0.04 });
+      g.rect(tx + w - 1.25, ty + 0.75, 0.5, h - 1.5);
+      g.fill({ color: 0x000000, alpha: 0.04 });
 
       // Variants 1-2: Chip marks on edges
       if (variant >= 1 && rng() > 0.6) {
         const chipX = tx + (rng() > 0.5 ? 0.5 : w - 1.5);
         const chipY = ty + 1 + rng() * (h - 2);
         g.rect(chipX, chipY, 1, 1);
-        g.fill({ color: 0x6a3a1e, alpha: 0.6 });
+        g.fill({ color: 0x7a4a2e, alpha: 0.6 });
       }
 
       tx += tileW;
     }
     ty += tileH;
     rowIdx++;
-  }
-
-  // Variant 2: 4px-wide muted red strip across middle
-  if (variant === 2) {
-    g.rect(0, S / 2 - 2, S, 4);
-    g.fill({ color: 0x8a3030, alpha: 0.3 });
   }
 
   return TextureFactory.generate(g, S, S);

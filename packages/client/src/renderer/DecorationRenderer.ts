@@ -127,9 +127,9 @@ export class DecorationRenderer {
       g.fill(0x888888);
       g.roundRect(rx - size / 2, ry - size / 2, size, size, 1);
       g.stroke({ width: 0.5, color: 0x666666, alpha: 0.5 });
-      // Rock specular highlight (top-left)
-      g.circle(rx - 1, ry - 1, 1);
-      g.fill({ color: 0xffffff, alpha: 0.15 });
+      // Upper-left lighter face
+      g.roundRect(rx - size / 2, ry - size / 2, size * 0.6, size * 0.6, 1);
+      g.fill({ color: 0xaaaaaa, alpha: 0.15 });
     }
 
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
@@ -212,9 +212,9 @@ export class DecorationRenderer {
       g.fill(0x666666);
       g.rect(bx, by + 4, 5, 0.8);
       g.fill(0x666666);
-      // Barrel top-left highlight
-      g.rect(bx, by, 5, 1);
-      g.fill({ color: 0xffffff, alpha: 0.10 });
+      // Lighter top third
+      g.rect(bx, by, 5, 2);
+      g.fill({ color: 0xffffff, alpha: 0.06 });
     } else {
       // Crate: brown roundRect 5x6 with grid lines
       // Ground shadow under crate
@@ -224,13 +224,11 @@ export class DecorationRenderer {
       g.fill(0x9b7924);
       g.roundRect(bx, by, 5, 6, 0.5);
       g.stroke({ width: 0.5, color: 0x5a4008, alpha: 0.5 });
-      // Grid lines
-      g.moveTo(bx, by + 3);
-      g.lineTo(bx + 5, by + 3);
-      g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.4 });
-      g.moveTo(bx + 2.5, by);
-      g.lineTo(bx + 2.5, by + 6);
-      g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.4 });
+      // Plank lines (like barrel bands)
+      g.rect(bx, by + 2, 5, 0.5);
+      g.fill({ color: 0x5a4008, alpha: 0.3 });
+      g.rect(bx, by + 4, 5, 0.5);
+      g.fill({ color: 0x5a4008, alpha: 0.3 });
       // Crate top edge highlight
       g.rect(bx, by, 5, 1);
       g.fill({ color: 0xffffff, alpha: 0.08 });
@@ -268,10 +266,17 @@ export class DecorationRenderer {
 
       // Triangle cut-out (classic lily pad notch)
       g.moveTo(px, py);
-      g.lineTo(px + radius, py - radius * 0.5);
-      g.lineTo(px + radius, py + radius * 0.5);
+      g.lineTo(px + radius * 0.8, py - radius * 0.4);
+      g.lineTo(px + radius * 0.8, py + radius * 0.4);
       g.closePath();
       g.fill(0x1a4a7a); // Water color to simulate cut
+
+      // Blend notch edge
+      g.moveTo(px, py);
+      g.lineTo(px + radius * 0.8, py - radius * 0.4);
+      g.lineTo(px + radius * 0.8, py + radius * 0.4);
+      g.closePath();
+      g.stroke({ width: 0.5, color: 0x2a8a2a, alpha: 0.4 });
     }
 
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);

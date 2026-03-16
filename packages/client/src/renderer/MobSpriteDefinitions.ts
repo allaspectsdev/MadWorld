@@ -27,20 +27,12 @@ const DEFS: Record<string, MobVisual> = {
       g.ellipse(w / 2, h / 2 + 2, 7, 6);
       g.fill(0xf0c040);
       g.ellipse(w / 2, h / 2 + 2, 7, 6);
-      g.stroke({ width: 1, color: 0xc09020, alpha: 0.5 });
-      // Body highlight upper-left
-      g.ellipse(w / 2 - 2, h / 2, 3, 2.5);
-      g.fill({ color: 0xffffff, alpha: 0.12 });
-      // Body shadow lower-right
-      g.ellipse(w / 2 + 2, h / 2 + 4, 3, 2);
-      g.fill({ color: 0x000000, alpha: 0.10 });
-      // Tail fan: 3 overlapping triangles
+      g.stroke({ width: 1, color: 0xc09020, alpha: 0.15 });
+      // Tail fan: 2 overlapping triangles
       g.moveTo(w / 2 - 6, h / 2); g.lineTo(w / 2 - 10, h / 2 - 4); g.lineTo(w / 2 - 7, h / 2 + 1);
-      g.fill(0xe8c040);
+      g.fill(0xe0b838);
       g.moveTo(w / 2 - 6, h / 2 + 1); g.lineTo(w / 2 - 9, h / 2 - 2); g.lineTo(w / 2 - 6, h / 2 + 2);
       g.fill(0xe0b030);
-      g.moveTo(w / 2 - 5, h / 2 + 1); g.lineTo(w / 2 - 8, h / 2 - 1); g.lineTo(w / 2 - 5, h / 2 + 3);
-      g.fill(0xd8a828);
       // Wing
       g.ellipse(w / 2 - 2, h / 2 + 2, 3, 3);
       g.fill(0xe0b030);
@@ -90,13 +82,7 @@ const DEFS: Record<string, MobVisual> = {
       g.roundRect(6, 8, 24, 14, 4);
       g.fill(0x8b6914);
       g.roundRect(6, 8, 24, 14, 4);
-      g.stroke({ width: 1, color: 0x5a4008, alpha: 0.5 });
-      // Left highlight
-      g.rect(7, 9, 2, 12);
-      g.fill({ color: 0xffffff, alpha: 0.08 });
-      // Right shadow
-      g.rect(28, 9, 2, 12);
-      g.fill({ color: 0x000000, alpha: 0.08 });
+      g.stroke({ width: 1, color: 0x5a4008, alpha: 0.15 });
       // Belly highlight
       g.ellipse(18, 17, 10, 4);
       g.fill(0xc2a060);
@@ -105,9 +91,9 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0xffaaaa);
       // Spots
       g.ellipse(12, 12, 3, 2.5);
-      g.fill(0x222222);
+      g.fill(0x4a3a2a);
       g.ellipse(22, 10, 2.5, 2);
-      g.fill(0x222222);
+      g.fill(0x4a3a2a);
       // Head
       g.circle(28, 8, 5);
       g.fill(0x8b6914);
@@ -117,11 +103,11 @@ const DEFS: Record<string, MobVisual> = {
       g.ellipse(24, 5, 2.5, 1.2);
       g.fill(0x8b6914);
       g.ellipse(24, 5, 2.5, 1.2);
-      g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.4 });
+      g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.15 });
       g.ellipse(32, 5, 2.5, 1.2);
       g.fill(0x8b6914);
       g.ellipse(32, 5, 2.5, 1.2);
-      g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.4 });
+      g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.15 });
       // Snout
       g.ellipse(30, 10, 3, 2);
       g.fill(0xc2a060);
@@ -165,13 +151,7 @@ const DEFS: Record<string, MobVisual> = {
       g.roundRect(7, 12, 12, 10, 3);
       g.fill(0x3a7a3a);
       g.roundRect(7, 12, 12, 10, 3);
-      g.stroke({ width: 1, color: 0x1a4a1a, alpha: 0.5 });
-      // Left highlight
-      g.rect(8, 13, 1.5, 8);
-      g.fill({ color: 0xffffff, alpha: 0.10 });
-      // Right shadow
-      g.rect(17, 13, 1.5, 8);
-      g.fill({ color: 0x000000, alpha: 0.10 });
+      g.stroke({ width: 1, color: 0x1a4a1a, alpha: 0.15 });
       // Belt
       g.rect(7, 18, 12, 2);
       g.fill(0x5c3a1e);
@@ -186,17 +166,7 @@ const DEFS: Record<string, MobVisual> = {
       g.circle(w / 2, 9, 6);
       g.fill(0x4a9a4a);
       g.circle(w / 2, 9, 6);
-      g.stroke({ width: 1, color: 0x2a6a2a, alpha: 0.4 });
-      // Head highlight
-      g.arc(w / 2 - 2, 7, 4, Math.PI * 1.2, Math.PI * 1.8);
-      g.fill({ color: 0xffffff, alpha: 0.10 });
-      // Wart bumps (tiny darker green circles on face)
-      g.circle(9, 10, 1);
-      g.fill(0x2a6a2a);
-      g.circle(15, 6, 1);
-      g.fill(0x2a6a2a);
-      g.circle(17, 10, 1);
-      g.fill(0x2a6a2a);
+      g.stroke({ width: 1, color: 0x2a6a2a, alpha: 0.15 });
       // Ears
       g.moveTo(5, 7); g.lineTo(2, 2); g.lineTo(7, 7);
       g.fill(0x4a9a4a);
@@ -289,7 +259,7 @@ const DEFS: Record<string, MobVisual> = {
       g.circle(w / 2, 7, 5);
       g.fill(0xeeeedd);
       g.circle(w / 2, 7, 5);
-      g.stroke({ width: 1, color: 0x999988, alpha: 0.5 });
+      g.stroke({ width: 1, color: 0x999988, alpha: 0.15 });
       // Jaw
       g.roundRect(8, 10, 8, 3, 1);
       g.fill(0xddddcc);
@@ -306,13 +276,6 @@ const DEFS: Record<string, MobVisual> = {
       // Spine/Torso
       g.rect(10, 13, 4, 10);
       g.fill(0xddddbb);
-      // Spinal column: vertical series of small circles between ribs
-      for (let sy = 13; sy <= 22; sy += 1.3) {
-        g.circle(12, sy, 1);
-        g.fill(0xccccaa);
-        g.circle(12, sy, 1);
-        g.stroke({ width: 0.3, color: 0xaaaaaa, alpha: 0.4 });
-      }
       // Ribs (slightly curved arcs instead of straight rects)
       for (let ry = 14; ry < 22; ry += 2) {
         // Left rib arc
@@ -639,12 +602,6 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x2255aa);
       g.moveTo(7, 14); g.lineTo(5, 32); g.lineTo(21, 32); g.lineTo(19, 14);
       g.stroke({ width: 1, color: 0x1a3a77, alpha: 0.5 });
-      // Robe left highlight
-      g.rect(6, 15, 2, 15);
-      g.fill({ color: 0xffffff, alpha: 0.08 });
-      // Robe right shadow
-      g.rect(18, 15, 2, 15);
-      g.fill({ color: 0x000000, alpha: 0.08 });
       // Robe trim
       g.rect(5, 30, 16, 2);
       g.fill(0x4488cc);
@@ -685,12 +642,6 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x3a7a3a);
       g.roundRect(6, 12, 12, 14, 3);
       g.stroke({ width: 1, color: 0x2a5a2a, alpha: 0.5 });
-      // Dress left highlight
-      g.rect(7, 13, 1.5, 12);
-      g.fill({ color: 0xffffff, alpha: 0.08 });
-      // Dress right shadow
-      g.rect(16, 13, 1.5, 12);
-      g.fill({ color: 0x000000, alpha: 0.08 });
       // Apron (light tan)
       g.roundRect(8, 14, 8, 10, 2);
       g.fill(0xd2b48c);
@@ -730,12 +681,6 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x6b4226);
       g.roundRect(7, 12, 14, 12, 3);
       g.stroke({ width: 1, color: 0x4a2e1a, alpha: 0.5 });
-      // Torso left highlight
-      g.rect(8, 13, 1.5, 10);
-      g.fill({ color: 0xffffff, alpha: 0.08 });
-      // Torso right shadow
-      g.rect(19, 13, 1.5, 10);
-      g.fill({ color: 0x000000, alpha: 0.08 });
       // Brown leather apron
       g.roundRect(9, 14, 10, 10, 2);
       g.fill(0x8b6914);
@@ -778,12 +723,6 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x888888);
       g.roundRect(7, 14, 12, 12, 3);
       g.stroke({ width: 1, color: 0x555555, alpha: 0.6 });
-      // Armor left highlight
-      g.rect(8, 15, 1.5, 10);
-      g.fill({ color: 0xffffff, alpha: 0.08 });
-      // Armor right shadow
-      g.rect(17, 15, 1.5, 10);
-      g.fill({ color: 0x000000, alpha: 0.08 });
       // Chest plate highlight
       g.roundRect(9, 16, 8, 6, 2);
       g.fill(0xaaaaaa);
@@ -1473,16 +1412,12 @@ const DEFS: Record<string, MobVisual> = {
       g.stroke({ width: 0.5, color: 0x661100 });
       g.moveTo(2, 8); g.lineTo(4, 24);
       g.stroke({ width: 0.5, color: 0x661100 });
-      g.moveTo(6, 12); g.lineTo(6, 20);
-      g.stroke({ width: 0.5, color: 0x661100 });
       // Right wing
       g.moveTo(34, 16); g.lineTo(42, 6); g.lineTo(40, 28);
       g.fill(0x881111);
       g.moveTo(38, 10); g.lineTo(37, 22);
       g.stroke({ width: 0.5, color: 0x661100 });
       g.moveTo(40, 8); g.lineTo(38, 24);
-      g.stroke({ width: 0.5, color: 0x661100 });
-      g.moveTo(36, 12); g.lineTo(36, 20);
       g.stroke({ width: 0.5, color: 0x661100 });
       // Tail (thick bezier curve extending behind)
       g.moveTo(w / 2 - 4, 34); g.bezierCurveTo(w / 2 - 8, 38, w / 2 - 12, 42, w / 2 - 14, 40);
@@ -1496,10 +1431,10 @@ const DEFS: Record<string, MobVisual> = {
       g.ellipse(w / 2, h / 2 + 5, 10, 6);
       g.fill(0xcc4422);
       // Scale texture (small arc marks across body)
-      for (let sx = -6; sx <= 6; sx += 3) {
-        for (let sy = -2; sy <= 4; sy += 3) {
+      for (let sx = -6; sx <= 6; sx += 4) {
+        for (let sy = -2; sy <= 4; sy += 4) {
           g.arc(w / 2 + sx, h / 2 + 2 + sy, 1.5, 0, Math.PI);
-          g.stroke({ width: 0.5, color: 0x882200 });
+          g.stroke({ width: 0.5, color: 0x882200, alpha: 0.6 });
         }
       }
       // Neck (tapered polygon extending upward)
@@ -1534,13 +1469,11 @@ const DEFS: Record<string, MobVisual> = {
       // Jaw (lower mandible)
       g.moveTo(w / 2 - 6, 8); g.lineTo(w / 2 - 4, 11); g.lineTo(w / 2 + 4, 11); g.lineTo(w / 2 + 6, 8);
       g.fill(0x992200);
-      // Teeth (small white triangles)
+      // Teeth (small triangles)
       g.moveTo(w / 2 - 3, 8); g.lineTo(w / 2 - 2, 10); g.lineTo(w / 2 - 1, 8);
-      g.fill(0xffffff);
+      g.fill(0xeeddcc);
       g.moveTo(w / 2, 8); g.lineTo(w / 2 + 1, 10); g.lineTo(w / 2 + 2, 8);
-      g.fill(0xffffff);
-      g.moveTo(w / 2 + 3, 8); g.lineTo(w / 2 + 4, 10); g.lineTo(w / 2 + 5, 8);
-      g.fill(0xffffff);
+      g.fill(0xeeddcc);
       // Fire breath hint (glow near mouth)
       g.ellipse(w / 2, 12, 4, 2);
       g.fill({ color: 0xff8800, alpha: 0.1 });
