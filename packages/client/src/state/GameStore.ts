@@ -92,6 +92,12 @@ export interface GameState {
   setEquipment: (slot: string, itemId: string | null) => void;
   toggleInventory: () => void;
 
+  // Skills XP
+  skillXp: Record<string, number>;
+  skillsOpen: boolean;
+  setSkillXp: (skillId: string, totalXp: number) => void;
+  toggleSkills: () => void;
+
   // Chat
   chatMessages: S_ChatMessage[];
   chatOpen: boolean;
@@ -206,6 +212,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
       return { equipment };
     }),
   toggleInventory: () => set((state) => ({ inventoryOpen: !state.inventoryOpen })),
+
+  skillXp: {},
+  skillsOpen: false,
+  setSkillXp: (skillId, totalXp) =>
+    set((state) => ({ skillXp: { ...state.skillXp, [skillId]: totalXp } })),
+  toggleSkills: () => set((state) => ({ skillsOpen: !state.skillsOpen })),
 
   chatMessages: [],
   chatOpen: false,

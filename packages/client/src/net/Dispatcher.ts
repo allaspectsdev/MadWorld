@@ -367,6 +367,7 @@ export class Dispatcher {
 
       case Op.S_XP_GAIN: {
         this.showXpPopup(msg.d.skillId, msg.d.xp);
+        store.setSkillXp(msg.d.skillId, msg.d.totalXp);
         break;
       }
 

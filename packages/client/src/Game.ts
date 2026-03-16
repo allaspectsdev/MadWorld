@@ -28,6 +28,7 @@ import { AudioManager } from "./audio/AudioManager.js";
 import { SkillBar } from "./ui/components/SkillBar.js";
 import { ShopPanel } from "./ui/components/ShopPanel.js";
 import { SettingsPanel } from "./ui/components/SettingsPanel.js";
+import { SkillsPanel } from "./ui/components/SkillsPanel.js";
 import { PathFollower, type PendingAction } from "./pathfinding/PathFollower.js";
 import { findPath, trimPathToRange } from "./pathfinding/Pathfinder.js";
 
@@ -58,6 +59,7 @@ export class Game {
   private settingsPanel: SettingsPanel;
   private questLog: QuestLog;
   private npcDialog: NPCDialog;
+  private skillsPanel: SkillsPanel;
   private colorGrading: ColorMatrixFilter;
   private sky: SkyRenderer;
 
@@ -121,6 +123,31 @@ export class Game {
     this.settingsPanel = new SettingsPanel(this.audio, this.camera);
     this.questLog = new QuestLog();
     this.npcDialog = new NPCDialog(this.socket);
+    this.skillsPanel = new SkillsPanel();
+
+    // HUD toggle buttons
+    document.getElementById("btn-inventory")?.addEventListener("click", () => {
+      const state = useGameStore.getState();
+      if (state.skillsOpen) state.toggleSkills();
+      state.toggleInventory();
+      this.updateHudButtons();
+    });
+    document.getElementById("btn-skills")?.addEventListener("click", () => {
+      const state = useGameStore.getState();
+      if (state.inventoryOpen) state.toggleInventory();
+      state.toggleSkills();
+      this.updateHudButtons();
+    });
+    document.getElementById("btn-quests")?.addEventListener("click", () => {
+      const ql = document.getElementById("quest-log");
+      if (ql) ql.classList.toggle("open");
+      this.updateHudButtons();
+    });
+    document.getElementById("btn-settings")?.addEventListener("click", () => {
+      const sp = document.getElementById("settings-panel");
+      if (sp) sp.classList.toggle("open");
+      this.updateHudButtons();
+    });
 
     // When chat is focused, disable movement input
     this.chatPanel.setOnFocusChange((focused) => {
@@ -195,7 +222,21 @@ export class Game {
         const loginScreen = document.getElementById("login-screen");
         if (loginScreen && loginScreen.style.display !== "none") return;
         e.preventDefault();
-        useGameStore.getState().toggleInventory();
+        const state = useGameStore.getState();
+        if (state.skillsOpen) state.toggleSkills();
+        state.toggleInventory();
+        this.updateHudButtons();
+      }
+
+      // K key toggles skills panel (only when chat is not focused)
+      if ((e.key === "k" || e.key === "K") && !useGameStore.getState().chatOpen) {
+        const loginScreen = document.getElementById("login-screen");
+        if (loginScreen && loginScreen.style.display !== "none") return;
+        e.preventDefault();
+        const state = useGameStore.getState();
+        if (state.inventoryOpen) state.toggleInventory();
+        state.toggleSkills();
+        this.updateHudButtons();
       }
 
       // L key toggles quest log (only when chat is not focused)
@@ -613,6 +654,12 @@ export class Game {
     this.currentTarget = null;
     this.autoAttackTimer = 0;
     this.entities.setTargetHighlight(null);
+  }
+
+  private updateHudButtons(): void {
+    const state = useGameStore.getState();
+    document.getElementById("btn-inventory")?.classList.toggle("active", state.inventoryOpen);
+    document.getElementById("btn-skills")?.classList.toggle("active", state.skillsOpen);
   }
 
   private setupAuth(): void {

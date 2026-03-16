@@ -228,21 +228,31 @@ html:not(.touch) #action-buttons { display: none; }
     width: 120px;
   }
 
-  /* Inventory panel: full width on phones */
+  /* HUD buttons: tighter on phones */
+  #hud-buttons { right: 4px; gap: 6px; }
+  .hud-btn { width: 36px; height: 36px; font-size: 16px; }
+
+  /* Inventory panel: compact on phones */
   #inventory-panel {
-    right: 10px;
-    left: 10px;
-    width: auto;
+    right: 48px;
+    width: 280px;
+  }
+  #inventory-panel .inv-grid {
+    grid-template-columns: repeat(5, 40px);
+    grid-template-rows: repeat(6, 40px);
   }
   .inv-slot {
-    width: 44px;
-    height: 44px;
-    min-height: 44px;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
   }
   .inv-grid {
-    grid-template-columns: repeat(7, 44px);
-    grid-template-rows: repeat(4, 44px);
+    grid-template-columns: repeat(5, 40px);
+    grid-template-rows: repeat(6, 40px);
   }
+
+  /* Skills panel: narrower on phones */
+  #skills-panel { right: 48px; width: 200px; }
 }
 
 /* === Responsive: Small Phone (max-width: 320px) === */
