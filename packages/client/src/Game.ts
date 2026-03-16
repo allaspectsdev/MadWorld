@@ -56,6 +56,7 @@ export class Game {
   private isRegistering = false;
   private currentTarget: number | null = null;
   private autoAttackTimer = 0;
+  private deadEntities = new Set<number>();
   private static readonly AUTO_ATTACK_INTERVAL = 0.5;
 
   constructor(app: Application) {
@@ -184,6 +185,7 @@ export class Game {
     });
 
     this.dispatcher.setOnEntityDeath((eid) => {
+      this.deadEntities.add(eid);
       if (this.currentTarget === eid) {
         this.clearTarget();
       }
@@ -316,10 +318,15 @@ export class Game {
       this.entities.updateEntity(eid, ix, iy, entity, dt);
     }
 
+    // Clean up dead entities that have despawned from the store
+    for (const eid of this.deadEntities) {
+      if (!state.entities.has(eid)) this.deadEntities.delete(eid);
+    }
+
     // Auto-attack: keep sending C_ATTACK while target is alive
     if (this.currentTarget !== null) {
       const targetEntity = state.entities.get(this.currentTarget);
-      if (!targetEntity) {
+      if (!targetEntity || this.deadEntities.has(this.currentTarget)) {
         // Target despawned or died
         this.clearTarget();
       } else {
@@ -368,7 +375,7 @@ export class Game {
   private setupInputCallbacks(): void {
     this.input.onAttack = (eid: number) => {
       const entity = useGameStore.getState().entities.get(eid);
-      if (!entity) return;
+      if (!entity || this.deadEntities.has(eid)) return;
 
       if (entity.type === EntityType.NPC) {
         // NPC interaction instead of attack

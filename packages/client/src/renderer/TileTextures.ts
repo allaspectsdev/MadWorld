@@ -97,6 +97,12 @@ function drawGrass(variant: number): Texture {
     }
   }
 
+  // Directional light: subtle top highlight, bottom shadow
+  g.rect(0, 0, S, 4);
+  g.fill({ color: 0xffffff, alpha: 0.04 });
+  g.rect(0, S - 4, S, 4);
+  g.fill({ color: 0x000000, alpha: 0.04 });
+
   return TextureFactory.generate(g, S, S);
 }
 
@@ -499,6 +505,12 @@ function drawSand(variant: number): Texture {
     g.fill({ color: 0xe8d8c0, alpha: 0.5 });
   }
 
+  // Directional light: subtle top highlight, bottom shadow
+  g.rect(0, 0, S, 4);
+  g.fill({ color: 0xffffff, alpha: 0.04 });
+  g.rect(0, S - 4, S, 4);
+  g.fill({ color: 0x000000, alpha: 0.04 });
+
   return TextureFactory.generate(g, S, S);
 }
 
@@ -611,6 +623,12 @@ function drawDirt(variant: number): Texture {
     }
   }
 
+  // Directional light: subtle top highlight, bottom shadow
+  g.rect(0, 0, S, 4);
+  g.fill({ color: 0xffffff, alpha: 0.04 });
+  g.rect(0, S - 4, S, 4);
+  g.fill({ color: 0x000000, alpha: 0.04 });
+
   return TextureFactory.generate(g, S, S);
 }
 
@@ -688,6 +706,12 @@ function drawCobblestone(variant: number): Texture {
       g.fill({ color: 0x3a5a3a, alpha: 0.4 });
     }
   }
+
+  // Directional light: subtle top highlight, bottom shadow
+  g.rect(0, 0, S, 4);
+  g.fill({ color: 0xffffff, alpha: 0.04 });
+  g.rect(0, S - 4, S, 4);
+  g.fill({ color: 0x000000, alpha: 0.04 });
 
   return TextureFactory.generate(g, S, S);
 }

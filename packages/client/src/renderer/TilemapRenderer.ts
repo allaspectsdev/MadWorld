@@ -175,6 +175,30 @@ export class TilemapRenderer {
       }
     }
 
+    // Elevation shadows: MOUNTAIN and FENCE cast shadows onto lower neighbors
+    const ELEVATED = new Set([TileType.MOUNTAIN, TileType.FENCE]);
+    for (let y = 0; y < this.mapHeight; y++) {
+      for (let x = 0; x < this.mapWidth; x++) {
+        const type = tileData[y][x];
+        if (!ELEVATED.has(type)) continue;
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+
+        // Shadow cast south (below)
+        if (y < this.mapHeight - 1 && !ELEVATED.has(tileData[y + 1][x])) {
+          edgeGfx.rect(px, py + TILE_SIZE, TILE_SIZE, 2);
+          edgeGfx.fill({ color: 0x000000, alpha: 0.18 });
+          edgeGfx.rect(px, py + TILE_SIZE + 2, TILE_SIZE, 1);
+          edgeGfx.fill({ color: 0x000000, alpha: 0.08 });
+        }
+        // Shadow cast east (right)
+        if (x < this.mapWidth - 1 && !ELEVATED.has(tileData[y][x + 1])) {
+          edgeGfx.rect(px + TILE_SIZE, py, 2, TILE_SIZE);
+          edgeGfx.fill({ color: 0x000000, alpha: 0.12 });
+        }
+      }
+    }
+
     this.container.addChild(edgeGfx);
   }
 

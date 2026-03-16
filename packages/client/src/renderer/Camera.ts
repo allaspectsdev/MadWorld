@@ -43,9 +43,14 @@ export class Camera {
   }
 
   shake(intensity: number, duration: number): void {
-    this.shakeIntensity = intensity;
-    this.shakeDuration = duration;
-    this.shakeTimer = 0;
+    // Only override if new shake is stronger than remaining
+    const remaining = this.shakeDuration - this.shakeTimer;
+    const currentPower = this.shakeIntensity * Math.max(0, remaining);
+    if (intensity * duration >= currentPower) {
+      this.shakeIntensity = intensity;
+      this.shakeDuration = duration;
+      this.shakeTimer = 0;
+    }
   }
 
   update(dt = 0.016): void {

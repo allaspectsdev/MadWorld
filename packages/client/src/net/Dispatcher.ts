@@ -299,7 +299,6 @@ export class Dispatcher {
                 baseScale: 0.6,
               });
             }, 250);
-            this.camera.shake(8, 0.5);
             this.screenEffects.flash(0xffffff, 0.3);
           } else {
             this.particles.emit(bx, by, 12, {

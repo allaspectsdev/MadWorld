@@ -28,6 +28,12 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0xf0c040);
       g.ellipse(w / 2, h / 2 + 2, 7, 6);
       g.stroke({ width: 1, color: 0xc09020, alpha: 0.5 });
+      // Body highlight upper-left
+      g.ellipse(w / 2 - 2, h / 2, 3, 2.5);
+      g.fill({ color: 0xffffff, alpha: 0.12 });
+      // Body shadow lower-right
+      g.ellipse(w / 2 + 2, h / 2 + 4, 3, 2);
+      g.fill({ color: 0x000000, alpha: 0.10 });
       // Tail fan: 3 overlapping triangles
       g.moveTo(w / 2 - 6, h / 2); g.lineTo(w / 2 - 10, h / 2 - 4); g.lineTo(w / 2 - 7, h / 2 + 1);
       g.fill(0xe8c040);
@@ -85,6 +91,12 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x8b6914);
       g.roundRect(6, 8, 24, 14, 4);
       g.stroke({ width: 1, color: 0x5a4008, alpha: 0.5 });
+      // Left highlight
+      g.rect(7, 9, 2, 12);
+      g.fill({ color: 0xffffff, alpha: 0.08 });
+      // Right shadow
+      g.rect(28, 9, 2, 12);
+      g.fill({ color: 0x000000, alpha: 0.08 });
       // Belly highlight
       g.ellipse(18, 17, 10, 4);
       g.fill(0xc2a060);
@@ -154,6 +166,12 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x3a7a3a);
       g.roundRect(7, 12, 12, 10, 3);
       g.stroke({ width: 1, color: 0x1a4a1a, alpha: 0.5 });
+      // Left highlight
+      g.rect(8, 13, 1.5, 8);
+      g.fill({ color: 0xffffff, alpha: 0.10 });
+      // Right shadow
+      g.rect(17, 13, 1.5, 8);
+      g.fill({ color: 0x000000, alpha: 0.10 });
       // Belt
       g.rect(7, 18, 12, 2);
       g.fill(0x5c3a1e);
@@ -169,6 +187,9 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x4a9a4a);
       g.circle(w / 2, 9, 6);
       g.stroke({ width: 1, color: 0x2a6a2a, alpha: 0.4 });
+      // Head highlight
+      g.arc(w / 2 - 2, 7, 4, Math.PI * 1.2, Math.PI * 1.8);
+      g.fill({ color: 0xffffff, alpha: 0.10 });
       // Wart bumps (tiny darker green circles on face)
       g.circle(9, 10, 1);
       g.fill(0x2a6a2a);
@@ -618,6 +639,12 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x2255aa);
       g.moveTo(7, 14); g.lineTo(5, 32); g.lineTo(21, 32); g.lineTo(19, 14);
       g.stroke({ width: 1, color: 0x1a3a77, alpha: 0.5 });
+      // Robe left highlight
+      g.rect(6, 15, 2, 15);
+      g.fill({ color: 0xffffff, alpha: 0.08 });
+      // Robe right shadow
+      g.rect(18, 15, 2, 15);
+      g.fill({ color: 0x000000, alpha: 0.08 });
       // Robe trim
       g.rect(5, 30, 16, 2);
       g.fill(0x4488cc);
@@ -658,6 +685,12 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x3a7a3a);
       g.roundRect(6, 12, 12, 14, 3);
       g.stroke({ width: 1, color: 0x2a5a2a, alpha: 0.5 });
+      // Dress left highlight
+      g.rect(7, 13, 1.5, 12);
+      g.fill({ color: 0xffffff, alpha: 0.08 });
+      // Dress right shadow
+      g.rect(16, 13, 1.5, 12);
+      g.fill({ color: 0x000000, alpha: 0.08 });
       // Apron (light tan)
       g.roundRect(8, 14, 8, 10, 2);
       g.fill(0xd2b48c);
@@ -697,6 +730,12 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x6b4226);
       g.roundRect(7, 12, 14, 12, 3);
       g.stroke({ width: 1, color: 0x4a2e1a, alpha: 0.5 });
+      // Torso left highlight
+      g.rect(8, 13, 1.5, 10);
+      g.fill({ color: 0xffffff, alpha: 0.08 });
+      // Torso right shadow
+      g.rect(19, 13, 1.5, 10);
+      g.fill({ color: 0x000000, alpha: 0.08 });
       // Brown leather apron
       g.roundRect(9, 14, 10, 10, 2);
       g.fill(0x8b6914);
@@ -739,6 +778,12 @@ const DEFS: Record<string, MobVisual> = {
       g.fill(0x888888);
       g.roundRect(7, 14, 12, 12, 3);
       g.stroke({ width: 1, color: 0x555555, alpha: 0.6 });
+      // Armor left highlight
+      g.rect(8, 15, 1.5, 10);
+      g.fill({ color: 0xffffff, alpha: 0.08 });
+      // Armor right shadow
+      g.rect(17, 15, 1.5, 10);
+      g.fill({ color: 0x000000, alpha: 0.08 });
       // Chest plate highlight
       g.roundRect(9, 16, 8, 6, 2);
       g.fill(0xaaaaaa);

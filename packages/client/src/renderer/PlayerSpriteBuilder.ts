@@ -48,6 +48,11 @@ function drawPlayer(g: Graphics, a: Appearance): void {
   g.fill(shoeColor);
   g.roundRect(16, H - 5, 4, 3, 1);
   g.fill(shoeColor);
+  // Shoe specular highlights
+  g.circle(9.5, H - 4, 0.8);
+  g.fill({ color: 0xffffff, alpha: 0.10 });
+  g.circle(17.5, H - 4, 0.8);
+  g.fill({ color: 0xffffff, alpha: 0.10 });
 
   // Legs (tapered polygons)
   // Left leg: 3px at hip, 3.5px at knee, 2.5px at ankle
@@ -61,7 +66,10 @@ function drawPlayer(g: Graphics, a: Appearance): void {
   g.fill(pantColor);
   // Left leg inner highlight
   g.rect(9.5, H - 11, 0.8, 6);
-  g.fill({ color: 0xffffff, alpha: 0.06 });
+  g.fill({ color: 0xffffff, alpha: 0.10 });
+  // Left leg shadow (right edge)
+  g.rect(11.5, H - 11, 0.8, 6);
+  g.fill({ color: 0x000000, alpha: 0.08 });
   // Right leg
   g.moveTo(16, H - 12);
   g.lineTo(19, H - 12);
@@ -73,7 +81,10 @@ function drawPlayer(g: Graphics, a: Appearance): void {
   g.fill(pantColor);
   // Right leg inner highlight
   g.rect(16.5, H - 11, 0.8, 6);
-  g.fill({ color: 0xffffff, alpha: 0.06 });
+  g.fill({ color: 0xffffff, alpha: 0.10 });
+  // Right leg shadow (right edge)
+  g.rect(18.5, H - 11, 0.8, 6);
+  g.fill({ color: 0x000000, alpha: 0.08 });
 
   // Torso (polygon wider at shoulders, narrower at waist)
   g.moveTo(6.5, 14);  // left shoulder
@@ -91,6 +102,14 @@ function drawPlayer(g: Graphics, a: Appearance): void {
   // Shirt highlight
   g.rect(8, 15, 4, 10);
   g.fill({ color: 0xffffff, alpha: 0.06 });
+  // Directional shading: left highlight, right shadow
+  g.rect(7, 15, 2, 9);
+  g.fill({ color: 0xffffff, alpha: 0.10 });
+  g.rect(19, 15, 2, 9);
+  g.fill({ color: 0x000000, alpha: 0.10 });
+  // Bottom shadow under torso
+  g.rect(8, 23, 12, 2);
+  g.fill({ color: 0x000000, alpha: 0.08 });
   // Belt
   g.rect(7, 24, 14, 2);
   g.fill(0x5c3a1e);
@@ -100,10 +119,16 @@ function drawPlayer(g: Graphics, a: Appearance): void {
   g.fill(skin);
   g.roundRect(4, 15, 4, 9, 1.5);
   g.stroke({ width: 0.5, color: skinDark, alpha: 0.3 });
+  // Left arm highlight (left edge)
+  g.rect(4, 16, 1, 7);
+  g.fill({ color: 0xffffff, alpha: 0.08 });
   g.roundRect(20, 15, 4, 9, 1.5);
   g.fill(skin);
   g.roundRect(20, 15, 4, 9, 1.5);
   g.stroke({ width: 0.5, color: skinDark, alpha: 0.3 });
+  // Right arm shadow (right edge)
+  g.rect(23, 16, 1, 7);
+  g.fill({ color: 0x000000, alpha: 0.08 });
   // Hands (1.5px radius)
   g.circle(6, 25, 1.5);
   g.fill(skin);
@@ -119,6 +144,12 @@ function drawPlayer(g: Graphics, a: Appearance): void {
   g.fill(skin);
   g.circle(W / 2, 9, 6);
   g.stroke({ width: 1, color: skinDark, alpha: 0.3 });
+  // Head highlight upper-left
+  g.arc(W / 2 - 2, 7, 4, Math.PI * 1.2, Math.PI * 1.8);
+  g.fill({ color: 0xffffff, alpha: 0.12 });
+  // Head shadow lower-right
+  g.arc(W / 2 + 2, 11, 4, Math.PI * 0.2, Math.PI * 0.8);
+  g.fill({ color: 0x000000, alpha: 0.10 });
 
   // Chin (small triangle at bottom of head)
   g.moveTo(W / 2 - 2, 14);

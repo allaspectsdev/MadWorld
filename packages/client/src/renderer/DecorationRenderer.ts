@@ -127,6 +127,9 @@ export class DecorationRenderer {
       g.fill(0x888888);
       g.roundRect(rx - size / 2, ry - size / 2, size, size, 1);
       g.stroke({ width: 0.5, color: 0x666666, alpha: 0.5 });
+      // Rock specular highlight (top-left)
+      g.circle(rx - 1, ry - 1, 1);
+      g.fill({ color: 0xffffff, alpha: 0.15 });
     }
 
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
@@ -146,6 +149,9 @@ export class DecorationRenderer {
       // Horizontal log: brown rect 8x3 with end circles
       const lx = 8;
       const ly = 12;
+      // Ground shadow under log
+      g.ellipse(lx + 4, ly + 3, 5, 1.5);
+      g.fill({ color: 0x000000, alpha: 0.15 });
       g.roundRect(lx, ly, 8, 3, 1);
       g.fill(0x6b4226);
       g.roundRect(lx, ly, 8, 3, 1);
@@ -163,6 +169,9 @@ export class DecorationRenderer {
       // Stump: 4px circle with ring lines
       const sx = 14;
       const sy = 14;
+      // Ground shadow under stump
+      g.ellipse(sx, sy + 3, 5, 1.5);
+      g.fill({ color: 0x000000, alpha: 0.15 });
       g.circle(sx, sy, 4);
       g.fill(0x7b5230);
       g.circle(sx, sy, 4);
@@ -191,6 +200,9 @@ export class DecorationRenderer {
 
     if (isBarrel) {
       // Barrel: brown roundRect 5x6 with horizontal bands
+      // Ground shadow under barrel
+      g.ellipse(bx + 2.5, by + 4, 4, 1.5);
+      g.fill({ color: 0x000000, alpha: 0.15 });
       g.roundRect(bx, by, 5, 6, 1.5);
       g.fill(0x8b6914);
       g.roundRect(bx, by, 5, 6, 1.5);
@@ -200,8 +212,14 @@ export class DecorationRenderer {
       g.fill(0x666666);
       g.rect(bx, by + 4, 5, 0.8);
       g.fill(0x666666);
+      // Barrel top-left highlight
+      g.rect(bx, by, 5, 1);
+      g.fill({ color: 0xffffff, alpha: 0.10 });
     } else {
       // Crate: brown roundRect 5x6 with grid lines
+      // Ground shadow under crate
+      g.ellipse(bx + 2.5, by + 4, 4, 1.5);
+      g.fill({ color: 0x000000, alpha: 0.15 });
       g.roundRect(bx, by, 5, 6, 0.5);
       g.fill(0x9b7924);
       g.roundRect(bx, by, 5, 6, 0.5);
@@ -213,6 +231,12 @@ export class DecorationRenderer {
       g.moveTo(bx + 2.5, by);
       g.lineTo(bx + 2.5, by + 6);
       g.stroke({ width: 0.3, color: 0x5a4008, alpha: 0.4 });
+      // Crate top edge highlight
+      g.rect(bx, by, 5, 1);
+      g.fill({ color: 0xffffff, alpha: 0.08 });
+      // Crate bottom edge shadow
+      g.rect(bx, by + 5, 5, 1);
+      g.fill({ color: 0x000000, alpha: 0.08 });
     }
 
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
@@ -233,6 +257,9 @@ export class DecorationRenderer {
       const py = 8 + this.seededRand(seed, i * 3 + 1) * 16;
       const radius = 2 + this.seededRand(seed, i * 3 + 2); // 2-3px
 
+      // Dark circle shadow under lily pad
+      g.circle(px, py + 0.5, radius + 0.5);
+      g.fill({ color: 0x000000, alpha: 0.06 });
       // Green circle
       g.circle(px, py, radius);
       g.fill(0x2a8a2a);
@@ -261,6 +288,9 @@ export class DecorationRenderer {
     const cx = 14 + this.seededRand(seed, 0) * 6;
     const cy = 8;
 
+    // Shadow at base of cattail
+    g.rect(cx - 1, cy + 6, 3, 1);
+    g.fill({ color: 0x000000, alpha: 0.12 });
     // Thin vertical stem
     g.moveTo(cx, cy);
     g.lineTo(cx, cy + 6);
