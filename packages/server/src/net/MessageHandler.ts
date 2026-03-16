@@ -204,7 +204,10 @@ export async function handleMessage(
       const target = zone.entities.get(msg.d.targetEid);
       if (!target || !(target instanceof GroundItem)) break;
       const dist = movementFormulas.distance(player.x, player.y, target.x, target.y);
-      if (dist > 2) break;
+      if (dist > 3) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Too far to pick up" } } satisfies ServerMessage);
+        break;
+      }
 
       const groundItem = target;
       const itemDef = ITEMS[groundItem.itemId];
@@ -225,7 +228,10 @@ export async function handleMessage(
       if (slotIndex === -1) {
         slotIndex = player.inventory.indexOf(null);
       }
-      if (slotIndex === -1) break; // Inventory full
+      if (slotIndex === -1) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Inventory full" } } satisfies ServerMessage);
+        break;
+      }
 
       const existing = player.inventory[slotIndex];
       if (existing && existing.itemId === groundItem.itemId) {

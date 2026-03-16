@@ -456,6 +456,9 @@ export class Game {
       this.entities.updateEntity(eid, ix, iy, entity, dt);
     }
 
+    // Remove stale entity sprites that no longer exist in the store
+    this.entities.pruneStaleSprites(state.entities);
+
     // Clean up dead entities that have despawned from the store
     for (const eid of this.deadEntities) {
       if (!state.entities.has(eid)) this.deadEntities.delete(eid);
@@ -537,6 +540,11 @@ export class Game {
       if (dist <= actionRange) {
         // In range — execute immediately
         this.executeEntityAction(eid, entity);
+      } else if (lp.isGod) {
+        // God players teleport to entity and act
+        this.socket.send({ op: Op.C_GOD_TELEPORT, d: { x: entity.nextX, y: entity.nextY } } as ClientMessage);
+        useGameStore.getState().updateLocalPlayer({ x: entity.nextX, y: entity.nextY });
+        setTimeout(() => this.executeEntityAction(eid, entity), 100);
       } else {
         // Out of range — pathfind to within range, then act
         const tiles = useGameStore.getState().tiles;

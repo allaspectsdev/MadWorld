@@ -308,6 +308,16 @@ export class EntityRenderer {
     }
   }
 
+  /** Remove sprites for entities that no longer exist in the store. */
+  pruneStaleSprites(liveEntities: Map<number, unknown>): void {
+    for (const eid of this.sprites.keys()) {
+      if (eid === this.localPlayerEid) continue;
+      if (!liveEntities.has(eid)) {
+        this.removeEntity(eid);
+      }
+    }
+  }
+
   triggerAttackAnim(eid: number): void {
     const sprite = this.sprites.get(eid);
     if (sprite) {
