@@ -217,6 +217,13 @@ function createGreendale(): ZoneDef {
       { npcId: "blacksmith", name: "Smith Garrett", x: 24, y: 35, dialog: "Need something forged? Come back when I've set up shop.", quests: [] },
       { npcId: "guard_south", name: "Guard", x: 29, y: 57, dialog: "The Darkwood Forest lies to the south. Be careful out there.", quests: ["forest_exploration"] },
       { npcId: "guard_east", name: "Guard", x: 57, y: 29, dialog: "The open fields are to the east. Watch for goblins.", quests: ["field_survey"] },
+      { npcId: "farmer_hank", name: "Farmer Hank", x: 42, y: 22, dialog: "The crops are coming in nicely this season. Watch your step around the irrigation channels!", quests: [] },
+      { npcId: "fisherman_wade", name: "Fisherman Wade", x: 14, y: 44, dialog: "The fish bite best at dawn. I once caught a golden trout this big!", quests: [] },
+      { npcId: "innkeeper_rosa", name: "Innkeeper Rosa", x: 22, y: 18, dialog: "Welcome! Rest your weary bones. We have the finest ale in Greendale.", quests: [] },
+      { npcId: "baker_martha", name: "Baker Martha", x: 32, y: 28, dialog: "Fresh bread, straight from the oven! My secret ingredient? Love. And butter.", quests: [] },
+      { npcId: "old_sage_aldric", name: "Old Sage Aldric", x: 28, y: 38, dialog: "The darkness in the forest grows stronger... I've seen things, young adventurer. Terrible things.", quests: [] },
+      { npcId: "street_urchin", name: "Street Urchin", x: 35, y: 31, dialog: "Got any spare coins, mister? I know all the secrets of this town!", quests: [] },
+      { npcId: "wandering_bard", name: "Wandering Bard", x: 18, y: 34, dialog: "Oh brave adventurer, hear my song! Would you like to hear a tale of the Elder Drake?", quests: [] },
     ],
     lights: [
       // Market center campfire
@@ -235,6 +242,13 @@ function createGreendale(): ZoneDef {
       // Portal glow
       { x: 29, y: 59, radius: 4, color: 0x9b59b6 },
       { x: 59, y: 29, radius: 4, color: 0x9b59b6 },
+      // Road torches
+      { x: 30, y: 20, radius: 4, color: 0xff9944, flicker: true },
+      { x: 30, y: 40, radius: 4, color: 0xff9944, flicker: true },
+      { x: 20, y: 30, radius: 4, color: 0xff9944, flicker: true },
+      { x: 40, y: 30, radius: 4, color: 0xff9944, flicker: true },
+      { x: 15, y: 15, radius: 3, color: 0xff8833, flicker: true },
+      { x: 45, y: 45, radius: 3, color: 0xff8833, flicker: true },
     ],
   };
 }
@@ -362,6 +376,9 @@ function createDarkwood(): ZoneDef {
       { x: 29, y: 0, radius: 4, color: 0x9b59b6 },
       // Portal to Scorched Highlands
       { x: 79, y: 38, radius: 4, color: 0x9b59b6 },
+      // Forest path torches
+      { x: 40, y: 20, radius: 3, color: 0xff6622, flicker: true },
+      { x: 25, y: 55, radius: 3, color: 0xff6622, flicker: true },
     ],
   };
 }
@@ -472,6 +489,9 @@ function createFields(): ZoneDef {
       { x: 0, y: 29, radius: 4, color: 0x9b59b6 },
       // Dungeon portal
       { x: 40, y: 10, radius: 5, color: 0xe74c3c },
+      // Road torches
+      { x: 30, y: 28, radius: 4, color: 0xff9944, flicker: true },
+      { x: 30, y: 32, radius: 4, color: 0xff9944, flicker: true },
     ],
   };
 }

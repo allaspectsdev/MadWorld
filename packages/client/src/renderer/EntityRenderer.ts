@@ -449,11 +449,11 @@ export class EntityRenderer {
     // Determine display size based on entity type
     if (type === EntityType.PLAYER) {
       if (isGod) {
-        mainSprite.width = TILE_SIZE * 1.1;
-        mainSprite.height = TILE_SIZE * 1.4;
+        mainSprite.width = TILE_SIZE * 1.15;
+        mainSprite.height = TILE_SIZE * 1.45;
       } else {
-        mainSprite.width = TILE_SIZE * 0.85;
-        mainSprite.height = TILE_SIZE * 1.1;
+        mainSprite.width = TILE_SIZE * 0.9;
+        mainSprite.height = TILE_SIZE * 1.15;
       }
     } else if (type === EntityType.MOB) {
       const size = getMobSize(name);

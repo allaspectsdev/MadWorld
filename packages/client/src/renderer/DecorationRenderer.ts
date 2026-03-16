@@ -24,7 +24,7 @@ export class DecorationRenderer {
           (this.hasNeighbor(tiles, x, y, TileType.MOUNTAIN) ||
             this.hasNeighbor(tiles, x, y, TileType.FENCE))
         ) {
-          if (chance < 0.25) {
+          if (chance < 0.40) {
             this.placeRockCluster(x, y, seed);
           }
           continue;
@@ -35,9 +35,9 @@ export class DecorationRenderer {
           type === TileType.GRASS &&
           this.hasNeighbor(tiles, x, y, TileType.FOREST)
         ) {
-          if (chance < 0.15) {
+          if (chance < 0.30) {
             this.placeLogOrStump(x, y, seed);
-          } else if (chance >= 0.15 && chance < 0.23) {
+          } else if (chance >= 0.30 && chance < 0.45) {
             this.placeMushroomCluster(x, y, seed);
           }
           continue;
@@ -48,7 +48,7 @@ export class DecorationRenderer {
           type === TileType.COBBLESTONE &&
           this.hasNeighbor(tiles, x, y, TileType.BUILDING_FLOOR)
         ) {
-          if (chance < 0.2) {
+          if (chance < 0.35) {
             this.placeBarrelOrCrate(x, y, seed);
           }
           continue;
@@ -60,7 +60,7 @@ export class DecorationRenderer {
           (this.hasNeighbor(tiles, x, y, TileType.GRASS) ||
             this.hasNeighbor(tiles, x, y, TileType.SAND))
         ) {
-          if (chance < 0.2) {
+          if (chance < 0.35) {
             this.placeLilyPads(x, y, seed);
           }
           continue;
@@ -71,15 +71,35 @@ export class DecorationRenderer {
           type === TileType.SAND &&
           this.hasNeighbor(tiles, x, y, TileType.WATER)
         ) {
-          if (chance < 0.2) {
+          if (chance < 0.30) {
             this.placeCattails(x, y, seed);
           }
           continue;
         }
 
         // 6. Wildflowers on plain grass tiles (no special neighbors)
-        if (type === TileType.GRASS && chance >= 0.85 && chance < 0.95) {
+        if (type === TileType.GRASS && chance >= 0.70 && chance < 0.95) {
           this.placeWildflowers(x, y, seed);
+        }
+
+        // 7. Tall grass on plain grass tiles
+        if (type === TileType.GRASS && chance >= 0.95) {
+          this.placeTallGrass(x, y, seed);
+        }
+
+        // Fallen leaves near forest
+        if (type === TileType.GRASS && this.hasNeighbor(tiles, x, y, TileType.FOREST) && chance >= 0.45 && chance < 0.60) {
+          this.placeFallenLeaves(x, y, seed);
+        }
+
+        // 8. Pebble scatter on plain dirt
+        if (type === TileType.DIRT && chance >= 0.70 && chance < 0.85) {
+          this.placePebbleScatter(x, y, seed);
+        }
+
+        // Torch stand near buildings
+        if (type === TileType.COBBLESTONE && this.hasNeighbor(tiles, x, y, TileType.BUILDING_FLOOR) && chance >= 0.35 && chance < 0.50) {
+          this.placeTorchStand(x, y, seed);
         }
       }
     }
@@ -363,6 +383,90 @@ export class DecorationRenderer {
     const offsetY = this.seededRand(seed, 11) * 4 - 2;
     sprite.x = x * TILE_SIZE + offsetX;
     sprite.y = y * TILE_SIZE + offsetY;
+    this.container.addChild(sprite);
+  }
+
+  private placeTallGrass(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const greens = [0x3d6b4a, 0x4a7c59, 0x5a8c69];
+    const count = 4 + (seed % 3);
+    const windLean = 0.3 + this.seededRand(seed, 20) * 0.4;
+    for (let i = 0; i < count; i++) {
+      const bx = 4 + this.seededRand(seed, i * 2) * 24;
+      const by = TILE_SIZE - 2;
+      const bh = 4 + this.seededRand(seed, i * 2 + 1) * 3;
+      const color = greens[(seed + i) % greens.length];
+      g.moveTo(bx, by);
+      g.quadraticCurveTo(bx + windLean * bh, by - bh * 0.6, bx + windLean * bh * 1.2, by - bh);
+      g.stroke({ width: 0.8, color, alpha: 0.7 });
+    }
+    const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
+    const sprite = new Sprite(tex);
+    sprite.x = x * TILE_SIZE;
+    sprite.y = y * TILE_SIZE;
+    this.container.addChild(sprite);
+  }
+
+  private placePebbleScatter(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const count = 3 + (seed % 3);
+    const grays = [0x777777, 0x888888, 0x999999, 0xaaaaaa];
+    for (let i = 0; i < count; i++) {
+      const px = 3 + this.seededRand(seed, i * 2) * 26;
+      const py = 3 + this.seededRand(seed, i * 2 + 1) * 26;
+      const r = 0.5 + this.seededRand(seed, i * 2 + 10) * 1.0;
+      g.circle(px, py, r);
+      g.fill(grays[(seed + i) % grays.length]);
+    }
+    const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
+    const sprite = new Sprite(tex);
+    sprite.x = x * TILE_SIZE;
+    sprite.y = y * TILE_SIZE;
+    this.container.addChild(sprite);
+  }
+
+  private placeTorchStand(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const tx = 10 + this.seededRand(seed, 0) * 12;
+    const ty = 8;
+    // Shadow
+    g.ellipse(tx, ty + 14, 3, 1);
+    g.fill({ color: 0x000000, alpha: 0.12 });
+    // Post
+    g.rect(tx - 0.5, ty + 2, 1.5, 12);
+    g.fill(0x5c3a1e);
+    // Flame
+    g.circle(tx + 0.25, ty + 1, 2);
+    g.fill({ color: 0xff8844, alpha: 0.7 });
+    g.circle(tx + 0.25, ty, 1.5);
+    g.fill({ color: 0xffcc44, alpha: 0.8 });
+    g.circle(tx + 0.25, ty - 0.5, 0.8);
+    g.fill({ color: 0xffffaa, alpha: 0.9 });
+    // Glow
+    g.circle(tx + 0.25, ty, 5);
+    g.fill({ color: 0xff8844, alpha: 0.06 });
+    const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
+    const sprite = new Sprite(tex);
+    sprite.x = x * TILE_SIZE;
+    sprite.y = y * TILE_SIZE;
+    this.container.addChild(sprite);
+  }
+
+  private placeFallenLeaves(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const leafColors = [0x8b6914, 0xaa7722, 0xcc9933, 0x996633, 0xbb8844];
+    const count = 4 + (seed % 3);
+    for (let i = 0; i < count; i++) {
+      const lx = 2 + this.seededRand(seed, i * 2) * 28;
+      const ly = 2 + this.seededRand(seed, i * 2 + 1) * 28;
+      const color = leafColors[(seed + i) % leafColors.length];
+      g.ellipse(lx, ly, 0.8 + this.seededRand(seed, i + 20) * 0.6, 0.5 + this.seededRand(seed, i + 30) * 0.4);
+      g.fill({ color, alpha: 0.5 });
+    }
+    const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
+    const sprite = new Sprite(tex);
+    sprite.x = x * TILE_SIZE;
+    sprite.y = y * TILE_SIZE;
     this.container.addChild(sprite);
   }
 

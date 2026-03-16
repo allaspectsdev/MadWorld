@@ -10,7 +10,7 @@ export const TextureFactory = {
 
   generate(g: Graphics, width: number, height: number): Texture {
     if (!renderer) throw new Error("TextureFactory not initialized");
-    return renderer.generateTexture({ target: g, resolution: 1 });
+    return renderer.generateTexture({ target: g, resolution: 2 });
   },
 
   store(key: string, texture: Texture): void {
