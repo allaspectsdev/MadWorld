@@ -208,16 +208,41 @@ export class Minimap {
       ctx.fillText(portal.label, px, py - 4);
     }
 
-    // Local player (white with outline, larger)
+    // Local player (pulsing white with green glow)
     const ppx = (lp.x - startX) * scale;
     const ppy = (lp.y - startY) * scale;
+    const pulse = Math.sin(Date.now() * 0.005) * 0.5 + 0.5;
+    const playerRadius = 4 + pulse;
+
+    // Green glow stroke
+    ctx.strokeStyle = `rgba(68, 255, 136, ${0.3 + pulse * 0.4})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(ppx, ppy, playerRadius + 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // White fill
     ctx.strokeStyle = "#000";
     ctx.lineWidth = 1.5;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(ppx, ppy, 3.5, 0, Math.PI * 2);
+    ctx.arc(ppx, ppy, playerRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+
+    // Compass labels
+    ctx.font = "bold 7px 'Segoe UI', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.fillText("N", SIZE / 2, 8);
+    ctx.fillText("S", SIZE / 2, SIZE - 8);
+    ctx.textAlign = "left";
+    ctx.fillText("W", 4, SIZE / 2);
+    ctx.textAlign = "right";
+    ctx.fillText("E", SIZE - 4, SIZE / 2);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
 
     // Border
     ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";

@@ -40,11 +40,30 @@ export class TelegraphRenderer {
       t.graphic.clear();
       const currentRadius = t.maxRadius * progress;
 
-      // Expanding ring
+      // Pulsing fill
+      const fillAlpha = (0.12 + Math.sin(t.elapsed * 12) * 0.05) * (1 - progress);
       t.graphic.circle(t.x, t.y, currentRadius);
-      t.graphic.fill({ color: t.color, alpha: 0.15 * (1 - progress) });
+      t.graphic.fill({ color: t.color, alpha: fillAlpha });
+
+      // Outer ring
       t.graphic.circle(t.x, t.y, currentRadius);
-      t.graphic.stroke({ width: 2, color: t.color, alpha: 0.5 * (1 - progress) });
+      t.graphic.stroke({ width: 2.5, color: t.color, alpha: 0.5 * (1 - progress) });
+
+      // Inner warning ring at 60% of outer radius
+      t.graphic.circle(t.x, t.y, currentRadius * 0.6);
+      t.graphic.stroke({ width: 1.5, color: 0xffffff, alpha: 0.3 * (1 - progress) });
+
+      // Cross-hatch lines: 4 diameter lines at 45-degree intervals
+      const crossAlpha = 0.1 * (1 - progress);
+      for (let a = 0; a < 4; a++) {
+        const angle = (a * Math.PI) / 4;
+        const dx = Math.cos(angle) * currentRadius;
+        const dy = Math.sin(angle) * currentRadius;
+        t.graphic.moveTo(t.x - dx, t.y - dy);
+        t.graphic.lineTo(t.x + dx, t.y + dy);
+        t.graphic.stroke({ width: 1, color: t.color, alpha: crossAlpha });
+      }
+
       t.graphic.alpha = 1;
 
       if (progress >= 1) {

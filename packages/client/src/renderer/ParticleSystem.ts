@@ -16,6 +16,7 @@ interface Particle {
 let circleTexture: Texture | null = null;
 let glowTexture: Texture | null = null;
 let starTexture: Texture | null = null;
+let trailTexture: Texture | null = null;
 
 function ensureTextures(): void {
   if (circleTexture) return;
@@ -39,9 +40,15 @@ function ensureTextures(): void {
   g3.star(3, 3, 4, 3, 1.5);
   g3.fill(0xffffff);
   starTexture = TextureFactory.generate(g3, 6, 6);
+
+  // Trail (elongated)
+  const g4 = new Graphics();
+  g4.ellipse(6, 2, 6, 2);
+  g4.fill({ color: 0xffffff, alpha: 0.7 });
+  trailTexture = TextureFactory.generate(g4, 12, 4);
 }
 
-export type ParticleTexType = "circle" | "glow" | "star";
+export type ParticleTexType = "circle" | "glow" | "star" | "trail";
 
 function getParticleTex(type: ParticleTexType): Texture {
   ensureTextures();
@@ -49,10 +56,11 @@ function getParticleTex(type: ParticleTexType): Texture {
     case "circle": return circleTexture!;
     case "glow": return glowTexture!;
     case "star": return starTexture!;
+    case "trail": return trailTexture!;
   }
 }
 
-const POOL_SIZE = 200;
+const POOL_SIZE = 400;
 
 export class ParticleSystem {
   readonly container = new Container();

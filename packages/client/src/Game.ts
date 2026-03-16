@@ -1,4 +1,4 @@
-import { Application } from "pixi.js";
+import { Application, ColorMatrixFilter } from "pixi.js";
 import { PLAYER_SPEED, TILE_SIZE, EntityType, Op, type ClientMessage } from "@madworld/shared";
 import { Socket } from "./net/Socket.js";
 import { Dispatcher } from "./net/Dispatcher.js";
@@ -51,6 +51,7 @@ export class Game {
   private settingsPanel: SettingsPanel;
   private questLog: QuestLog;
   private npcDialog: NPCDialog;
+  private colorGrading: ColorMatrixFilter;
 
   private isRegistering = false;
   private currentTarget: number | null = null;
@@ -69,6 +70,7 @@ export class Game {
     this.screenEffects = new ScreenEffects(app);
     this.lighting = new LightingSystem(app);
     this.ambientParticles = new AmbientParticles(this.particles);
+    this.ambientParticles.onLightning = () => this.screenEffects.flashLightning();
     this.telegraphs = new TelegraphRenderer();
     this.decorations = new DecorationRenderer();
     this.minimap = new Minimap();
@@ -81,6 +83,7 @@ export class Game {
       this.telegraphs,
       this.minimap,
       this.audio,
+      this.camera,
     );
 
     initDeviceDetection();
@@ -115,6 +118,8 @@ export class Game {
     this.camera.container.addChild(this.hitSplats.container);
     this.entities.container.sortableChildren = true;
     app.stage.addChild(this.camera.container);
+    this.colorGrading = new ColorMatrixFilter();
+    this.camera.container.filters = [this.colorGrading];
     // ScreenEffects adds itself to app.stage in its constructor
     // LightingSystem adds its overlay to app.stage in its constructor (multiply blend)
 
@@ -211,10 +216,10 @@ export class Game {
         }
 
         // Detect zone type for ambient particles
+        const zoneName = state.localPlayer?.zoneName ?? "";
         if (state.localPlayer?.zoneId.startsWith("dungeon:")) {
           this.ambientParticles.setZoneType("dungeon");
         } else {
-          const zoneName = state.localPlayer?.zoneName ?? "";
           if (zoneName.includes("Forest") || zoneName.includes("Darkwood")) {
             this.ambientParticles.setZoneType("forest");
           } else if (zoneName.includes("Field")) {
@@ -222,6 +227,29 @@ export class Game {
           } else {
             this.ambientParticles.setZoneType("default");
           }
+        }
+
+        // Zone color grading
+        this.colorGrading.reset();
+        if (state.localPlayer?.zoneId.startsWith("dungeon:")) {
+          this.colorGrading.saturate(-0.3, true);
+          this.colorGrading.contrast(1.15, true);
+          this.colorGrading.brightness(0.85, true);
+          this.screenEffects.setVignetteIntensity(0.3);
+          this.screenEffects.enableFog(true);
+        } else if (zoneName.includes("Forest") || zoneName.includes("Darkwood")) {
+          this.colorGrading.saturate(-0.15, true);
+          this.colorGrading.brightness(0.95, true);
+          this.screenEffects.setVignetteIntensity(0.18);
+          this.screenEffects.enableFog(false);
+        } else if (zoneName.includes("Field")) {
+          this.colorGrading.saturate(0.1, true);
+          this.colorGrading.brightness(1.05, true);
+          this.screenEffects.setVignetteIntensity(0.12);
+          this.screenEffects.enableFog(false);
+        } else {
+          this.screenEffects.setVignetteIntensity(0.12);
+          this.screenEffects.enableFog(false);
         }
       }
     });

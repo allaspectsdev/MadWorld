@@ -121,12 +121,13 @@ export function updateAnimation(
     }
     case "death": {
       const t = Math.min(state.timer / DEATH_DURATION, 1);
-      const rotation = t * (Math.PI / 2);
-      const scale = 1 - t * 0.3;
+      const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      const rotation = ease * (Math.PI / 3); // 60 degrees, less cartoonish
+      const scale = 1 - ease * 0.5;
       return {
-        offsetY: t * 4,
-        offsetX: t * 3,
-        scaleX: scale,
+        offsetY: ease * 8,
+        offsetX: ease * 3,
+        scaleX: scale * (1 + Math.sin(t * 8) * 0.05), // wobble
         scaleY: scale,
         alpha: 1 - t * t,
         rotation,

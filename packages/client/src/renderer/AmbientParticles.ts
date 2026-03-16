@@ -4,7 +4,9 @@ import { TILE_SIZE } from "@madworld/shared";
 export class AmbientParticles {
   private particles: ParticleSystem;
   private timer = 0;
-  private zoneType: "forest" | "sand" | "dungeon" | "default" = "default";
+  private zoneType: "forest" | "sand" | "dungeon" | "default" | "snow" | "sandstorm" = "default";
+  onLightning: (() => void) | null = null;
+  private lightningTimer = 0;
   private cameraX = 0;
   private cameraY = 0;
   private screenW = 800;
@@ -19,7 +21,7 @@ export class AmbientParticles {
     this.particles = particles;
   }
 
-  setZoneType(type: "forest" | "sand" | "dungeon" | "default"): void {
+  setZoneType(type: "forest" | "sand" | "dungeon" | "default" | "snow" | "sandstorm"): void {
     this.zoneType = type;
     // Reset rain when zone changes
     this.isRaining = false;
@@ -42,6 +44,14 @@ export class AmbientParticles {
 
     if (this.isRaining) {
       this.rainTimer -= dt;
+
+      // Lightning during rain
+      this.lightningTimer += dt;
+      if (this.lightningTimer > 8 + Math.random() * 15) {
+        this.lightningTimer = 0;
+        this.onLightning?.();
+      }
+
       if (this.rainTimer <= 0) {
         this.isRaining = false;
         this.nextRainCheck = 5; // Wait 5s before next rain check
@@ -137,6 +147,43 @@ export class AmbientParticles {
               baseScale: 0.8,
             },
           );
+          break;
+        case "snow":
+          this.particles.emit(
+            this.cameraX + Math.random() * this.screenW,
+            this.cameraY + Math.random() * this.screenH * 0.2,
+            1,
+            {
+              texType: "glow",
+              tint: 0xeeeeff,
+              speed: 15,
+              spread: 0.4,
+              life: 4,
+              gravity: 12,
+              dirX: 0.3 + Math.sin(this.timer * 2 * Math.PI) * 0.2,
+              dirY: 1,
+              baseScale: 0.4,
+            },
+          );
+          break;
+        case "sandstorm":
+          for (let j = 0; j < 2; j++) {
+            this.particles.emit(
+              this.cameraX,
+              this.cameraY + Math.random() * this.screenH,
+              1,
+              {
+                tint: 0xc2a860,
+                speed: 80,
+                spread: 0.2,
+                life: 1.5,
+                gravity: 0,
+                dirX: 1,
+                dirY: 0.1,
+                baseScale: 0.6,
+              },
+            );
+          }
           break;
       }
     }

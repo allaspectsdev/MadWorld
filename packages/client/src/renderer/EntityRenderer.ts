@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, Text, TextStyle, Texture } from "pixi.js";
+import { Container, Graphics, Sprite, Text, TextStyle, Texture, ColorMatrixFilter } from "pixi.js";
 import { TILE_SIZE, EntityType } from "@madworld/shared";
 import type { RemoteEntity } from "../state/GameStore.js";
 import { getEntityTexture } from "./SpriteFactory.js";
@@ -28,6 +28,9 @@ interface EntitySprite {
   glowRing?: Graphics;
   targetRing?: Graphics;
   questMarker?: Graphics;
+  slashArc?: Graphics;
+  slashTimer?: number;
+  hitFlash?: { filter: ColorMatrixFilter; timer: number };
   animState: AnimState;
   animator?: SpriteAnimator;
   isLocal: boolean;
@@ -159,6 +162,37 @@ export class EntityRenderer {
       sprite.questMarker.y = -sprite.mainSprite.height / 2 - 16 + Math.sin(this.globalTimer * 2.5) * 2;
     }
 
+    // Slash arc animation
+    if (sprite.slashArc && sprite.slashArc.visible) {
+      sprite.slashTimer = (sprite.slashTimer ?? 0) + dt;
+      const st = sprite.slashTimer / 0.2;
+      if (st >= 1) {
+        sprite.slashArc.visible = false;
+      } else {
+        sprite.slashArc.clear();
+        const arcRadius = TILE_SIZE * 0.7;
+        const startAngle = -Math.PI * 0.6;
+        const sweep = Math.PI * 1.2 * st;
+        const flip = sprite.animState.facingLeft ? -1 : 1;
+        sprite.slashArc.arc(0, 0, arcRadius, startAngle * flip, (startAngle + sweep) * flip, flip < 0);
+        sprite.slashArc.stroke({ width: 3, color: 0xffffff, alpha: (1 - st) * 0.7 });
+        sprite.slashArc.arc(0, 0, arcRadius * 0.7, startAngle * flip, (startAngle + sweep * 0.8) * flip, flip < 0);
+        sprite.slashArc.stroke({ width: 1.5, color: 0xffeedd, alpha: (1 - st) * 0.5 });
+      }
+    }
+
+    // Hit flash decay
+    if (sprite.hitFlash) {
+      sprite.hitFlash.timer += dt;
+      const ft = sprite.hitFlash.timer / 0.12;
+      if (ft >= 1) {
+        sprite.mainSprite.filters = [];
+        sprite.hitFlash = undefined;
+      } else {
+        sprite.hitFlash.filter.brightness(1 + (1 - ft) * 1.5, false);
+      }
+    }
+
     // HP bar update
     if (data && data.hp !== undefined && data.maxHp && sprite.hpBar && sprite.hpBg) {
       const ratio = Math.max(0, data.hp / data.maxHp);
@@ -207,6 +241,18 @@ export class EntityRenderer {
       sprite.arrow.alpha = 0.7 + Math.sin(this.globalTimer * 4) * 0.3;
     }
 
+    // Hit flash decay
+    if (sprite.hitFlash) {
+      sprite.hitFlash.timer += dt;
+      const ft = sprite.hitFlash.timer / 0.12;
+      if (ft >= 1) {
+        sprite.mainSprite.filters = [];
+        sprite.hitFlash = undefined;
+      } else {
+        sprite.hitFlash.filter.brightness(1 + (1 - ft) * 1.5, false);
+      }
+    }
+
     sprite.container.zIndex = y;
   }
 
@@ -221,7 +267,22 @@ export class EntityRenderer {
 
   triggerAttackAnim(eid: number): void {
     const sprite = this.sprites.get(eid);
-    if (sprite) triggerAttack(sprite.animState);
+    if (sprite) {
+      triggerAttack(sprite.animState);
+      if (sprite.slashArc) {
+        sprite.slashArc.visible = true;
+        sprite.slashTimer = 0;
+      }
+    }
+  }
+
+  triggerHitFlash(eid: number): void {
+    const sprite = this.sprites.get(eid);
+    if (!sprite) return;
+    const filter = new ColorMatrixFilter();
+    filter.brightness(2.5, false);
+    sprite.mainSprite.filters = [filter];
+    sprite.hitFlash = { filter, timer: 0 };
   }
 
   triggerDeathAnim(eid: number): void {
@@ -410,12 +471,19 @@ export class EntityRenderer {
       cont.addChild(questMarker);
     }
 
+    // Slash arc (hidden by default)
+    const slashArc = new Graphics();
+    slashArc.visible = false;
+    slashArc.zIndex = 5;
+    cont.addChild(slashArc);
+
     const sprite: EntitySprite = {
       container: cont,
       mainSprite,
       shadow,
       nameText,
       hpY: topY - 2,
+      slashArc,
       animState,
       animator,
       isLocal,

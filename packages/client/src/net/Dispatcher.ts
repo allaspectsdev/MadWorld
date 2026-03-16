@@ -7,6 +7,8 @@ import type { ScreenEffects } from "../renderer/ScreenEffects.js";
 import type { TelegraphRenderer } from "../renderer/TelegraphRenderer.js";
 import type { Minimap } from "../renderer/Minimap.js";
 import type { AudioManager } from "../audio/AudioManager.js";
+import type { Camera } from "../renderer/Camera.js";
+import { isBossMob } from "../renderer/MobSpriteDefinitions.js";
 
 export class Dispatcher {
   private hitSplats: HitSplatRenderer;
@@ -16,6 +18,7 @@ export class Dispatcher {
   private telegraphs: TelegraphRenderer;
   private minimap: Minimap;
   private audio: AudioManager;
+  private camera: Camera;
   private onZoneChange: (() => void) | null = null;
   private onEntityDeath: ((eid: number) => void) | null = null;
 
@@ -27,6 +30,7 @@ export class Dispatcher {
     telegraphs: TelegraphRenderer,
     minimap: Minimap,
     audio: AudioManager,
+    camera: Camera,
   ) {
     this.hitSplats = hitSplats;
     this.entityRenderer = entityRenderer;
@@ -35,6 +39,7 @@ export class Dispatcher {
     this.telegraphs = telegraphs;
     this.minimap = minimap;
     this.audio = audio;
+    this.camera = camera;
   }
 
   setOnZoneChange(fn: () => void): void {
@@ -192,6 +197,7 @@ export class Dispatcher {
         }
 
         this.hitSplats.addSplat(tx, ty, msg.d.amount, msg.d.isCrit);
+        this.entityRenderer.triggerHitFlash(msg.d.targetEid);
 
         // Audio
         if (msg.d.amount > 0) {
@@ -202,13 +208,32 @@ export class Dispatcher {
 
         // Combat impact particles
         if (msg.d.amount > 0) {
-          this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 6, {
+          // Directional impact particles
+          const sourceEntity = store.entities.get(msg.d.sourceEid);
+          const dx = sourceEntity ? tx - sourceEntity.nextX : 0;
+          const dy = sourceEntity ? ty - sourceEntity.nextY : 0;
+          this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 8, {
             tint: msg.d.isCrit ? 0xff4444 : 0xffaa44,
-            speed: 60,
-            spread: Math.PI,
-            life: 0.3,
-            gravity: 80,
+            speed: 80,
+            spread: Math.PI * 0.6,
+            life: 0.4,
+            gravity: 100,
+            dirX: dx || 0,
+            dirY: dy || -1,
+            baseScale: 0.8,
           });
+          // Extra star burst on critical hits
+          if (msg.d.isCrit) {
+            this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 12, {
+              texType: "star",
+              tint: 0xff2222,
+              speed: 100,
+              spread: Math.PI * 2,
+              life: 0.6,
+              gravity: 50,
+              baseScale: 1.2,
+            });
+          }
 
           // Attack animation on source
           this.entityRenderer.triggerAttackAnim(msg.d.sourceEid);
@@ -216,6 +241,7 @@ export class Dispatcher {
           // Screen flash if local player is the target
           if (lp && msg.d.targetEid === lp.eid) {
             this.screenEffects.flashDamage();
+            this.camera.shake(msg.d.isCrit ? 6 : 3, msg.d.isCrit ? 0.25 : 0.15);
           }
         }
         break;
@@ -234,14 +260,59 @@ export class Dispatcher {
         // Death particles + animation
         const deadEntity = store.entities.get(msg.d.eid);
         if (deadEntity) {
-          this.particles.emit(deadEntity.nextX * TILE_SIZE, deadEntity.nextY * TILE_SIZE, 12, {
-            tint: 0xffffff,
-            speed: 40,
-            spread: Math.PI * 2,
-            life: 0.5,
-            scaleDecay: 1.5,
-          });
+          const isBoss = deadEntity.type === EntityType.MOB && isBossMob(deadEntity.name ?? "");
+          const bx = deadEntity.nextX * TILE_SIZE;
+          const by = deadEntity.nextY * TILE_SIZE;
+
+          if (isBoss) {
+            // Boss death: 3-wave particle explosion
+            this.particles.emit(bx, by, 20, {
+              texType: "star",
+              tint: 0xffffff,
+              speed: 80,
+              spread: Math.PI * 2,
+              life: 0.8,
+              gravity: 0,
+              baseScale: 1.5,
+              scaleDecay: 2,
+            });
+            setTimeout(() => {
+              const color = (deadEntity.name ?? "").includes("Lich") ? 0x8800ff : 0xffaa00;
+              this.particles.emit(bx, by, 30, {
+                texType: "glow",
+                tint: color,
+                speed: 60,
+                spread: Math.PI * 2,
+                life: 1.2,
+                gravity: -10,
+                baseScale: 1.2,
+              });
+            }, 100);
+            setTimeout(() => {
+              this.particles.emit(bx, by, 15, {
+                texType: "star",
+                tint: 0xffd700,
+                speed: 20,
+                spread: Math.PI * 2,
+                life: 2.0,
+                gravity: -8,
+                baseScale: 0.6,
+              });
+            }, 250);
+            this.camera.shake(8, 0.5);
+            this.screenEffects.flash(0xffffff, 0.3);
+          } else {
+            this.particles.emit(bx, by, 12, {
+              tint: 0xffffff,
+              speed: 40,
+              spread: Math.PI * 2,
+              life: 0.5,
+              scaleDecay: 1.5,
+            });
+          }
+
           this.entityRenderer.triggerDeathAnim(msg.d.eid);
+          this.camera.shake(isBoss ? 8 : 4, isBoss ? 0.5 : 0.2);
         }
         // Notify game that entity died (for clearing target)
         this.onEntityDeath?.(msg.d.eid);
@@ -262,6 +333,18 @@ export class Dispatcher {
           const overlay = document.getElementById("death-overlay");
           if (overlay) overlay.classList.remove("active");
           this.updateHUD();
+          // Respawn visual effects
+          this.screenEffects.flash(0xffffff, 0.4);
+          this.particles.emit(msg.d.x * TILE_SIZE, msg.d.y * TILE_SIZE, 25, {
+            texType: "star",
+            tint: 0x44ff88,
+            speed: 40,
+            spread: Math.PI * 2,
+            life: 1.2,
+            gravity: -20,
+            baseScale: 1.0,
+            scaleDecay: 1.0,
+          });
         }
         break;
       }
