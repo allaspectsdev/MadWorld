@@ -42,6 +42,7 @@ export class Player extends Entity {
   combatTarget: number | null = null;
   attackCooldown: number = 0;
   lastRangeMsg: number = 0;
+  outOfRangeTicks: number = 0;
 
   // Abilities
   abilityCooldowns: Map<string, number> = new Map();

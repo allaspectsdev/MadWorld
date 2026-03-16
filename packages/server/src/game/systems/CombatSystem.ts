@@ -39,9 +39,10 @@ export function processCombat(): void {
     }
 
     const dist = movementFormulas.distance(player.x, player.y, target.x, target.y);
-    if (dist > 2.5) {
-      // Only show "too far" message if genuinely far away (>4 tiles),
-      // not for minor desync during active combat
+    if (dist > 3.0) {
+      // Grace period: allow a few ticks of being out of range before dropping target
+      player.outOfRangeTicks = (player.outOfRangeTicks ?? 0) + 1;
+      if (player.outOfRangeTicks < 5) continue; // ~500ms grace period
       if (dist > 4) {
         const now = Date.now();
         if (!player.lastRangeMsg || now - player.lastRangeMsg >= 2000) {
@@ -53,8 +54,10 @@ export function processCombat(): void {
         }
       }
       player.combatTarget = null;
+      player.outOfRangeTicks = 0;
       continue;
     }
+    player.outOfRangeTicks = 0;
 
     // Calculate player stats
     const meleeSkill = player.skills.get(SkillName.MELEE);

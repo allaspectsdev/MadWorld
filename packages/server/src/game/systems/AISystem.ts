@@ -1,7 +1,7 @@
 import { world } from "../World.js";
 import { Mob } from "../entities/Mob.js";
 import { Player } from "../entities/Player.js";
-import { AIState, TICK_MS, Op } from "@madworld/shared";
+import { AIState, TICK_MS, Op, type ServerMessage } from "@madworld/shared";
 import { movementFormulas } from "@madworld/shared";
 import type { Zone } from "../Zone.js";
 
@@ -189,5 +189,10 @@ function moveToward(
     zone.moveEntity(mob.eid, newX, newY);
     mob.dx = ndx;
     mob.dy = ndy;
+    // Broadcast mob movement so clients can track position
+    zone.broadcastToNearby(newX, newY, {
+      op: Op.S_ENTITY_MOVE,
+      d: { eid: mob.eid, x: newX, y: newY, dx: ndx, dy: ndy, speed: mob.speed, seq: 0 },
+    } satisfies ServerMessage);
   }
 }
