@@ -1,6 +1,7 @@
 import { ITEMS, Op, type ClientMessage } from "@madworld/shared";
 import type { Socket } from "../../net/Socket.js";
 import { useGameStore } from "../../state/GameStore.js";
+import { escapeHtml } from "../escapeHtml.js";
 
 export class ShopPanel {
   private container: HTMLElement;
@@ -35,7 +36,7 @@ export class ShopPanel {
   private show(data: { npcName: string; items: { itemId: string; buyPrice: number; stock: number }[] }): void {
     this.container.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="margin:0;color:#ffd700">${data.npcName}'s Shop</h3>
+        <h3 style="margin:0;color:#ffd700">${escapeHtml(data.npcName)}'s Shop</h3>
         <button id="shop-close" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:4px 8px;">&#x2715;</button>
       </div>
       <div id="shop-items" style="display:grid;grid-template-columns:1fr;gap:6px;"></div>
@@ -58,10 +59,10 @@ export class ShopPanel {
 
       row.innerHTML = `
         <div>
-          <div style="font-weight:bold;font-size:13px;">${itemDef.name}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.5);">${itemDef.description}</div>
+          <div style="font-weight:bold;font-size:13px;">${escapeHtml(itemDef.name)}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);">${escapeHtml(itemDef.description)}</div>
         </div>
-        <button class="shop-buy-btn" data-item-id="${shopItem.itemId}" style="
+        <button class="shop-buy-btn" data-item-id="${escapeHtml(shopItem.itemId)}" style="
           background: linear-gradient(135deg, #ffd700, #ff8c00); border: none; color: #111;
           padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 12px;
           cursor: pointer;

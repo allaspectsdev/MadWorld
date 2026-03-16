@@ -67,6 +67,9 @@ export class Player extends Entity {
   // Chat rate limiting
   lastChatTime: number = 0;
 
+  // Death respawn guard
+  respawnPending: boolean = false;
+
   // Persistence
   dirty: boolean = false;
 

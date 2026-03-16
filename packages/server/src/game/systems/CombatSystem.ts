@@ -246,6 +246,9 @@ export function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
 }
 
 function handlePlayerDeath(player: Player, zone: Zone): void {
+  if (player.respawnPending) return; // Prevent double-death
+  player.respawnPending = true;
+
   zone.broadcastToNearby(player.x, player.y, {
     op: Op.S_DEATH,
     d: { eid: player.eid },
@@ -314,6 +317,7 @@ function handlePlayerDeath(player: Player, zone: Zone): void {
 
   // Overworld: respawn after 5 seconds
   setTimeout(() => {
+    player.respawnPending = false;
     player.hp = player.maxHp;
     const spawnZone = world.getZone(player.zoneId);
     if (!spawnZone) return;

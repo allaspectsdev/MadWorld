@@ -233,6 +233,8 @@ export class Game {
         this.decorations.setTiles(state.tiles);
         this.minimap.renderTiles(state.tiles);
         this.entities.clear();
+        this.deadEntities.clear();
+        this.pathFollower.cancel();
 
         // Set zone lights for lighting system
         const zoneLights = state.zoneLights ?? [];

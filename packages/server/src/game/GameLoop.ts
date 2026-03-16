@@ -14,49 +14,53 @@ let currentTick = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 function tick(): void {
-  currentTick++;
+  try {
+    currentTick++;
 
-  // 1. Process player movement intents
-  processMovement();
+    // 1. Process player movement intents
+    processMovement();
 
-  // 2. Run mob AI (world + instance zones)
-  processAI();
+    // 2. Run mob AI (world + instance zones)
+    processAI();
 
-  // 3. Run boss AI (instance zones)
-  processBossAI();
+    // 3. Run boss AI (instance zones)
+    processBossAI();
 
-  // 4. Resolve combat (world + instance zones, shared XP)
-  processCombat();
+    // 4. Resolve combat (world + instance zones, shared XP)
+    processCombat();
 
-  // 5. Process ability cooldowns, status effects, and fishing timers
-  processAbilities();
-  processFishing(currentTick);
+    // 5. Process ability cooldowns, status effects, and fishing timers
+    processAbilities();
+    processFishing(currentTick);
 
-  // 6. Despawn expired ground items
-  processGroundItemDespawn();
+    // 6. Despawn expired ground items
+    processGroundItemDespawn();
 
-  // 7. Sync party member HP cross-zone
-  for (const [, player] of world.playersByEid) {
-    partyManager.syncPartyMemberHp(player);
-  }
+    // 7. Sync party member HP cross-zone
+    for (const [, player] of world.playersByEid) {
+      partyManager.syncPartyMemberHp(player);
+    }
 
-  // 8. Send tick sync to all players
-  const tickMsg: ServerMessage = {
-    op: Op.S_TICK,
-    d: { tick: currentTick, serverTime: Date.now() },
-  };
-  for (const [, player] of world.playersByEid) {
-    player.send(tickMsg);
-  }
+    // 8. Send tick sync to all players
+    const tickMsg: ServerMessage = {
+      op: Op.S_TICK,
+      d: { tick: currentTick, serverTime: Date.now() },
+    };
+    for (const [, player] of world.playersByEid) {
+      player.send(tickMsg);
+    }
 
-  // 9. Persist dirty players every 30 seconds (300 ticks)
-  if (currentTick % 300 === 0) {
-    persistDirtyPlayers();
-  }
+    // 9. Persist dirty players every 30 seconds (300 ticks)
+    if (currentTick % 300 === 0) {
+      persistDirtyPlayers();
+    }
 
-  // 10. Cleanup idle dungeon instances every ~60s
-  if (currentTick % 600 === 0) {
-    instanceManager.cleanupIdleInstances();
+    // 10. Cleanup idle dungeon instances every ~60s
+    if (currentTick % 600 === 0) {
+      instanceManager.cleanupIdleInstances();
+    }
+  } catch (err) {
+    console.error('[GameLoop] Tick error:', err);
   }
 }
 

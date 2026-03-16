@@ -26,6 +26,15 @@ world.init();
 // Start game loop
 startGameLoop();
 
+// Connection limit
+let activeConnections = 0;
+const MAX_CONNECTIONS = 200;
+
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+};
+
 // Start server
 const server = Bun.serve<SocketData>({
   port: config.port,
@@ -34,23 +43,35 @@ const server = Bun.serve<SocketData>({
 
     // WebSocket upgrade
     if (url.pathname === "/ws") {
+      if (activeConnections >= MAX_CONNECTIONS) {
+        return new Response("Too many connections", { status: 503, headers: securityHeaders });
+      }
       const upgraded = server.upgrade(req, {
         data: createSocketData(),
       });
       if (!upgraded) {
-        return new Response("WebSocket upgrade failed", { status: 400 });
+        return new Response("WebSocket upgrade failed", { status: 400, headers: securityHeaders });
       }
       return undefined;
     }
 
-    // HTTP routes
-    return app.fetch(req, { ip: server.requestIP(req) });
+    // HTTP routes — add security headers to all responses
+    const result = app.fetch(req, { ip: server.requestIP(req) });
+    const addHeaders = (res: Response) => {
+      const newRes = new Response(res.body, res);
+      for (const [k, v] of Object.entries(securityHeaders)) {
+        newRes.headers.set(k, v);
+      }
+      return newRes;
+    };
+    return result instanceof Promise ? result.then(addHeaders) : addHeaders(result);
   },
   websocket: {
     idleTimeout: 60,
     maxPayloadLength: 4096,
 
     open(ws) {
+      activeConnections++;
       // Wait for auth message
     },
 
@@ -59,6 +80,7 @@ const server = Bun.serve<SocketData>({
     },
 
     async close(ws) {
+      activeConnections--;
       await handleDisconnect(ws as GameWebSocket);
     },
   },

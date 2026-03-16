@@ -1,6 +1,7 @@
 import { useGameStore } from "../../state/GameStore.js";
 import { QUESTS, SHOPS, Op, type ClientMessage } from "@madworld/shared";
 import type { Socket } from "../../net/Socket.js";
+import { escapeHtml } from "../escapeHtml.js";
 
 export class NPCDialog {
   private container: HTMLElement;
@@ -76,11 +77,11 @@ export class NPCDialog {
     this.container.classList.add("open");
 
     let html = `<div class="npc-dialog-header">
-      <span class="npc-dialog-name">${dialog.npcName}</span>
+      <span class="npc-dialog-name">${escapeHtml(dialog.npcName)}</span>
       <button class="npc-dialog-close">X</button>
     </div>`;
 
-    html += `<div class="npc-dialog-text">${dialog.dialog}</div>`;
+    html += `<div class="npc-dialog-text">${escapeHtml(dialog.dialog)}</div>`;
 
     // Quests ready to turn in
     if (dialog.turnInQuests.length > 0) {
@@ -88,7 +89,7 @@ export class NPCDialog {
       for (const questId of dialog.turnInQuests) {
         const def = QUESTS[questId];
         if (!def) continue;
-        html += `<button class="npc-quest-btn npc-quest-turnin" data-quest-turnin="${questId}">${def.name} (Complete)</button>`;
+        html += `<button class="npc-quest-btn npc-quest-turnin" data-quest-turnin="${escapeHtml(questId)}">${escapeHtml(def.name)} (Complete)</button>`;
       }
       html += "</div>";
     }
@@ -100,9 +101,9 @@ export class NPCDialog {
         const def = QUESTS[questId];
         if (!def) continue;
         html += `<div class="npc-quest-offer">
-          <div class="npc-quest-offer-name">${def.name}</div>
-          <div class="npc-quest-offer-desc">${def.description}</div>
-          <button class="npc-quest-btn npc-quest-accept" data-quest-accept="${questId}">Accept</button>
+          <div class="npc-quest-offer-name">${escapeHtml(def.name)}</div>
+          <div class="npc-quest-offer-desc">${escapeHtml(def.description)}</div>
+          <button class="npc-quest-btn npc-quest-accept" data-quest-accept="${escapeHtml(questId)}">Accept</button>
         </div>`;
       }
       html += "</div>";
@@ -113,7 +114,7 @@ export class NPCDialog {
     const hasShop = SHOPS[npcKey] !== undefined;
     if (hasShop) {
       html += `<div class="npc-quest-section">
-        <button class="npc-quest-btn npc-shop-btn" data-shop-key="${npcKey}" data-npc-name="${dialog.npcName}" style="background:linear-gradient(135deg,#ffd700,#ff8c00);color:#111;font-weight:bold;">Browse Shop</button>
+        <button class="npc-quest-btn npc-shop-btn" data-shop-key="${escapeHtml(npcKey)}" data-npc-name="${escapeHtml(dialog.npcName)}" style="background:linear-gradient(135deg,#ffd700,#ff8c00);color:#111;font-weight:bold;">Browse Shop</button>
       </div>`;
     }
 

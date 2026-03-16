@@ -1,5 +1,6 @@
 import { useGameStore } from "../../state/GameStore.js";
 import type { PartyMemberInfo } from "@madworld/shared";
+import { escapeHtml } from "../escapeHtml.js";
 
 export class PartyHUD {
   private container: HTMLElement;
@@ -41,11 +42,11 @@ export class PartyHUD {
         const inDifferentZone = m.zoneId !== localZone;
         const dimmed = inDifferentZone ? "opacity: 0.6;" : "";
         const leader = m.isLeader ? '<span class="party-leader-icon">&#9733;</span>' : "";
-        const zoneLabel = inDifferentZone ? `<span class="party-member-zone">${m.zoneName} (far)</span>` : "";
+        const zoneLabel = inDifferentZone ? `<span class="party-member-zone">${escapeHtml(m.zoneName)} (far)</span>` : "";
 
         return `<div class="party-member" style="${dimmed}">
           <div class="party-member-header">
-            <span class="party-member-name">${m.name}</span>${leader}
+            <span class="party-member-name">${escapeHtml(m.name)}</span>${leader}
           </div>
           <div class="party-hp-container">
             <div class="party-hp-bar" style="width:${hpPct}%;background:${hpColor}"></div>

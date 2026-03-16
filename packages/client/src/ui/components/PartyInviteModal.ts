@@ -1,6 +1,7 @@
 import { useGameStore } from "../../state/GameStore.js";
 import { Op, type ClientMessage } from "@madworld/shared";
 import type { Socket } from "../../net/Socket.js";
+import { escapeHtml } from "../escapeHtml.js";
 
 export class PartyInviteModal {
   private modal: HTMLElement;
@@ -50,7 +51,7 @@ export class PartyInviteModal {
   private show(inviterName: string, partySize: number): void {
     const text = this.modal.querySelector("#invite-text") as HTMLElement;
     if (text) {
-      text.innerHTML = `<strong>${inviterName}</strong> invited you to their party (${partySize}/5)`;
+      text.innerHTML = `<strong>${escapeHtml(inviterName)}</strong> invited you to their party (${partySize}/5)`;
     }
     this.modal.style.display = "flex";
 

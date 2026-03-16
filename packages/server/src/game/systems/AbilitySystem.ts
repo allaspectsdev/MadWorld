@@ -151,6 +151,14 @@ export function applyStatusEffect(targetEid: number, defId: string, sourceEid: n
   if (!isPlayer && !isMob) return;
 
   const target = entity as Player | Mob;
+
+  // If effect already active, just refresh duration (don't re-apply to prevent multiplier stacking)
+  const existing = target.statusEffects.get(defId);
+  if (existing) {
+    existing.ticksLeft = Math.max(existing.ticksLeft, def.durationTicks);
+    return;
+  }
+
   target.statusEffects.set(defId, { defId, ticksLeft: def.durationTicks, sourceEid });
 
   // Apply stun

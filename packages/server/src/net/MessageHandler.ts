@@ -54,6 +54,11 @@ export async function handleMessage(
 
   switch (msg.op) {
     case Op.C_MOVE:
+      // Validate movement input
+      if (!Number.isFinite(msg.d.dx) || !Number.isFinite(msg.d.dy)) break;
+      const moveMag = Math.sqrt(msg.d.dx * msg.d.dx + msg.d.dy * msg.d.dy);
+      if (moveMag > 1.5) break; // Allow slight overshoot for diagonals (√2 ≈ 1.414)
+      if (player.moveQueue.length >= 10) break; // Prevent queue flooding
       player.moveQueue.push({
         dx: msg.d.dx,
         dy: msg.d.dy,
@@ -67,10 +72,19 @@ export async function handleMessage(
       player.dy = 0;
       break;
 
-    case Op.C_ATTACK:
+    case Op.C_ATTACK: {
+      const zone = world.getZone(player.zoneId);
+      if (!zone) break;
+      const attackTarget = zone.entities.get(msg.d.targetEid);
+      if (!attackTarget) break;
+      if (!(attackTarget instanceof Mob)) break;
+      if (attackTarget.aiState === AIState.DEAD) break;
+      const attackDist = movementFormulas.distance(player.x, player.y, attackTarget.x, attackTarget.y);
+      if (attackDist > 10) break; // Reject obviously out-of-range targets
       player.combatTarget = msg.d.targetEid;
       player.attackCooldown = 0;
       break;
+    }
 
     case Op.C_PARTY_INVITE:
       partyManager.invitePlayer(player, msg.d.targetEid);
@@ -433,6 +447,7 @@ export async function handleMessage(
     }
 
     case Op.C_USE_SKILL: {
+      if (player.hp <= 0) break;
       const abilityDef = ABILITIES[msg.d.abilityId];
       if (!abilityDef) break;
 
@@ -587,7 +602,7 @@ export async function handleMessage(
       const shopEntry = shopItems.find((e) => e.itemId === msg.d.itemId);
       if (!shopEntry) break;
 
-      const buyQty = Math.max(1, msg.d.quantity);
+      const buyQty = Math.max(1, Math.min(100, msg.d.quantity));
       const totalCost = shopEntry.buyPrice * buyQty;
 
       // Check gold
@@ -631,6 +646,10 @@ export async function handleMessage(
 
       const existingBuySlot = player.inventory[buyTargetSlot];
       if (existingBuySlot?.itemId === msg.d.itemId) {
+        if (buyItemDef && existingBuySlot.quantity + buyQty > buyItemDef.maxStack) {
+          player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Stack is full." } } satisfies ServerMessage);
+          break;
+        }
         existingBuySlot.quantity += buyQty;
       } else {
         player.inventory[buyTargetSlot] = { itemId: msg.d.itemId, quantity: buyQty };
