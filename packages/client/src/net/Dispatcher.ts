@@ -74,6 +74,7 @@ export class Dispatcher {
             zoneName: "",
             isDead: false,
             isGod: msg.d.isGod,
+            appearance: msg.d.appearance,
           });
         } else {
           // Reconnect: update EID in case it changed

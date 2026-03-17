@@ -58,6 +58,7 @@ export interface S_AuthOk {
   playerId: number;
   eid: number;
   isGod?: boolean;
+  appearance?: Appearance;
 }
 
 export interface S_AuthError {

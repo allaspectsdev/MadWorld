@@ -1084,7 +1084,7 @@ async function handleAuth(
     ws.send(
       JSON.stringify({
         op: Op.S_AUTH_OK,
-        d: { token: "", playerId: player.playerId, eid: player.eid, ...(player.isGod ? { isGod: true } : {}) },
+        d: { token: "", playerId: player.playerId, eid: player.eid, ...(player.isGod ? { isGod: true } : {}), appearance: player.appearance },
       }),
     );
 
