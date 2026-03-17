@@ -40,8 +40,6 @@ function drawPlayer(g: Graphics, a: Appearance, equip?: Record<string, string>):
   const pantColor = 0x3a3a5a;
   const shoeColor = 0x4a3a2a;
   const isFeminine = (a.bodyType ?? 0) === 1;
-  if (isFeminine) console.log("[SPRITE] Drawing FEMININE body, appearance:", JSON.stringify(a));
-  else console.log("[SPRITE] Drawing DEFAULT body, bodyType:", a.bodyType, "appearance:", JSON.stringify(a));
 
   // Shadow
   g.ellipse(W / 2, H - 1, 9, 3);

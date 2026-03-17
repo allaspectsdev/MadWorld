@@ -467,6 +467,10 @@ function createFields(): ZoneDef {
   tiles[29][0] = TileType.PORTAL;
   tiles[30][0] = TileType.PORTAL;
 
+  // Portal to Mystic Swamp at east edge
+  tiles[29][59] = TileType.PORTAL;
+  tiles[30][59] = TileType.PORTAL;
+
   // Dungeon portal — Crypt of Bones entrance
   tiles[10][40] = TileType.DUNGEON_PORTAL;
 
@@ -482,6 +486,8 @@ function createFields(): ZoneDef {
       { x: 0, y: 29, targetZoneId: "greendale", targetX: 58, targetY: 29 },
       { x: 0, y: 30, targetZoneId: "greendale", targetX: 58, targetY: 30 },
       { x: 40, y: 10, targetZoneId: "crypt_of_bones", targetX: 6, targetY: 7, dungeonId: "crypt_of_bones" },
+      { x: 59, y: 29, targetZoneId: "mystic_swamp", targetX: 1, targetY: 35 },
+      { x: 59, y: 30, targetZoneId: "mystic_swamp", targetX: 1, targetY: 36 },
     ],
     mobSpawns: [
       { mobId: "cow", x: 10, y: 12, count: 4, wanderRadius: 4 },
@@ -499,9 +505,129 @@ function createFields(): ZoneDef {
       { x: 0, y: 29, radius: 4, color: 0x9b59b6 },
       // Dungeon portal
       { x: 40, y: 10, radius: 5, color: 0xe74c3c },
+      // Portal to Mystic Swamp
+      { x: 59, y: 29, radius: 4, color: 0x9b59b6 },
       // Road torches
       { x: 30, y: 28, radius: 4, color: 0xff9944, flicker: true },
       { x: 30, y: 32, radius: 4, color: 0xff9944, flicker: true },
+    ],
+  };
+}
+
+// --- Mystic Swamp ---
+function createMysticSwamp(): ZoneDef {
+  const w = 70, h = 70;
+  const tiles = generateTiles(w, h, TileType.GRASS);
+
+  // === Mountain border on north edge ===
+  applyFeature(tiles, 0, 0, 70, 3, TileType.MOUNTAIN);
+
+  // === Large central swamp (water oval) ===
+  applyOval(tiles, 35, 35, 18, 15, TileType.WATER);
+
+  // === Sand shores around the water edges ===
+  applyOval(tiles, 35, 35, 20, 17, TileType.SAND);
+  applyOval(tiles, 35, 35, 18, 15, TileType.WATER);
+
+  // === Small islands inside the swamp (grass ovals) ===
+  applyOval(tiles, 28, 32, 4, 3, TileType.GRASS);   // island 1 (west)
+  applyOval(tiles, 35, 28, 3, 3, TileType.GRASS);   // island 2 (north-center)
+  applyOval(tiles, 42, 34, 4, 3, TileType.GRASS);   // island 3 (east)
+  applyOval(tiles, 35, 40, 5, 3, TileType.GRASS);   // island 4 (south-center, larger — ruins here)
+  applyOval(tiles, 25, 38, 3, 3, TileType.GRASS);   // island 5 (SW)
+  applyOval(tiles, 44, 40, 3, 3, TileType.GRASS);   // island 6 (SE)
+  applyOval(tiles, 38, 25, 3, 3, TileType.GRASS);   // island 7 (NE)
+
+  // === Muddy dirt patches around swamp edges ===
+  applyNoisyRect(tiles, 14, 28, 4, 5, TileType.DIRT, 0.35, 401);
+  applyNoisyRect(tiles, 52, 30, 5, 4, TileType.DIRT, 0.3, 402);
+  applyNoisyRect(tiles, 30, 50, 6, 4, TileType.DIRT, 0.35, 403);
+  applyNoisyRect(tiles, 20, 48, 4, 3, TileType.DIRT, 0.3, 404);
+
+  // === Dead forest patches ===
+  applyNoisyRect(tiles, 52, 5, 14, 12, TileType.FOREST, 0.35, 405);   // NE corner
+  applyNoisyRect(tiles, 2, 52, 12, 14, TileType.FOREST, 0.4, 406);    // SW corner
+  applyNoisyRect(tiles, 55, 52, 12, 10, TileType.FOREST, 0.3, 407);   // SE edge
+  applyNoisyRect(tiles, 2, 5, 10, 8, TileType.FOREST, 0.35, 408);     // NW edge
+
+  // === Winding DIRT path from west edge (spawn) to the swamp ===
+  applyFeature(tiles, 0, 34, 16, 3, TileType.DIRT);    // west entry road to swamp edge
+
+  // === BRIDGE tiles connecting islands across the swamp ===
+  // Bridge 1: west shore to island 1 (x=16-24, y=33-34)
+  for (let bx = 16; bx <= 24; bx++) {
+    setTile(tiles, bx, 33, TileType.BRIDGE);
+    setTile(tiles, bx, 34, TileType.BRIDGE);
+  }
+  // Bridge 2: island 1 to island 4 (south-center) (x=30-32, y=34-38)
+  for (let by = 34; by <= 38; by++) {
+    setTile(tiles, 31, by, TileType.BRIDGE);
+    setTile(tiles, 32, by, TileType.BRIDGE);
+  }
+  // Bridge 3: island 4 to island 3 (east) (x=38-40, y=37-38)
+  for (let bx = 38; bx <= 40; bx++) {
+    setTile(tiles, bx, 37, TileType.BRIDGE);
+    setTile(tiles, bx, 38, TileType.BRIDGE);
+  }
+
+  // === Ruined shrine on island 4 (the larger south-center island) ===
+  // 4x4 BUILDING_FLOOR with MOUNTAIN walls
+  applyFeature(tiles, 33, 39, 4, 4, TileType.BUILDING_FLOOR);
+  // Walls (MOUNTAIN border)
+  applyFeature(tiles, 33, 39, 4, 1, TileType.MOUNTAIN);   // top wall
+  applyFeature(tiles, 33, 42, 4, 1, TileType.MOUNTAIN);   // bottom wall
+  applyFeature(tiles, 33, 39, 1, 4, TileType.MOUNTAIN);   // left wall
+  applyFeature(tiles, 36, 39, 1, 4, TileType.MOUNTAIN);   // right wall
+  // Door gap on north wall (x=34,35 at y=39)
+  setTile(tiles, 34, 39, TileType.BUILDING_FLOOR);
+  setTile(tiles, 35, 39, TileType.BUILDING_FLOOR);
+
+  // === Portals ===
+  // West edge portal to fields
+  tiles[35][0] = TileType.PORTAL;
+  tiles[36][0] = TileType.PORTAL;
+
+  // Interior dungeon portal (placeholder to goblin_warren)
+  tiles[60][35] = TileType.DUNGEON_PORTAL;
+
+  return {
+    id: "mystic_swamp",
+    name: "Mystic Swamp",
+    width: w,
+    height: h,
+    tiles,
+    spawnX: 2,
+    spawnY: 35,
+    portals: [
+      { x: 0, y: 35, targetZoneId: "fields", targetX: 58, targetY: 29 },
+      { x: 0, y: 36, targetZoneId: "fields", targetX: 58, targetY: 30 },
+      { x: 35, y: 60, targetZoneId: "goblin_warren", targetX: 6, targetY: 20, dungeonId: "goblin_warren" },
+    ],
+    mobSpawns: [
+      { mobId: "goblin", x: 28, y: 32, count: 2, wanderRadius: 3 },
+      { mobId: "goblin", x: 42, y: 34, count: 2, wanderRadius: 3 },
+      { mobId: "forest_spider", x: 56, y: 8, count: 2, wanderRadius: 5 },
+      { mobId: "forest_spider", x: 6, y: 56, count: 2, wanderRadius: 4 },
+      { mobId: "skeleton", x: 35, y: 41, count: 2, wanderRadius: 3 },
+      { mobId: "skeleton", x: 38, y: 38, count: 2, wanderRadius: 3 },
+    ],
+    npcSpawns: [
+      { npcId: "swamp_witch", name: "Swamp Witch", x: 15, y: 35, dialog: "Beware the waters... things lurk beneath that even I dare not name.", quests: [] },
+      { npcId: "lost_traveler", name: "Lost Traveler", x: 45, y: 30, dialog: "I've been wandering for days. The paths keep shifting in this cursed swamp.", quests: [] },
+    ],
+    lights: [
+      // Mysterious green/blue lights scattered across the swamp
+      { x: 25, y: 30, radius: 4, color: 0x44ffaa, flicker: true },
+      { x: 40, y: 28, radius: 3, color: 0x44ffaa, flicker: true },
+      { x: 30, y: 42, radius: 4, color: 0x44ffaa, flicker: true },
+      { x: 46, y: 38, radius: 3, color: 0x44ffaa, flicker: true },
+      { x: 22, y: 36, radius: 3, color: 0x44ffaa, flicker: true },
+      // Orange torch at the ruins
+      { x: 34, y: 40, radius: 3, color: 0xffaa55, flicker: true },
+      // Portal glows
+      { x: 0, y: 35, radius: 4, color: 0x9b59b6 },
+      // Dungeon portal red glow
+      { x: 35, y: 60, radius: 5, color: 0xe74c3c },
     ],
   };
 }
@@ -721,6 +847,7 @@ export const ZONE_DEFS: ZoneDef[] = [
   createGreendale(),
   createDarkwood(),
   createFields(),
+  createMysticSwamp(),
   createScorchedHighlands(),
   createFrozenWastes(),
 ];

@@ -270,4 +270,43 @@ export const MOBS: Record<string, MobDef> = {
     ],
     lootTable: [{ itemId: "dragon_slayer", quantity: 1, chance: 0.2 }, { itemId: "drake_plate", quantity: 1, chance: 0.25 }, { itemId: "dragon_scale", quantity: 3, chance: 1.0 }, { itemId: "gold_coins", quantity: 200, chance: 1.0 }],
   },
+
+  // --- Mystic Swamp Mobs ---
+  swamp_toad: {
+    id: "swamp_toad", name: "Swamp Toad", level: 8, maxHp: 90, attack: 10, defense: 6,
+    attackSpeed: 5, aggroRange: 3, chaseRange: 6, respawnTicks: 400,
+    xpReward: 50, lootTable: [
+      { itemId: "herb", quantity: 1, chance: 0.4 },
+    ],
+  },
+  bog_wraith: {
+    id: "bog_wraith", name: "Bog Wraith", level: 11, maxHp: 140, attack: 16, defense: 5,
+    attackSpeed: 4, aggroRange: 5, chaseRange: 10, respawnTicks: 500,
+    xpReward: 75, lootTable: [
+      { itemId: "enchanted_gem", quantity: 1, chance: 0.15 },
+    ],
+  },
+  mud_golem: {
+    id: "mud_golem", name: "Mud Golem", level: 13, maxHp: 220, attack: 14, defense: 16,
+    attackSpeed: 6, aggroRange: 3, chaseRange: 5, respawnTicks: 600,
+    xpReward: 90, lootTable: [
+      { itemId: "iron_ore", quantity: 1, chance: 0.3 },
+      { itemId: "steel_bar", quantity: 1, chance: 0.1 },
+    ],
+  },
+  vine_creeper: {
+    id: "vine_creeper", name: "Vine Creeper", level: 9, maxHp: 80, attack: 12, defense: 3,
+    attackSpeed: 3, aggroRange: 4, chaseRange: 7, respawnTicks: 350,
+    xpReward: 55, lootTable: [
+      { itemId: "herb", quantity: 2, chance: 0.5 },
+    ],
+  },
+  swamp_drake: {
+    id: "swamp_drake", name: "Swamp Drake", level: 15, maxHp: 280, attack: 20, defense: 12,
+    attackSpeed: 5, aggroRange: 5, chaseRange: 10, respawnTicks: 700,
+    xpReward: 120, lootTable: [
+      { itemId: "dragon_scale", quantity: 1, chance: 0.08 },
+      { itemId: "enchanted_gem", quantity: 1, chance: 0.2 },
+    ],
+  },
 };

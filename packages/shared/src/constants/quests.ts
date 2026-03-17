@@ -129,4 +129,47 @@ export const QUESTS: Record<string, QuestDef> = {
     steps: [{ description: "Defeat the Elder Drake", type: "kill", target: "elder_drake", quantity: 1 }],
     rewards: { xp: { melee: 1000 }, gold: 500 },
   },
+
+  // --- Mystic Swamp Quests ---
+  swamp_exploration: {
+    id: "swamp_exploration",
+    name: "Into the Swamp",
+    description: "Explore the Mystic Swamp and find the Lost Traveler.",
+    requirements: { quests: ["field_survey"] },
+    steps: [
+      { type: "reach", target: "mystic_swamp", description: "Travel to the Mystic Swamp" },
+    ],
+    rewards: { xp: { agility: 150 }, gold: 50 },
+  },
+  toad_trouble: {
+    id: "toad_trouble",
+    name: "Toad Trouble",
+    description: "The swamp toads are multiplying out of control. Thin their numbers.",
+    requirements: { quests: ["swamp_exploration"] },
+    steps: [
+      { type: "kill", target: "swamp_toad", quantity: 8, description: "Kill 8 Swamp Toads" },
+    ],
+    rewards: { xp: { melee: 200 }, gold: 75, items: [{ itemId: "cooked_salmon", quantity: 5 }] },
+  },
+  bog_wraith_hunt: {
+    id: "bog_wraith_hunt",
+    name: "Wraiths of the Bog",
+    description: "Dangerous wraiths haunt the deep swamp. Destroy them before they spread.",
+    requirements: { quests: ["toad_trouble"] },
+    steps: [
+      { type: "kill", target: "bog_wraith", quantity: 6, description: "Destroy 6 Bog Wraiths" },
+      { type: "kill", target: "mud_golem", quantity: 3, description: "Destroy 3 Mud Golems" },
+    ],
+    rewards: { xp: { melee: 350, defense: 150 }, gold: 150 },
+  },
+  swamp_drake_slayer: {
+    id: "swamp_drake_slayer",
+    name: "The Swamp Drake",
+    description: "A powerful drake has claimed the swamp as its territory. End its reign.",
+    requirements: { quests: ["bog_wraith_hunt"] },
+    steps: [
+      { type: "kill", target: "swamp_drake", quantity: 1, description: "Slay the Swamp Drake" },
+    ],
+    rewards: { xp: { melee: 500 }, gold: 300, items: [{ itemId: "frost_blade", quantity: 1 }] },
+  },
 };

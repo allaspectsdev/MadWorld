@@ -617,6 +617,229 @@ const DEFS: Record<string, MobVisual> = {
     },
   },
 
+  // ── Swamp mobs ──
+
+  "Swamp Toad": {
+    width: 30, height: 26,
+    draw(g, w, h) {
+      // Body (large squat ellipse)
+      g.ellipse(w / 2, h / 2 + 3, 12, 8);
+      g.fill(0x4a6a3a);
+      g.ellipse(w / 2, h / 2 + 3, 12, 8);
+      g.stroke({ width: 1, color: 0x2a4a2a, alpha: 0.3 });
+      // Belly
+      g.ellipse(w / 2, h / 2 + 6, 8, 4);
+      g.fill(0x7a9a5a);
+      // Warts/bumps
+      g.circle(w / 2 - 4, h / 2 + 1, 1.5);
+      g.fill(0x3a5a2a);
+      g.circle(w / 2 + 5, h / 2, 1.2);
+      g.fill(0x3a5a2a);
+      g.circle(w / 2 - 1, h / 2 - 2, 1);
+      g.fill(0x3a5a2a);
+      // Eyes (large, bulging)
+      g.circle(w / 2 - 4, h / 2 - 5, 3.5);
+      g.fill(0xccdd44);
+      g.circle(w / 2 - 4, h / 2 - 5, 1.5);
+      g.fill(0x111111);
+      g.circle(w / 2 + 4, h / 2 - 5, 3.5);
+      g.fill(0xccdd44);
+      g.circle(w / 2 + 4, h / 2 - 5, 1.5);
+      g.fill(0x111111);
+      // Mouth line
+      g.moveTo(w / 2 - 6, h / 2 + 1);
+      g.bezierCurveTo(w / 2 - 2, h / 2 + 3, w / 2 + 2, h / 2 + 3, w / 2 + 6, h / 2 + 1);
+      g.stroke({ width: 0.8, color: 0x2a4a2a, alpha: 0.5 });
+      // Front legs
+      g.moveTo(w / 2 - 8, h / 2 + 8); g.lineTo(w / 2 - 12, h / 2 + 12);
+      g.stroke({ width: 2, color: 0x4a6a3a });
+      g.moveTo(w / 2 + 8, h / 2 + 8); g.lineTo(w / 2 + 12, h / 2 + 12);
+      g.stroke({ width: 2, color: 0x4a6a3a });
+      // Back legs (thicker, bent)
+      g.moveTo(w / 2 - 6, h / 2 + 7); g.lineTo(w / 2 - 10, h / 2 + 4); g.lineTo(w / 2 - 14, h / 2 + 10);
+      g.stroke({ width: 2.5, color: 0x4a6a3a });
+      g.moveTo(w / 2 + 6, h / 2 + 7); g.lineTo(w / 2 + 10, h / 2 + 4); g.lineTo(w / 2 + 14, h / 2 + 10);
+      g.stroke({ width: 2.5, color: 0x4a6a3a });
+    },
+  },
+
+  "Bog Wraith": {
+    width: 26, height: 34,
+    draw(g, w, h) {
+      // Glow aura
+      g.circle(w / 2, h / 2, 14);
+      g.fill({ color: 0x44aa66, alpha: 0.08 });
+      // Wispy trails below
+      g.moveTo(8, 26); g.bezierCurveTo(6, 29, 7, 31, 5, 34);
+      g.stroke({ width: 0.5, color: 0x44aa66, alpha: 0.2 });
+      g.moveTo(13, 27); g.bezierCurveTo(12, 30, 13, 32, 11, 34);
+      g.stroke({ width: 0.5, color: 0x44aa66, alpha: 0.2 });
+      g.moveTo(18, 26); g.bezierCurveTo(19, 29, 18, 32, 20, 34);
+      g.stroke({ width: 0.5, color: 0x44aa66, alpha: 0.2 });
+      // Body (flowing shape)
+      g.moveTo(w / 2, 4); g.lineTo(w / 2 + 4, 8); g.lineTo(w / 2 + 7, 14);
+      g.lineTo(w / 2 + 8, 22); g.lineTo(w / 2 + 5, 28);
+      g.lineTo(w / 2 - 5, 28); g.lineTo(w / 2 - 8, 22);
+      g.lineTo(w / 2 - 7, 14); g.lineTo(w / 2 - 4, 8);
+      g.closePath();
+      g.fill(0x88ccaa);
+      g.moveTo(w / 2, 4); g.lineTo(w / 2 + 4, 8); g.lineTo(w / 2 + 7, 14);
+      g.lineTo(w / 2 + 8, 22); g.lineTo(w / 2 + 5, 28);
+      g.lineTo(w / 2 - 5, 28); g.lineTo(w / 2 - 8, 22);
+      g.lineTo(w / 2 - 7, 14); g.lineTo(w / 2 - 4, 8);
+      g.closePath();
+      g.stroke({ width: 1, color: 0x66aa88, alpha: 0.4 });
+      // Face void
+      g.ellipse(w / 2, 12, 4, 3);
+      g.fill(0x1a2a1a);
+      // Glowing eyes
+      g.circle(w / 2 - 2, 12, 1.5);
+      g.fill(0x44ffaa);
+      g.circle(w / 2 + 2, 12, 1.5);
+      g.fill(0x44ffaa);
+      // Eye glow
+      g.circle(w / 2 - 2, 12, 3);
+      g.fill({ color: 0x44ffaa, alpha: 0.15 });
+      g.circle(w / 2 + 2, 12, 3);
+      g.fill({ color: 0x44ffaa, alpha: 0.15 });
+    },
+  },
+
+  "Mud Golem": {
+    width: 34, height: 36,
+    draw(g, w, h) {
+      // Body (large rounded rect)
+      g.roundRect(7, 10, 20, 16, 4);
+      g.fill(0x6a5a3a);
+      g.roundRect(7, 10, 20, 16, 4);
+      g.stroke({ width: 1.5, color: 0x4a3a2a, alpha: 0.4 });
+      // Mud texture lines
+      g.moveTo(9, 14); g.lineTo(25, 15);
+      g.stroke({ width: 0.5, color: 0x5a4a2a, alpha: 0.3 });
+      g.moveTo(10, 20); g.lineTo(24, 19);
+      g.stroke({ width: 0.5, color: 0x5a4a2a, alpha: 0.3 });
+      // Head (rough circle)
+      g.circle(w / 2, 8, 6);
+      g.fill(0x7a6a4a);
+      g.circle(w / 2, 8, 6);
+      g.stroke({ width: 1, color: 0x4a3a2a, alpha: 0.3 });
+      // Eyes (glowing orange)
+      g.circle(w / 2 - 2, 7, 2);
+      g.fill(0xff8844);
+      g.circle(w / 2 + 2, 7, 2);
+      g.fill(0xff8844);
+      g.circle(w / 2 - 2, 7, 0.8);
+      g.fill(0xffcc88);
+      g.circle(w / 2 + 2, 7, 0.8);
+      g.fill(0xffcc88);
+      // Arms (thick)
+      g.rect(2, 12, 5, 12);
+      g.fill(0x6a5a3a);
+      g.rect(27, 12, 5, 12);
+      g.fill(0x6a5a3a);
+      // Fists
+      g.circle(4, 25, 3);
+      g.fill(0x7a6a4a);
+      g.circle(30, 25, 3);
+      g.fill(0x7a6a4a);
+      // Legs
+      g.rect(10, 26, 5, 8);
+      g.fill(0x5a4a2a);
+      g.rect(19, 26, 5, 8);
+      g.fill(0x5a4a2a);
+    },
+  },
+
+  "Vine Creeper": {
+    width: 32, height: 24,
+    draw(g, w, h) {
+      // Body (low, wide ellipse)
+      g.ellipse(w / 2, h / 2 + 2, 10, 6);
+      g.fill(0x2a6a2a);
+      g.ellipse(w / 2, h / 2 + 2, 10, 6);
+      g.stroke({ width: 1, color: 0x1a4a1a, alpha: 0.4 });
+      // Vine tendrils (4 per side)
+      const angles = [-0.8, -0.3, 0.2, 0.6];
+      for (const a of angles) {
+        const lx = w / 2 + Math.cos(Math.PI + a) * 10;
+        const ly = h / 2 + 2 + Math.sin(Math.PI + a) * 5;
+        const lx2 = w / 2 + Math.cos(Math.PI + a) * 16;
+        const ly2 = h / 2 + 2 + Math.sin(Math.PI + a) * 10;
+        g.moveTo(w / 2, h / 2 + 2); g.quadraticCurveTo(lx, ly, lx2, ly2);
+        g.stroke({ width: 1.5, color: 0x3a7a3a });
+        const rx = w / 2 + Math.cos(a) * 10;
+        const ry = h / 2 + 2 + Math.sin(a) * 5;
+        const rx2 = w / 2 + Math.cos(a) * 16;
+        const ry2 = h / 2 + 2 + Math.sin(a) * 10;
+        g.moveTo(w / 2, h / 2 + 2); g.quadraticCurveTo(rx, ry, rx2, ry2);
+        g.stroke({ width: 1.5, color: 0x3a7a3a });
+      }
+      // Eye (single, red)
+      g.circle(w / 2, h / 2 - 1, 3);
+      g.fill(0xff2222);
+      g.circle(w / 2, h / 2 - 1, 1.2);
+      g.fill(0xffaaaa);
+      // Thorns on body
+      g.circle(w / 2 - 5, h / 2, 1);
+      g.fill(0x1a4a1a);
+      g.circle(w / 2 + 6, h / 2 + 1, 1);
+      g.fill(0x1a4a1a);
+      g.circle(w / 2 - 2, h / 2 + 4, 0.8);
+      g.fill(0x1a4a1a);
+    },
+  },
+
+  "Swamp Drake": {
+    width: 36, height: 32,
+    draw(g, w, h) {
+      // Wings (folded)
+      g.moveTo(5, 12); g.lineTo(1, 4); g.lineTo(9, 14);
+      g.fill(0x3a5a3a);
+      g.moveTo(31, 12); g.lineTo(35, 4); g.lineTo(27, 14);
+      g.fill(0x3a5a3a);
+      // Tail
+      g.moveTo(w / 2, 22); g.bezierCurveTo(w / 2 - 4, 26, w / 2 - 8, 28, w / 2 - 10, 26);
+      g.stroke({ width: 3, color: 0x4a6a3a });
+      // Body
+      g.roundRect(9, 12, 18, 12, 3);
+      g.fill(0x4a6a3a);
+      g.roundRect(9, 12, 18, 12, 3);
+      g.stroke({ width: 1, color: 0x2a4a2a, alpha: 0.4 });
+      // Scales
+      g.moveTo(11, 16); g.lineTo(25, 16);
+      g.stroke({ width: 0.5, color: 0x5a8a5a, alpha: 0.3 });
+      g.moveTo(11, 19); g.lineTo(25, 19);
+      g.stroke({ width: 0.5, color: 0x5a8a5a, alpha: 0.3 });
+      // Head
+      g.ellipse(w / 2, 8, 6, 5);
+      g.fill(0x5a7a4a);
+      g.ellipse(w / 2, 8, 6, 5);
+      g.stroke({ width: 1, color: 0x3a5a2a, alpha: 0.3 });
+      // Snout
+      g.moveTo(w / 2 + 4, 7); g.lineTo(w / 2 + 7, 8); g.lineTo(w / 2 + 4, 10);
+      g.fill(0x5a7a4a);
+      // Eyes (yellow-green)
+      g.circle(w / 2 - 2, 7, 1.5);
+      g.fill(0xaaff44);
+      g.rect(w / 2 - 2.3, 6, 0.6, 2);
+      g.fill(0x111111);
+      g.circle(w / 2 + 2, 7, 1.5);
+      g.fill(0xaaff44);
+      g.rect(w / 2 + 1.7, 6, 0.6, 2);
+      g.fill(0x111111);
+      // Small horns
+      g.moveTo(w / 2 - 3, 4); g.lineTo(w / 2 - 4, 1); g.lineTo(w / 2 - 1, 4);
+      g.fill(0x3a5a2a);
+      g.moveTo(w / 2 + 1, 4); g.lineTo(w / 2 + 4, 1); g.lineTo(w / 2 + 3, 4);
+      g.fill(0x3a5a2a);
+      // Legs
+      g.rect(11, 24, 4, 6);
+      g.fill(0x3a5a2a);
+      g.rect(21, 24, 4, 6);
+      g.fill(0x3a5a2a);
+    },
+  },
+
   // ── NPC sprites ──
 
   "Elder Theron": {
