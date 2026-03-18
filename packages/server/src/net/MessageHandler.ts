@@ -1,5 +1,5 @@
 import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas } from "@madworld/shared";
-import { levelForXp, SkillName, PARTY_XP_RANGE, AIState, TileType } from "@madworld/shared";
+import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
 import { Mob } from "../game/entities/Mob.js";
 import { GroundItem } from "../game/entities/GroundItem.js";
@@ -947,6 +947,24 @@ function giveItem(player: Player, itemId: string, quantity: number): boolean {
   return true;
 }
 
+function godZoneTransition(player: Player, targetZoneId: string, targetX: number, targetY: number): boolean {
+  const oldZone = world.getZone(player.zoneId);
+  const newZone = world.getZone(targetZoneId);
+  if (!oldZone || !newZone) return false;
+
+  player.moveQueue = [];
+  player.combatTarget = null;
+  player.fishingState = null;
+  oldZone.removeEntity(player.eid);
+  player.zoneId = targetZoneId;
+  player.x = targetX;
+  player.y = targetY;
+  player.dirty = true;
+  newZone.addEntity(player);
+  newZone.sendZoneData(player);
+  return true;
+}
+
 function handleGodCommand(player: Player, command: string): void {
   const parts = command.slice(1).split(" ");
   const cmd = parts[0]?.toLowerCase();
@@ -1018,8 +1036,210 @@ function handleGodCommand(player: Player, command: string): void {
       break;
     }
 
+    case "killall": {
+      const zone = world.getZone(player.zoneId);
+      if (!zone) break;
+      let count = 0;
+      for (const [, mob] of zone.mobs) {
+        if (mob.aiState !== AIState.DEAD) {
+          mob.hp = 0;
+          handleMobDeath(mob, player, zone);
+          count++;
+        }
+      }
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Killed all ${count} mobs in zone` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "goto": {
+      // /goto <zoneId> — teleport to another zone
+      const targetZoneId = args[0]?.toLowerCase();
+      if (!targetZoneId) {
+        const zoneIds = Array.from(world.zones.keys()).join(", ");
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Usage: /goto <zone>. Zones: ${zoneIds}` } } satisfies ServerMessage);
+        break;
+      }
+      // Allow partial matching
+      let matchedZoneId: string | null = null;
+      for (const zid of world.zones.keys()) {
+        if (zid === targetZoneId || zid.includes(targetZoneId)) {
+          matchedZoneId = zid;
+          break;
+        }
+      }
+      if (!matchedZoneId) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Unknown zone: ${targetZoneId}. Use /zones to list.` } } satisfies ServerMessage);
+        break;
+      }
+      const targetZone = world.getZone(matchedZoneId);
+      if (!targetZone) break;
+      const ok = godZoneTransition(player, matchedZoneId, targetZone.def.spawnX, targetZone.def.spawnY);
+      if (ok) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Teleported to ${targetZone.def.name}` } } satisfies ServerMessage);
+      }
+      break;
+    }
+
+    case "zones": {
+      const zoneList = Array.from(world.zones.entries())
+        .map(([id, z]) => `${id} (${z.def.name})`)
+        .join(", ");
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Zones: ${zoneList}` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "speed": {
+      // /speed <multiplier> — change movement speed
+      const mult = parseFloat(args[0] ?? "1.5");
+      if (isNaN(mult) || mult < 0.5 || mult > 10) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Usage: /speed <0.5-10>" } } satisfies ServerMessage);
+        break;
+      }
+      player.speed = 3 * mult; // base PLAYER_SPEED is ~3
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Speed set to ${mult}x` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "level": {
+      // /level <skill> <level> — set skill to a specific level
+      const skillId = args[0]?.toLowerCase();
+      const targetLevel = parseInt(args[1] ?? "10", 10);
+      if (!skillId) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Usage: /level <skill> <level>. Skills: melee, defense, agility, fishing, mining, woodcutting, foraging, cooking, smithing, alchemy" } } satisfies ServerMessage);
+        break;
+      }
+      const skillData = player.skills.get(skillId as SkillName);
+      if (!skillData) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Unknown skill: ${skillId}` } } satisfies ServerMessage);
+        break;
+      }
+      const xpNeeded = xpForLevel(targetLevel);
+      skillData.xp = xpNeeded;
+      player.dirty = true;
+      player.send({ op: Op.S_XP_GAIN, d: { skillId, xp: 0, totalXp: xpNeeded } } satisfies ServerMessage);
+      player.send({ op: Op.S_LEVEL_UP, d: { skillId, newLevel: targetLevel } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Set ${skillId} to level ${targetLevel}` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "who": {
+      // /who — list online players
+      const players: string[] = [];
+      for (const [, p] of world.playersByEid) {
+        players.push(`${p.name} (${p.zoneId})`);
+      }
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Online (${players.length}): ${players.join(", ") || "none"}` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "tp": {
+      // /tp <playerName> — teleport to another player
+      const targetName = args[0];
+      if (!targetName) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Usage: /tp <playerName>" } } satisfies ServerMessage);
+        break;
+      }
+      let targetPlayer: Player | undefined;
+      for (const [, p] of world.playersByEid) {
+        if (p.name.toLowerCase() === targetName.toLowerCase()) {
+          targetPlayer = p;
+          break;
+        }
+      }
+      if (!targetPlayer) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Player "${targetName}" not found or offline` } } satisfies ServerMessage);
+        break;
+      }
+      if (player.zoneId !== targetPlayer.zoneId) {
+        godZoneTransition(player, targetPlayer.zoneId, targetPlayer.x, targetPlayer.y);
+      } else {
+        const tpZone = world.getZone(player.zoneId);
+        if (tpZone) {
+          player.moveQueue = [];
+          tpZone.moveEntity(player.eid, targetPlayer.x, targetPlayer.y);
+          player.dirty = true;
+          tpZone.broadcastToNearby(targetPlayer.x, targetPlayer.y, {
+            op: Op.S_ENTITY_MOVE,
+            d: { eid: player.eid, x: targetPlayer.x, y: targetPlayer.y, dx: 0, dy: 0, speed: 0, seq: player.lastMoveSeq },
+          } satisfies ServerMessage);
+          player.send({ op: Op.S_ENTITY_STOP, d: { eid: player.eid, x: targetPlayer.x, y: targetPlayer.y } } satisfies ServerMessage);
+        }
+      }
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Teleported to ${targetPlayer.name}` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "summon": {
+      // /summon <playerName> — bring another player to you
+      const summonName = args[0];
+      if (!summonName) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Usage: /summon <playerName>" } } satisfies ServerMessage);
+        break;
+      }
+      let summonTarget: Player | undefined;
+      for (const [, p] of world.playersByEid) {
+        if (p.name.toLowerCase() === summonName.toLowerCase()) {
+          summonTarget = p;
+          break;
+        }
+      }
+      if (!summonTarget) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Player "${summonName}" not found or offline` } } satisfies ServerMessage);
+        break;
+      }
+      if (summonTarget.zoneId !== player.zoneId) {
+        const oldZone = world.getZone(summonTarget.zoneId);
+        const newZone = world.getZone(player.zoneId);
+        if (oldZone && newZone) {
+          oldZone.removeEntity(summonTarget.eid);
+          summonTarget.zoneId = player.zoneId;
+          summonTarget.x = player.x;
+          summonTarget.y = player.y;
+          summonTarget.dirty = true;
+          newZone.addEntity(summonTarget);
+          newZone.sendZoneData(summonTarget);
+        }
+      } else {
+        const zone = world.getZone(player.zoneId);
+        if (zone) {
+          zone.moveEntity(summonTarget.eid, player.x, player.y);
+          zone.broadcastToNearby(player.x, player.y, {
+            op: Op.S_ENTITY_MOVE,
+            d: { eid: summonTarget.eid, x: player.x, y: player.y, dx: 0, dy: 0, speed: 0, seq: 0 },
+          } satisfies ServerMessage);
+        }
+      }
+      summonTarget.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `You have been summoned by ${player.name}` } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Summoned ${summonTarget.name}` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "god": {
+      // /god — toggle god mode info
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `God mode active. HP: ${player.hp}/${player.maxHp}, Speed: ${player.speed.toFixed(1)}, Zone: ${player.zoneId} (${player.x.toFixed(1)}, ${player.y.toFixed(1)})` } } satisfies ServerMessage);
+      break;
+    }
+
+    case "clear": {
+      // /clear — clear inventory
+      for (let i = 0; i < player.inventory.length; i++) {
+        player.inventory[i] = null;
+      }
+      const slots = player.inventory.map((_, i) => ({ index: i, itemId: null as string | null, quantity: 0 }));
+      player.send({ op: Op.S_INV_UPDATE, d: { slots } } satisfies ServerMessage);
+      player.dirty = true;
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Inventory cleared" } } satisfies ServerMessage);
+      break;
+    }
+
     case "help": {
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "God commands: /give <item> [qty], /items [filter], /spawn <Name> [dialog], /heal, /kill, /help" } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "God commands:" } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "/give <item> [qty] — spawn item | /items [filter] — list items" } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "/goto <zone> — teleport to zone | /zones — list zones" } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "/tp <player> — teleport to player | /summon <player> — bring player to you" } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "/spawn <Name> [dialog] — spawn NPC | /kill — kill nearby | /killall — kill all in zone" } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "/heal — full heal | /speed <mult> — set speed | /level <skill> <lvl> — set skill level" } } satisfies ServerMessage);
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "/who — online players | /god — status info | /clear — clear inventory" } } satisfies ServerMessage);
       break;
     }
 
