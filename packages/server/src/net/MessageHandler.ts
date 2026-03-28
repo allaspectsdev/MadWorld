@@ -13,6 +13,7 @@ import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQu
 import { handleMobDeath, grantXp } from "../game/systems/CombatSystem.js";
 import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
 import { getCurrentTick } from "../game/GameLoop.js";
+import { instanceManager } from "../game/InstanceManager.js";
 import { CampManager } from "../game/CampManager.js";
 import type { ServerWebSocket } from "bun";
 
@@ -183,6 +184,31 @@ export async function handleMessage(
     case Op.C_PARTY_KICK:
       partyManager.kickMember(player, msg.d.targetEid);
       break;
+
+    case Op.C_DUNGEON_ENTER: {
+      // Client requests dungeon entry via opcode (as opposed to portal tile).
+      // This is used when a UI button triggers entry instead of walking onto a portal.
+      const partyForDungeon = partyManager.getPartyForPlayer(player.eid);
+      if (!partyForDungeon) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You need a party to enter a dungeon." } } satisfies ServerMessage);
+        break;
+      }
+      // Delegate to instanceManager — same logic as portal-based entry
+      const existingInstance = instanceManager.getInstanceForParty(partyForDungeon.id);
+      if (existingInstance) {
+        instanceManager.enterInstance(player, existingInstance.instanceId);
+      } else {
+        const portalId = msg.d.portalId;
+        if (!portalId) break;
+        try {
+          const inst = instanceManager.createInstance(partyForDungeon.id, portalId);
+          instanceManager.enterInstance(player, inst.instanceId);
+        } catch (err) {
+          player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Failed to create dungeon instance." } } satisfies ServerMessage);
+        }
+      }
+      break;
+    }
 
     case Op.C_CHAT_SEND: {
       const now = Date.now();

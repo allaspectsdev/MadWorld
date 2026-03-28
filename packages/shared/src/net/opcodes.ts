@@ -114,21 +114,23 @@ export enum Op {
   S_QUEST_COMPLETE = 0xdb,
   S_QUEST_LIST = 0xdc,
 
-  // Camp / homestead system
-  S_CAMP_LIST = 0xbe,         // All camps owned by party
-  S_CAMP_STORAGE = 0xbf,      // Camp chest contents
-  S_CAMP_PLACED = 0xc2,       // Confirm camp placement
-  S_HOMESTEAD_STATE = 0xc3,   // Full homestead state (furniture, gardens, visitor)
-  S_FURNITURE_UPDATE = 0xc4,  // Furniture placed/removed
-  S_GARDEN_UPDATE = 0xc5,     // Garden plant state changed
-  S_VISITOR_ARRIVED = 0xc6,   // NPC visitor arrived at homestead
-  S_BOAT_UPDATE = 0xc7,       // Boat state changed (entered, exited, damaged, destroyed)
+  // Camp system (stable — do not renumber)
+  S_CAMP_LIST = 0xdd,         // All camps owned by party
+  S_CAMP_STORAGE = 0xde,      // Camp chest contents
+  S_CAMP_PLACED = 0xdf,       // Confirm camp placement
 
   // Procedural world / chunk streaming
   S_CHUNK_DATA = 0xe0,         // Server sends chunk tile data
   S_CHUNK_UNLOAD = 0xe1,       // Server tells client to unload a chunk
   S_DISCOVERY_UPDATE = 0xe2,   // New chunks discovered (fog reveal)
   S_DISCOVERY_INIT = 0xe3,     // Initial discovered chunk list on login
+
+  // Homestead / boat (0xe4-0xe9)
+  S_HOMESTEAD_STATE = 0xe4,   // Full homestead state (furniture, gardens, visitor)
+  S_FURNITURE_UPDATE = 0xe5,  // Furniture placed/removed
+  S_GARDEN_UPDATE = 0xe6,     // Garden plant state changed
+  S_VISITOR_ARRIVED = 0xe7,   // NPC visitor arrived at homestead
+  S_BOAT_UPDATE = 0xe8,       // Boat state changed
 
   S_TICK = 0xf0,
   S_PONG = 0xf1,
