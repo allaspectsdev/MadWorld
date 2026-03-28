@@ -47,6 +47,7 @@ class InstanceManager {
           spawn.x + offsetX,
           spawn.y + offsetY,
           spawn.wanderRadius,
+          1, // eliteRoll=1 → never elite in dungeons
         );
         zone.addEntity(mob);
       }

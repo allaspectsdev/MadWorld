@@ -1,9 +1,16 @@
 import { Entity } from "./Entity.js";
 import { EntityType, AIState, type MobDef } from "@madworld/shared";
 
+/** Elite multiplier applied to HP, checked in CombatSystem for XP/loot. */
+export const ELITE_HP_MULTIPLIER = 3;
+/** Threshold for the elite roll (0..1). Values below this → elite. */
+export const ELITE_CHANCE = 0.05;
+
 export class Mob extends Entity {
   def: MobDef;
   hp: number;
+  /** Effective max HP (accounts for elite multiplier). Set once in constructor. */
+  maxHp: number;
   aiState: AIState = AIState.IDLE;
   targetEid: number | null = null;
   spawnX: number;
@@ -18,7 +25,7 @@ export class Mob extends Entity {
   statusEffects: Map<string, { defId: string; ticksLeft: number; sourceEid: number }> = new Map();
   stunTicks: number = 0;
 
-  // Elite variant (5% chance, 3x HP, 2x loot/XP)
+  // Elite variant
   isElite: boolean;
 
   // Boss fields
@@ -33,19 +40,31 @@ export class Mob extends Entity {
    */
   pendingActions: Array<{ fireTick: number; action: () => void }> = [];
 
-  constructor(def: MobDef, zoneId: string, x: number, y: number, wanderRadius: number) {
+  /**
+   * @param eliteRoll  A value in [0, 1). If < ELITE_CHANCE the mob becomes
+   *                   elite. Pass a seeded RNG value for deterministic chunks,
+   *                   or omit to use Math.random() (legacy/static zones).
+   */
+  constructor(
+    def: MobDef,
+    zoneId: string,
+    x: number,
+    y: number,
+    wanderRadius: number,
+    eliteRoll?: number,
+  ) {
     super(EntityType.MOB, zoneId, x, y);
     this.def = def;
-    this.hp = def.maxHp;
     this.spawnX = x;
     this.spawnY = y;
     this.wanderRadius = wanderRadius;
     this.speed = 2;
     this.isBoss = def.isBoss ?? false;
-    this.isElite = !this.isBoss && Math.random() < 0.05;
-    if (this.isElite) {
-      this.hp = def.maxHp * 3;
-    }
+
+    // Elite determination — use provided roll for determinism, fall back to Math.random()
+    this.isElite = !this.isBoss && (eliteRoll ?? Math.random()) < ELITE_CHANCE;
+    this.maxHp = this.isElite ? def.maxHp * ELITE_HP_MULTIPLIER : def.maxHp;
+    this.hp = this.maxHp;
 
     if (this.isBoss && def.bossAbilities) {
       for (const ability of def.bossAbilities) {
@@ -55,7 +74,7 @@ export class Mob extends Entity {
   }
 
   reset(): void {
-    this.hp = this.def.maxHp;
+    this.hp = this.maxHp;
     this.aiState = AIState.IDLE;
     this.targetEid = null;
     this.x = this.spawnX;

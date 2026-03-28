@@ -60,7 +60,7 @@ export class Zone {
           ? { name: entity.name, appearance: entity.appearance, hp: entity.hp, maxHp: entity.maxHp, ...(entity.isGod ? { isGod: true } : {}), equipment: Object.fromEntries(entity.equipment) }
           : {}),
         ...(entity instanceof Mob
-          ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.isElite ? entity.def.maxHp * 3 : entity.def.maxHp, level: entity.def.level, ...(entity.isElite ? { isElite: true } : {}) }
+          ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.maxHp, level: entity.def.level, ...(entity.isElite ? { isElite: true } : {}) }
           : {}),
         ...(entity instanceof GroundItem
           ? { name: entity.itemId, mobId: entity.itemId }
@@ -153,7 +153,7 @@ export class Zone {
             ? { name: entity.name, appearance: entity.appearance, hp: entity.hp, maxHp: entity.maxHp, ...(entity.isGod ? { isGod: true } : {}), equipment: Object.fromEntries(entity.equipment) }
             : {}),
           ...(entity instanceof Mob
-            ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.isElite ? entity.def.maxHp * 3 : entity.def.maxHp, level: entity.def.level, ...(entity.isElite ? { isElite: true } : {}) }
+            ? { name: entity.def.name, mobId: entity.def.id, hp: entity.hp, maxHp: entity.maxHp, level: entity.def.level, ...(entity.isElite ? { isElite: true } : {}) }
             : {}),
           ...(entity instanceof GroundItem
             ? { name: entity.itemId, mobId: entity.itemId }
