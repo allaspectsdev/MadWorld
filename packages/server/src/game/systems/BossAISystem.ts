@@ -6,18 +6,39 @@ import { Player } from "../entities/Player.js";
 import { AIState } from "@madworld/shared";
 import type { Zone } from "../Zone.js";
 import type { BossAbilityDef } from "@madworld/shared";
+import { getCurrentTick } from "../GameLoop.js";
 
 export function processBossAI(): void {
+  const tick = getCurrentTick();
+
   for (const [, zone] of world.instances) {
     for (const [, mob] of zone.mobs) {
       if (!mob.isBoss || mob.aiState === AIState.DEAD) continue;
+
+      // Drain the pending actions queue
+      drainPendingActions(mob, tick);
+
       if (mob.aiState !== AIState.CHASE) continue;
-      processBossAbilities(mob, zone);
+      processBossAbilities(mob, zone, tick);
     }
   }
 }
 
-function processBossAbilities(boss: Mob, zone: Zone): void {
+/** Execute any pending actions whose fire tick has arrived. */
+function drainPendingActions(mob: Mob, currentTick: number): void {
+  let i = 0;
+  while (i < mob.pendingActions.length) {
+    const entry = mob.pendingActions[i];
+    if (currentTick >= entry.fireTick) {
+      mob.pendingActions.splice(i, 1);
+      entry.action();
+    } else {
+      i++;
+    }
+  }
+}
+
+function processBossAbilities(boss: Mob, zone: Zone, currentTick: number): void {
   if (!boss.def.bossAbilities) return;
 
   for (const ability of boss.def.bossAbilities) {
@@ -27,14 +48,19 @@ function processBossAbilities(boss: Mob, zone: Zone): void {
       continue;
     }
 
-    executeBossAbility(boss, ability, zone);
+    executeBossAbility(boss, ability, zone, currentTick);
     boss.abilityCooldowns.set(ability.id, ability.cooldownTicks);
   }
 }
 
-function executeBossAbility(boss: Mob, ability: BossAbilityDef, zone: Zone): void {
+function executeBossAbility(
+  boss: Mob,
+  ability: BossAbilityDef,
+  zone: Zone,
+  currentTick: number,
+): void {
   if (ability.radius > 0 && ability.damage > 0) {
-    // AoE ability — telegraph first, then damage
+    // AoE ability — telegraph first, then damage after delay
     zone.broadcastToNearby(boss.x, boss.y, {
       op: Op.S_BOSS_ABILITY,
       d: {
@@ -46,29 +72,42 @@ function executeBossAbility(boss: Mob, ability: BossAbilityDef, zone: Zone): voi
       },
     } satisfies ServerMessage);
 
-    // Schedule damage after telegraph
-    const telegraphMs = ability.telegraphTicks * 100;
-    setTimeout(() => {
-      if (boss.hp <= 0) return;
-      for (const [, player] of zone.players) {
-        if (player.hp <= 0) continue;
-        const dist = movementFormulas.distance(boss.x, boss.y, player.x, player.y);
-        if (dist <= ability.radius) {
-          player.hp = Math.max(0, player.hp - ability.damage);
-          player.dirty = true;
-          zone.broadcastToNearby(player.x, player.y, {
-            op: Op.S_DAMAGE,
-            d: {
-              sourceEid: boss.eid,
-              targetEid: player.eid,
-              amount: ability.damage,
-              isCrit: false,
-              targetHpAfter: player.hp,
-            },
-          } satisfies ServerMessage);
+    // Schedule damage via tick-based queue (not setTimeout)
+    const fireTick = currentTick + ability.telegraphTicks;
+    const bossEid = boss.eid;
+    const zoneId = zone.id;
+    const radius = ability.radius;
+    const damage = ability.damage;
+
+    boss.pendingActions.push({
+      fireTick,
+      action() {
+        // Re-resolve zone and boss by ID to avoid stale references
+        const z = world.getZone(zoneId);
+        if (!z) return;
+        const b = z.mobs.get(bossEid);
+        if (!b || b.hp <= 0) return;
+
+        for (const [, player] of z.players) {
+          if (player.hp <= 0) continue;
+          const dist = movementFormulas.distance(b.x, b.y, player.x, player.y);
+          if (dist <= radius) {
+            player.hp = Math.max(0, player.hp - damage);
+            player.dirty = true;
+            z.broadcastToNearby(player.x, player.y, {
+              op: Op.S_DAMAGE,
+              d: {
+                sourceEid: bossEid,
+                targetEid: player.eid,
+                amount: damage,
+                isCrit: false,
+                targetHpAfter: player.hp,
+              },
+            } satisfies ServerMessage);
+          }
         }
-      }
-    }, telegraphMs);
+      },
+    });
   } else if (ability.id === "death_gaze" && ability.damage > 0) {
     // Single-target ability — target highest threat
     let maxThreat = 0;
@@ -96,21 +135,37 @@ function executeBossAbility(boss: Mob, ability: BossAbilityDef, zone: Zone): voi
       },
     } satisfies ServerMessage);
 
-    setTimeout(() => {
-      if (boss.hp <= 0 || target.hp <= 0) return;
-      target.hp = Math.max(0, target.hp - ability.damage);
-      target.dirty = true;
-      zone.broadcastToNearby(target.x, target.y, {
-        op: Op.S_DAMAGE,
-        d: {
-          sourceEid: boss.eid,
-          targetEid: target.eid,
-          amount: ability.damage,
-          isCrit: false,
-          targetHpAfter: target.hp,
-        },
-      } satisfies ServerMessage);
-    }, ability.telegraphTicks * 100);
+    // Schedule single-target damage via tick queue
+    const fireTick = currentTick + ability.telegraphTicks;
+    const bossEid = boss.eid;
+    const zoneId = zone.id;
+    const capturedTargetEid = targetEid;
+    const damage = ability.damage;
+
+    boss.pendingActions.push({
+      fireTick,
+      action() {
+        const z = world.getZone(zoneId);
+        if (!z) return;
+        const b = z.mobs.get(bossEid);
+        if (!b || b.hp <= 0) return;
+        const t = z.players.get(capturedTargetEid);
+        if (!t || t.hp <= 0) return;
+
+        t.hp = Math.max(0, t.hp - damage);
+        t.dirty = true;
+        z.broadcastToNearby(t.x, t.y, {
+          op: Op.S_DAMAGE,
+          d: {
+            sourceEid: bossEid,
+            targetEid: capturedTargetEid,
+            amount: damage,
+            isCrit: false,
+            targetHpAfter: t.hp,
+          },
+        } satisfies ServerMessage);
+      },
+    });
   }
   // war_cry: internal buff, no broadcast needed — handled in combat via stat boost
 }

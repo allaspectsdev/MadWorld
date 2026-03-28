@@ -26,6 +26,9 @@ function tick(): void {
     // 3. Run boss AI (instance zones)
     processBossAI();
 
+    // 3b. Process instance tick (pending wipe ejections)
+    instanceManager.processTick();
+
     // 4. Resolve combat (world + instance zones, shared XP)
     processCombat();
 

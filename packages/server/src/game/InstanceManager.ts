@@ -4,6 +4,7 @@ import { Mob } from "./entities/Mob.js";
 import { Player } from "./entities/Player.js";
 import { world } from "./World.js";
 import { DUNGEON_DEFS, buildDungeonZone } from "./data/dungeons/index.js";
+import { getCurrentTick } from "./GameLoop.js";
 
 interface DungeonInstance {
   instanceId: string;
@@ -14,14 +15,12 @@ interface DungeonInstance {
   lastActivityAt: number;
   isComplete: boolean;
   idleTimeoutId: ReturnType<typeof setTimeout> | null;
+  /** Tick-based pending wipe ejection (replaces setTimeout). */
+  wipeTick: number | null;
 }
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-let instanceCounter = 0;
-
-function generateInstanceId(): string {
-  return `inst_${++instanceCounter}_${Date.now().toString(36)}`;
-}
+const WIPE_DELAY_TICKS = 30; // 3 seconds at 10 ticks/sec
 
 class InstanceManager {
   private instances = new Map<string, DungeonInstance>();
@@ -31,7 +30,7 @@ class InstanceManager {
     const dungeonDef = DUNGEON_DEFS.find((d) => d.id === dungeonId);
     if (!dungeonDef) throw new Error(`Unknown dungeon: ${dungeonId}`);
 
-    const instanceId = generateInstanceId();
+    const instanceId = `inst_${crypto.randomUUID()}`;
     const zoneDef = buildDungeonZone(dungeonId);
     const zone = new Zone(zoneDef, instanceId, partyId);
 
@@ -64,6 +63,7 @@ class InstanceManager {
       lastActivityAt: Date.now(),
       isComplete: false,
       idleTimeoutId: null,
+      wipeTick: null,
     };
 
     this.instances.set(instanceId, instance);
@@ -193,7 +193,7 @@ class InstanceManager {
     const instance = this.instances.get(instanceId);
     if (!instance) return;
 
-    // Notify
+    // Notify players immediately
     for (const [, player] of instance.zone.players) {
       player.send({
         op: Op.S_DUNGEON_WIPE,
@@ -201,22 +201,44 @@ class InstanceManager {
       } satisfies ServerMessage);
     }
 
-    // After 3 seconds, eject all players and reset mobs
-    setTimeout(() => {
-      const playersToEject = [...instance.zone.players.values()];
-      for (const player of playersToEject) {
-        player.hp = player.maxHp;
-        player.combatTarget = null;
-        this.exitInstance(player);
+    // Schedule ejection via tick queue instead of setTimeout
+    instance.wipeTick = getCurrentTick() + WIPE_DELAY_TICKS;
+  }
+
+  /**
+   * Called each tick from the game loop to process pending wipe ejections.
+   * This keeps wipe handling inside the tick cadence.
+   */
+  processTick(): void {
+    const tick = getCurrentTick();
+    for (const [, instance] of this.instances) {
+      if (instance.wipeTick !== null && tick >= instance.wipeTick) {
+        instance.wipeTick = null;
+        this.executeWipeEjection(instance);
       }
-      instance.zone.resetInstance();
-      console.log(`[Instance] Wipe in ${instance.dungeonId} (${instanceId}), mobs reset`);
-    }, 3000);
+    }
+  }
+
+  private executeWipeEjection(instance: DungeonInstance): void {
+    // Re-check the instance still exists (may have been destroyed)
+    if (!this.instances.has(instance.instanceId)) return;
+
+    const playersToEject = [...instance.zone.players.values()];
+    for (const player of playersToEject) {
+      player.hp = player.maxHp;
+      player.combatTarget = null;
+      this.exitInstance(player);
+    }
+    instance.zone.resetInstance();
+    console.log(`[Instance] Wipe in ${instance.dungeonId} (${instance.instanceId}), mobs reset`);
   }
 
   destroyInstance(instanceId: string): void {
     const instance = this.instances.get(instanceId);
     if (!instance) return;
+
+    // Cancel any pending wipe
+    instance.wipeTick = null;
 
     if (instance.idleTimeoutId) {
       clearTimeout(instance.idleTimeoutId);

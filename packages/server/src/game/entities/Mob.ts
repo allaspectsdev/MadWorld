@@ -23,6 +23,13 @@ export class Mob extends Entity {
   abilityCooldowns: Map<string, number> = new Map();
   threatMap: Map<number, number> = new Map();
 
+  /**
+   * Tick-based pending actions queue. Each entry fires when
+   * currentTick >= fireTick. Used for boss telegraph damage
+   * instead of setTimeout so it stays inside the tick cadence.
+   */
+  pendingActions: Array<{ fireTick: number; action: () => void }> = [];
+
   constructor(def: MobDef, zoneId: string, x: number, y: number, wanderRadius: number) {
     super(EntityType.MOB, zoneId, x, y);
     this.def = def;
@@ -54,6 +61,7 @@ export class Mob extends Entity {
     this.threatMap.clear();
     this.statusEffects.clear();
     this.stunTicks = 0;
+    this.pendingActions = [];
     if (this.isBoss && this.def.bossAbilities) {
       for (const ability of this.def.bossAbilities) {
         this.abilityCooldowns.set(ability.id, ability.cooldownTicks);

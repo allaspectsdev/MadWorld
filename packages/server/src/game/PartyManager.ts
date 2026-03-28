@@ -11,9 +11,8 @@ interface Party {
   dungeonInstanceId: string | null;
 }
 
-let partyIdCounter = 0;
 function generatePartyId(): string {
-  return `party_${++partyIdCounter}_${Date.now().toString(36)}`;
+  return `party_${crypto.randomUUID()}`;
 }
 
 class PartyManager {
