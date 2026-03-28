@@ -23,6 +23,12 @@ export { FISHING_SPOTS, type FishingSpotDef } from "./constants/fishing.js";
 export { RESOURCE_NODES, getNodesForBiome, type ResourceNodeDef } from "./constants/gathering.js";
 export { CAMP_ITEMS, RECIPES, getRecipe, getRecipesForSkill, type CampItemDef, type CraftRecipe } from "./constants/camps.js";
 export { LANDMARKS, getLandmark, getLandmarksForBiome, type LandmarkDef, type LandmarkPlacement } from "./constants/landmarks.js";
+export {
+  FURNITURE, GARDEN_SEEDS, VISITORS,
+  HOMESTEAD_SIZE, HOMESTEAD_MAX_FURNITURE, HOMESTEAD_MAX_GARDENS,
+  type FurnitureDef, type FurnitureCategory, type PlacedFurniture,
+  type GardenSeedDef, type GardenPlant, type VisitorDef,
+} from "./constants/homestead.js";
 export { STATUS_EFFECTS, type StatusEffectDef } from "./types/statusEffect.js";
 
 // Formulas

@@ -49,6 +49,9 @@ export enum Op {
   C_CAMP_STORE = 0x6a,       // Store item in camp chest
   C_CAMP_WITHDRAW = 0x6b,    // Withdraw item from camp chest
   C_FAST_TRAVEL = 0x6c,      // Fast-travel to a camp
+  C_PLACE_FURNITURE = 0x6d,  // Place furniture in homestead
+  C_REMOVE_FURNITURE = 0x6e, // Remove furniture from homestead
+  C_GARDEN_PLANT = 0x6f,     // Plant a seed in a garden plot
 
   C_PING = 0x70,
 
@@ -108,10 +111,14 @@ export enum Op {
   S_QUEST_COMPLETE = 0xdb,
   S_QUEST_LIST = 0xdc,
 
-  // Camp system
-  S_CAMP_LIST = 0xdd,         // All camps owned by party
-  S_CAMP_STORAGE = 0xde,      // Camp chest contents
-  S_CAMP_PLACED = 0xdf,       // Confirm camp placement
+  // Camp / homestead system
+  S_CAMP_LIST = 0xbe,         // All camps owned by party
+  S_CAMP_STORAGE = 0xbf,      // Camp chest contents
+  S_CAMP_PLACED = 0xc2,       // Confirm camp placement
+  S_HOMESTEAD_STATE = 0xc3,   // Full homestead state (furniture, gardens, visitor)
+  S_FURNITURE_UPDATE = 0xc4,  // Furniture placed/removed
+  S_GARDEN_UPDATE = 0xc5,     // Garden plant state changed
+  S_VISITOR_ARRIVED = 0xc6,   // NPC visitor arrived at homestead
 
   // Procedural world / chunk streaming
   S_CHUNK_DATA = 0xe0,         // Server sends chunk tile data

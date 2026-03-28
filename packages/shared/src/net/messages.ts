@@ -238,6 +238,40 @@ export interface S_CampPlaced {
   tier: number;
 }
 
+// ---- Homestead ----
+
+export interface S_HomesteadState {
+  campId: number;
+  furniture: { furnitureId: string; gridX: number; gridY: number; displayItemId?: string }[];
+  gardens: { gridX: number; gridY: number; seedId: string; plantedAt: number; readyAt: number }[];
+  visitor?: { visitorId: string; name: string; shopItems: { itemId: string; price: number }[]; expiresAt: number };
+}
+
+export interface S_FurnitureUpdate {
+  campId: number;
+  action: "placed" | "removed";
+  furnitureId: string;
+  gridX: number;
+  gridY: number;
+}
+
+export interface S_GardenUpdate {
+  campId: number;
+  gridX: number;
+  gridY: number;
+  seedId: string;
+  plantedAt: number;
+  readyAt: number;
+}
+
+export interface S_VisitorArrived {
+  campId: number;
+  visitorId: string;
+  name: string;
+  shopItems: { itemId: string; price: number }[];
+  expiresAt: number;
+}
+
 // ---- Chunk Streaming / Procedural World ----
 
 export interface S_ChunkData {
@@ -521,6 +555,10 @@ export type ServerMessage =
   | { op: Op.S_CAMP_LIST; d: S_CampList }
   | { op: Op.S_CAMP_STORAGE; d: S_CampStorage }
   | { op: Op.S_CAMP_PLACED; d: S_CampPlaced }
+  | { op: Op.S_HOMESTEAD_STATE; d: S_HomesteadState }
+  | { op: Op.S_FURNITURE_UPDATE; d: S_FurnitureUpdate }
+  | { op: Op.S_GARDEN_UPDATE; d: S_GardenUpdate }
+  | { op: Op.S_VISITOR_ARRIVED; d: S_VisitorArrived }
   | { op: Op.S_CHUNK_DATA; d: S_ChunkData }
   | { op: Op.S_CHUNK_UNLOAD; d: S_ChunkUnload }
   | { op: Op.S_DISCOVERY_UPDATE; d: S_DiscoveryUpdate }

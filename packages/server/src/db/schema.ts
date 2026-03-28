@@ -124,8 +124,12 @@ export const partyCamps = pgTable(
     worldY: real("world_y").notNull(),
     chunkX: integer("chunk_x").notNull(),
     chunkY: integer("chunk_y").notNull(),
-    tier: smallint("tier").notNull().default(1), // 1=campfire, 2=small camp, 3=full camp
+    tier: smallint("tier").notNull().default(1), // 1=campfire, 2=small camp, 3=full camp, 4=homestead
     storage: jsonb("storage").notNull().default([]),  // InventorySlot[]
+    furniture: jsonb("furniture").notNull().default([]),  // PlacedFurniture[]
+    gardens: jsonb("gardens").notNull().default([]),     // GardenPlant[] (with grid positions)
+    visitorId: varchar("visitor_id", { length: 64 }),    // Current NPC visitor (null if none)
+    visitorExpiresAt: timestamp("visitor_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
