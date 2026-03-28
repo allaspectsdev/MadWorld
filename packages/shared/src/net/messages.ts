@@ -285,6 +285,15 @@ export interface S_BoatUpdate {
   y?: number;
 }
 
+// ---- Weather ----
+
+export interface S_WeatherUpdate {
+  weather: string;       // WeatherType enum value
+  intensity: number;     // 0..1
+  durationTicks: number; // remaining ticks
+  ambientTint: number;   // hex color for lighting
+}
+
 // ---- Chunk Streaming / Procedural World ----
 
 export interface S_ChunkData {
@@ -588,6 +597,7 @@ export type ServerMessage =
   | { op: Op.S_GARDEN_UPDATE; d: S_GardenUpdate }
   | { op: Op.S_VISITOR_ARRIVED; d: S_VisitorArrived }
   | { op: Op.S_BOAT_UPDATE; d: S_BoatUpdate }
+  | { op: Op.S_WEATHER_UPDATE; d: S_WeatherUpdate }
   | { op: Op.S_CHUNK_DATA; d: S_ChunkData }
   | { op: Op.S_CHUNK_UNLOAD; d: S_ChunkUnload }
   | { op: Op.S_DISCOVERY_UPDATE; d: S_DiscoveryUpdate }

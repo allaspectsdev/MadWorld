@@ -9,6 +9,7 @@ import { processAbilities } from "./systems/AbilitySystem.js";
 import { instanceManager } from "./InstanceManager.js";
 import { GroundItem } from "./entities/GroundItem.js";
 import { resetAllRateLimits } from "../net/MessageHandler.js";
+import { weatherManager } from "./WeatherManager.js";
 import type { Zone } from "./Zone.js";
 
 let currentTick = 0;
@@ -47,6 +48,9 @@ function tick(): void {
     // 5. Process ability cooldowns, status effects, and fishing timers
     processAbilities();
     processFishing(currentTick);
+
+    // 5b. Weather tick (transitions, damage, region re-rolls)
+    weatherManager.processTick();
 
     // 6. Despawn expired ground items
     processGroundItemDespawn();

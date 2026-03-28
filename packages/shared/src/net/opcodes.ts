@@ -131,6 +131,7 @@ export enum Op {
   S_GARDEN_UPDATE = 0xe6,     // Garden plant state changed
   S_VISITOR_ARRIVED = 0xe7,   // NPC visitor arrived at homestead
   S_BOAT_UPDATE = 0xe8,       // Boat state changed
+  S_WEATHER_UPDATE = 0xe9,   // Weather state for player's region
 
   S_TICK = 0xf0,
   S_PONG = 0xf1,

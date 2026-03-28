@@ -44,6 +44,13 @@ export * as movementFormulas from "./formulas/movement.js";
 export { Op } from "./net/opcodes.js";
 export * from "./net/messages.js";
 
+// Weather
+export {
+  WeatherType, WEATHER_DEFS, BIOME_WEATHER,
+  WEATHER_MIN_DURATION, WEATHER_MAX_DURATION, WEATHER_REROLL_INTERVAL,
+  type WeatherDef,
+} from "./constants/weather.js";
+
 // Binary protocol
 export {
   BINARY_OPCODES,

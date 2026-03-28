@@ -652,6 +652,20 @@ export class Dispatcher {
         break;
       }
 
+      case Op.S_WEATHER_UPDATE: {
+        // Store weather state for rendering systems to read
+        store.setWeather(msg.d.weather, msg.d.intensity, msg.d.durationTicks, msg.d.ambientTint);
+        if (msg.d.weather !== "clear" && msg.d.intensity > 0.3) {
+          const names: Record<string, string> = {
+            rain: "Rain", heavy_rain: "Heavy Rain", snow: "Snow",
+            blizzard: "Blizzard", sandstorm: "Sandstorm",
+            fog: "Fog", thunderstorm: "Thunderstorm",
+          };
+          this.showSystemMessage(names[msg.d.weather] ?? msg.d.weather);
+        }
+        break;
+      }
+
       case Op.S_TICK: {
         break;
       }

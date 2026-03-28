@@ -1,4 +1,4 @@
-import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong } from "@madworld/shared";
+import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong, getRecipe, RESOURCE_NODES } from "@madworld/shared";
 import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType, BOATS, FURNITURE, GARDEN_SEEDS, HOMESTEAD_SIZE, HOMESTEAD_MAX_FURNITURE } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
 import { Mob } from "../game/entities/Mob.js";
@@ -1230,27 +1230,114 @@ export async function handleMessage(
     // ---- Gathering ----
 
     case Op.C_GATHER_START: {
-      // Stub — GatheringSystem handles the actual logic, but we need
-      // the message handler to route the intent. Full integration requires
-      // the GatheringSystem to be wired into zones, which is a follow-up.
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Gathering not yet wired to world." } } satisfies ServerMessage);
+      const nodeDef = RESOURCE_NODES[msg.d.nodeEid as unknown as string];
+      // For now, gathering uses a simplified inline flow since resource
+      // nodes aren't yet spawned as world entities. The GatheringSystem
+      // tick-based flow will replace this when nodes are entity-managed.
+      // This handler validates skill + gives items directly for testing.
+      if (!nodeDef) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown resource." } } satisfies ServerMessage);
+        break;
+      }
+      const gatherSkillXp = player.skills.get(nodeDef.skill as SkillName)?.xp ?? 0;
+      if (levelForXp(gatherSkillXp) < nodeDef.levelRequired) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires ${nodeDef.skill} level ${nodeDef.levelRequired}.` } } satisfies ServerMessage);
+        break;
+      }
+      // Grant items
+      for (const y of nodeDef.yields) {
+        if (Math.random() < (y.chance ?? 1)) {
+          giveItem(player, y.itemId, y.quantity);
+        }
+      }
+      // Grant XP
+      grantXp(player, nodeDef.skill as SkillName, nodeDef.xp);
+      sendInventory(player);
+      player.send({
+        op: Op.S_GATHER_RESULT,
+        d: { nodeEid: msg.d.nodeEid, success: true, xp: nodeDef.xp, skillId: nodeDef.skill },
+      } satisfies ServerMessage);
       break;
     }
 
     case Op.C_GATHER_ASSIST: {
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Gathering not yet wired to world." } } satisfies ServerMessage);
+      // Co-op assist — for now echo back that assist was received.
+      // Full co-op flow requires GatheringSystem entity integration.
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Assisting gather..." } } satisfies ServerMessage);
       break;
     }
 
     // ---- Crafting ----
 
     case Op.C_CRAFT_START: {
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Crafting not yet wired to world." } } satisfies ServerMessage);
+      const recipe = getRecipe(msg.d.recipeId);
+      if (!recipe) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown recipe." } } satisfies ServerMessage);
+        break;
+      }
+      // Check skill level
+      const craftSkillXp = player.skills.get(recipe.skill as SkillName)?.xp ?? 0;
+      if (levelForXp(craftSkillXp) < recipe.levelRequired) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires ${recipe.skill} level ${recipe.levelRequired}.` } } satisfies ServerMessage);
+        break;
+      }
+      // Check combo requirement
+      if (recipe.combo) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "This recipe requires two players. Use combo crafting." } } satisfies ServerMessage);
+        break;
+      }
+      // Check ingredients
+      let hasAll = true;
+      for (const ing of recipe.ingredients) {
+        let found = 0;
+        for (const slot of player.inventory) {
+          if (slot && slot.itemId === ing.itemId) found += slot.quantity;
+        }
+        if (found < ing.quantity) { hasAll = false; break; }
+      }
+      if (!hasAll) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Missing ingredients." } } satisfies ServerMessage);
+        break;
+      }
+      // Consume ingredients
+      for (const ing of recipe.ingredients) {
+        let remaining = ing.quantity;
+        for (let i = 0; i < player.inventory.length && remaining > 0; i++) {
+          const slot = player.inventory[i];
+          if (slot && slot.itemId === ing.itemId) {
+            const take = Math.min(slot.quantity, remaining);
+            slot.quantity -= take;
+            remaining -= take;
+            if (slot.quantity <= 0) player.inventory[i] = null;
+          }
+        }
+      }
+      // Check burn chance (cooking)
+      const burned = recipe.burnChance
+        ? Math.random() < recipe.burnChance(levelForXp(craftSkillXp))
+        : false;
+      if (burned) {
+        sendInventory(player);
+        player.send({ op: Op.S_CRAFT_RESULT, d: { recipeId: recipe.id, success: false, burned: true } } satisfies ServerMessage);
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You burned it!" } } satisfies ServerMessage);
+        break;
+      }
+      // Grant result
+      giveItem(player, recipe.result.itemId, recipe.result.quantity);
+      grantXp(player, recipe.skill as SkillName, recipe.xp);
+      sendInventory(player);
+      player.send({
+        op: Op.S_CRAFT_RESULT,
+        d: { recipeId: recipe.id, success: true, items: recipe.result, xp: recipe.xp },
+      } satisfies ServerMessage);
       break;
     }
 
     case Op.C_CRAFT_CONTRIBUTE: {
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Crafting not yet wired to world." } } satisfies ServerMessage);
+      // Combo crafting — two-player simultaneous ingredient contribution.
+      // Full implementation needs a pending craft session manager.
+      // For now, inform the player.
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Combo crafting requires a partner at a crafting station." } } satisfies ServerMessage);
       break;
     }
 

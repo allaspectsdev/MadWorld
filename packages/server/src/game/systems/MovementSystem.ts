@@ -5,6 +5,7 @@ import { instanceManager } from "../InstanceManager.js";
 import { onZoneEnter as questOnZoneEnter } from "./QuestSystem.js";
 import { Op, TICK_MS, TileType, type ServerMessage, type Portal, encodeEntityMove } from "@madworld/shared";
 import { movementFormulas } from "@madworld/shared";
+import { weatherManager } from "../WeatherManager.js";
 
 export function processMovement(): void {
   for (const [, player] of world.playersByEid) {
@@ -27,7 +28,8 @@ export function processMovement(): void {
 
     const dt = TICK_MS / 1000;
     const boatSpeed = player.boatState ? player.boatState.speedMultiplier : 1;
-    const effectiveSpeed = player.speed * player.speedMultiplier * boatSpeed;
+    const weatherSpeed = weatherManager.getSpeedMultiplier(player.x, player.y);
+    const effectiveSpeed = player.speed * player.speedMultiplier * boatSpeed * weatherSpeed;
     const newX = player.x + move.dx * effectiveSpeed * dt;
     const newY = player.y + move.dy * effectiveSpeed * dt;
 

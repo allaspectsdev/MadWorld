@@ -107,6 +107,10 @@ export interface GameState {
   toggleChat: () => void;
   setChatOpen: (open: boolean) => void;
 
+  // Weather
+  weather: { type: string; intensity: number; durationTicks: number; ambientTint: number };
+  setWeather: (type: string, intensity: number, durationTicks: number, ambientTint: number) => void;
+
   // Procedural world chunks & discovery
   discoveredChunks: Set<string>;
   loadedChunks: Map<string, { chunkX: number; chunkY: number; biome: string; tiles: TileType[][]; lights?: any[] }>;
@@ -239,6 +243,11 @@ export const useGameStore = create<GameState>()((set, get) => ({
     }),
   toggleChat: () => set((state) => ({ chatOpen: !state.chatOpen })),
   setChatOpen: (open) => set({ chatOpen: open }),
+
+  // Weather
+  weather: { type: "clear", intensity: 0, durationTicks: 0, ambientTint: 0xffffff },
+  setWeather: (type, intensity, durationTicks, ambientTint) =>
+    set({ weather: { type, intensity, durationTicks, ambientTint } }),
 
   // Procedural world chunks & discovery
   discoveredChunks: new Set<string>(),
