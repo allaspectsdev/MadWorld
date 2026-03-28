@@ -1,5 +1,5 @@
-import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas } from "@madworld/shared";
-import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType } from "@madworld/shared";
+import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong } from "@madworld/shared";
+import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType, BOATS, FURNITURE, GARDEN_SEEDS, HOMESTEAD_SIZE, HOMESTEAD_MAX_FURNITURE } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
 import { Mob } from "../game/entities/Mob.js";
 import { GroundItem } from "../game/entities/GroundItem.js";
@@ -13,7 +13,22 @@ import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQu
 import { handleMobDeath, grantXp } from "../game/systems/CombatSystem.js";
 import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
 import { getCurrentTick } from "../game/GameLoop.js";
+import { CampManager } from "../game/CampManager.js";
 import type { ServerWebSocket } from "bun";
+
+// Singleton camp manager — shared across all message handling
+const campManager = new CampManager();
+
+/** Send the player's full inventory state. */
+function sendInventory(player: Player): void {
+  const slots: { index: number; itemId: string | null; quantity: number }[] = [];
+  for (let i = 0; i < player.inventory.length; i++) {
+    const s = player.inventory[i];
+    slots.push({ index: i, itemId: s?.itemId ?? null, quantity: s?.quantity ?? 0 });
+  }
+  player.send({ op: Op.S_INV_UPDATE, d: { slots } } satisfies ServerMessage);
+  player.dirty = true;
+}
 
 export interface SocketData {
   userId: number | null;
@@ -931,13 +946,287 @@ export async function handleMessage(
     }
 
     case Op.C_PING:
-      ws.send(
-        JSON.stringify({
-          op: Op.S_PONG,
-          d: { t: msg.d.t, serverTime: Date.now() },
-        }),
-      );
+      player.send(encodePong(msg.d.t ?? 0, Date.now()));
       break;
+
+    // ---- Boat system ----
+
+    case Op.C_BOAT_PLACE: {
+      const boatDef = BOATS[msg.d.boatId];
+      if (!boatDef) break;
+      // Check player has the boat item
+      const boatSlot = player.inventory.findIndex(
+        (s) => s && s.itemId === boatDef.itemId,
+      );
+      if (boatSlot === -1) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You don't have that boat." } } satisfies ServerMessage);
+        break;
+      }
+      // Must be on sand/coast tile adjacent to water
+      const zone = world.getZone(player.zoneId);
+      if (!zone) break;
+      const pTile = movementFormulas.tileAt(zone.def, player.x, player.y);
+      if (pTile !== TileType.SAND) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You can only place a boat on a beach." } } satisfies ServerMessage);
+        break;
+      }
+      // Consume item
+      const bSlot = player.inventory[boatSlot]!;
+      bSlot.quantity -= 1;
+      if (bSlot.quantity <= 0) player.inventory[boatSlot] = null;
+      sendInventory(player);
+      // Enter boat immediately
+      player.boatState = {
+        boatId: boatDef.id,
+        hp: boatDef.maxHp,
+        maxHp: boatDef.maxHp,
+        speedMultiplier: boatDef.speedMultiplier,
+        deepWater: boatDef.deepWater,
+      };
+      player.send({ op: Op.S_BOAT_UPDATE, d: { action: "entered", boatId: boatDef.id, hp: boatDef.maxHp, maxHp: boatDef.maxHp } } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_BOAT_ENTER: {
+      // For now, boats are placed-and-entered in one step via C_BOAT_PLACE.
+      // This opcode is reserved for entering parked boats (future).
+      break;
+    }
+
+    case Op.C_BOAT_EXIT: {
+      if (!player.boatState) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You're not in a boat." } } satisfies ServerMessage);
+        break;
+      }
+      const exitZone = world.getZone(player.zoneId);
+      if (!exitZone) break;
+      // Must be on or adjacent to a walkable (land) tile
+      const exitTile = movementFormulas.tileAt(exitZone.def, player.x, player.y);
+      if (exitTile !== TileType.SAND && exitTile !== TileType.BRIDGE) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Sail to a beach or bridge to disembark." } } satisfies ServerMessage);
+        break;
+      }
+      // Return boat to inventory if it has HP remaining
+      if (player.boatState.hp > 0) {
+        const boatDef = BOATS[player.boatState.boatId];
+        if (boatDef) giveItem(player, boatDef.itemId, 1);
+        sendInventory(player);
+      }
+      player.boatState = null;
+      player.send({ op: Op.S_BOAT_UPDATE, d: { action: "exited" } } satisfies ServerMessage);
+      break;
+    }
+
+    // ---- Camp / Homestead system ----
+
+    case Op.C_PLACE_CAMP: {
+      if (!player.partyId) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You must be in a party to place a camp." } } satisfies ServerMessage);
+        break;
+      }
+      // Check player has campfire_kit (or upgrade kits for higher tiers)
+      const kitSlot = player.inventory.findIndex((s) => s && s.itemId === "campfire_kit");
+      if (kitSlot === -1) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You need a Campfire Kit." } } satisfies ServerMessage);
+        break;
+      }
+      const result = await campManager.placeCamp(player.partyId, player.playerId, player.x, player.y, msg.d.name ?? "Camp");
+      if ("error" in result) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: result.error } } satisfies ServerMessage);
+        break;
+      }
+      // Consume kit
+      const ks = player.inventory[kitSlot]!;
+      ks.quantity -= 1;
+      if (ks.quantity <= 0) player.inventory[kitSlot] = null;
+      sendInventory(player);
+      player.send({ op: Op.S_CAMP_PLACED, d: { campId: result.id, name: result.name, worldX: result.worldX, worldY: result.worldY, tier: result.tier } } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_INTERACT_CAMP: {
+      if (!player.partyId) break;
+      const camps = await campManager.loadPartyCamps(player.partyId);
+      player.send({
+        op: Op.S_CAMP_LIST,
+        d: {
+          camps: camps.map((c) => ({
+            id: c.id,
+            name: c.name,
+            worldX: c.worldX,
+            worldY: c.worldY,
+            tier: c.tier,
+            storageSlots: { 1: 0, 2: 8, 3: 16, 4: 24 }[c.tier] ?? 0,
+          })),
+        },
+      } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_CAMP_STORE: {
+      if (!player.partyId) break;
+      const storeResult = await campManager.storeItem(msg.d.campId, player.partyId, msg.d.itemId, msg.d.quantity ?? 1);
+      if ("error" in storeResult) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: storeResult.error } } satisfies ServerMessage);
+        break;
+      }
+      // Remove from player inventory
+      const removeSlot = player.inventory.findIndex((s) => s && s.itemId === msg.d.itemId);
+      if (removeSlot !== -1) {
+        const rs = player.inventory[removeSlot]!;
+        rs.quantity -= (msg.d.quantity ?? 1);
+        if (rs.quantity <= 0) player.inventory[removeSlot] = null;
+      }
+      sendInventory(player);
+      player.send({ op: Op.S_CAMP_STORAGE, d: { campId: msg.d.campId, storage: storeResult } } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_CAMP_WITHDRAW: {
+      if (!player.partyId) break;
+      const wResult = await campManager.withdrawItem(msg.d.campId, player.partyId, msg.d.itemId, msg.d.quantity ?? 1);
+      if ("error" in wResult) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: wResult.error } } satisfies ServerMessage);
+        break;
+      }
+      giveItem(player, msg.d.itemId, msg.d.quantity ?? 1);
+      sendInventory(player);
+      player.send({ op: Op.S_CAMP_STORAGE, d: { campId: msg.d.campId, storage: wResult } } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_FAST_TRAVEL: {
+      if (!player.partyId) break;
+      const camps = campManager.getCamps(player.partyId);
+      const target = camps.find((c) => c.id === msg.d.campId);
+      if (!target) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Camp not found." } } satisfies ServerMessage);
+        break;
+      }
+      player.x = target.worldX;
+      player.y = target.worldY;
+      player.dirty = true;
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Traveled to ${target.name}.` } } satisfies ServerMessage);
+      break;
+    }
+
+    // ---- Homestead furniture ----
+
+    case Op.C_PLACE_FURNITURE: {
+      if (!player.partyId) break;
+      const furnitureDef = FURNITURE[msg.d.furnitureId];
+      if (!furnitureDef) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown furniture." } } satisfies ServerMessage);
+        break;
+      }
+      // Check player has the item
+      const fSlot = player.inventory.findIndex((s) => s && s.itemId === furnitureDef.itemId);
+      if (fSlot === -1) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `You need a ${furnitureDef.name} kit.` } } satisfies ServerMessage);
+        break;
+      }
+      const placeResult = await campManager.placeFurniture(
+        msg.d.campId, player.partyId, msg.d.furnitureId,
+        msg.d.gridX, msg.d.gridY, msg.d.displayItemId,
+      );
+      if ("error" in placeResult) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: placeResult.error } } satisfies ServerMessage);
+        break;
+      }
+      // Consume item
+      const fs = player.inventory[fSlot]!;
+      fs.quantity -= 1;
+      if (fs.quantity <= 0) player.inventory[fSlot] = null;
+      sendInventory(player);
+      player.send({
+        op: Op.S_FURNITURE_UPDATE,
+        d: { campId: msg.d.campId, action: "placed", furnitureId: msg.d.furnitureId, gridX: msg.d.gridX, gridY: msg.d.gridY },
+      } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_REMOVE_FURNITURE: {
+      if (!player.partyId) break;
+      const removeResult = await campManager.removeFurniture(msg.d.campId, player.partyId, msg.d.gridX, msg.d.gridY);
+      if ("error" in removeResult) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: removeResult.error } } satisfies ServerMessage);
+        break;
+      }
+      // Return item to player
+      const rDef = FURNITURE[removeResult.furnitureId];
+      if (rDef) giveItem(player, rDef.itemId, 1);
+      sendInventory(player);
+      player.send({
+        op: Op.S_FURNITURE_UPDATE,
+        d: { campId: msg.d.campId, action: "removed", furnitureId: removeResult.furnitureId, gridX: msg.d.gridX, gridY: msg.d.gridY },
+      } satisfies ServerMessage);
+      break;
+    }
+
+    // ---- Garden ----
+
+    case Op.C_GARDEN_PLANT: {
+      if (!player.partyId) break;
+      const seedDef = GARDEN_SEEDS[msg.d.seedId];
+      if (!seedDef) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown seed." } } satisfies ServerMessage);
+        break;
+      }
+      // Check player has the seed item
+      const seedSlot = player.inventory.findIndex((s) => s && s.itemId === seedDef.seedItemId);
+      if (seedSlot === -1) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `You need ${seedDef.name}.` } } satisfies ServerMessage);
+        break;
+      }
+      // Check foraging level
+      const foragingXp = player.skills.get(SkillName.FORAGING)?.xp ?? 0;
+      if (levelForXp(foragingXp) < seedDef.levelRequired) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires foraging level ${seedDef.levelRequired}.` } } satisfies ServerMessage);
+        break;
+      }
+      const plantResult = await campManager.plantSeed(msg.d.campId, player.partyId, msg.d.gridX, msg.d.gridY, msg.d.seedId);
+      if ("error" in plantResult) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: plantResult.error } } satisfies ServerMessage);
+        break;
+      }
+      // Consume seed
+      const ss = player.inventory[seedSlot]!;
+      ss.quantity -= 1;
+      if (ss.quantity <= 0) player.inventory[seedSlot] = null;
+      sendInventory(player);
+      player.send({
+        op: Op.S_GARDEN_UPDATE,
+        d: { campId: msg.d.campId, gridX: msg.d.gridX, gridY: msg.d.gridY, seedId: msg.d.seedId, plantedAt: plantResult.plantedAt, readyAt: plantResult.readyAt },
+      } satisfies ServerMessage);
+      break;
+    }
+
+    // ---- Gathering ----
+
+    case Op.C_GATHER_START: {
+      // Stub — GatheringSystem handles the actual logic, but we need
+      // the message handler to route the intent. Full integration requires
+      // the GatheringSystem to be wired into zones, which is a follow-up.
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Gathering not yet wired to world." } } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_GATHER_ASSIST: {
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Gathering not yet wired to world." } } satisfies ServerMessage);
+      break;
+    }
+
+    // ---- Crafting ----
+
+    case Op.C_CRAFT_START: {
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Crafting not yet wired to world." } } satisfies ServerMessage);
+      break;
+    }
+
+    case Op.C_CRAFT_CONTRIBUTE: {
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Crafting not yet wired to world." } } satisfies ServerMessage);
+      break;
+    }
 
     default:
       // Unknown or unimplemented opcode

@@ -522,6 +522,21 @@ export type ClientMessage =
   | { op: Op.C_SHOP_BUY; d: C_ShopBuy }
   | { op: Op.C_SHOP_SELL; d: C_ShopSell }
   | { op: Op.C_GOD_TELEPORT; d: C_GodTeleport }
+  | { op: Op.C_GATHER_START; d: { nodeEid: number } }
+  | { op: Op.C_GATHER_ASSIST; d: { nodeEid: number } }
+  | { op: Op.C_CRAFT_START; d: { recipeId: string } }
+  | { op: Op.C_CRAFT_CONTRIBUTE; d: { recipeId: string; itemId: string; quantity: number } }
+  | { op: Op.C_BOAT_PLACE; d: { boatId: string } }
+  | { op: Op.C_BOAT_ENTER; d: { boatEid: number } }
+  | { op: Op.C_BOAT_EXIT; d: Record<string, never> }
+  | { op: Op.C_PLACE_CAMP; d: { name?: string } }
+  | { op: Op.C_INTERACT_CAMP; d: { campId: number } }
+  | { op: Op.C_CAMP_STORE; d: { campId: number; itemId: string; quantity?: number } }
+  | { op: Op.C_CAMP_WITHDRAW; d: { campId: number; itemId: string; quantity?: number } }
+  | { op: Op.C_FAST_TRAVEL; d: { campId: number } }
+  | { op: Op.C_PLACE_FURNITURE; d: { campId: number; furnitureId: string; gridX: number; gridY: number; displayItemId?: string } }
+  | { op: Op.C_REMOVE_FURNITURE; d: { campId: number; gridX: number; gridY: number } }
+  | { op: Op.C_GARDEN_PLANT; d: { campId: number; gridX: number; gridY: number; seedId: string } }
   | { op: Op.C_PING; d: { t: number } };
 
 export type ServerMessage =
