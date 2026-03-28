@@ -103,6 +103,7 @@ export const worldChunks = pgTable(
     tileData: jsonb("tile_data").notNull(),        // TileType[][] compressed
     mobSpawns: jsonb("mob_spawns").notNull(),       // ChunkMobSpawn[]
     lights: jsonb("lights").notNull(),              // ChunkLight[]
+    landmarks: jsonb("landmarks").notNull().default([]), // LandmarkPlacement[]
     generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

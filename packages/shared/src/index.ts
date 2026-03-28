@@ -22,6 +22,7 @@ export { SHOPS, type ShopEntry } from "./constants/shops.js";
 export { FISHING_SPOTS, type FishingSpotDef } from "./constants/fishing.js";
 export { RESOURCE_NODES, getNodesForBiome, type ResourceNodeDef } from "./constants/gathering.js";
 export { CAMP_ITEMS, RECIPES, getRecipe, getRecipesForSkill, type CampItemDef, type CraftRecipe } from "./constants/camps.js";
+export { LANDMARKS, getLandmark, getLandmarksForBiome, type LandmarkDef, type LandmarkPlacement } from "./constants/landmarks.js";
 export { STATUS_EFFECTS, type StatusEffectDef } from "./types/statusEffect.js";
 
 // Formulas

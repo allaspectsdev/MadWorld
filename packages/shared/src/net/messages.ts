@@ -246,6 +246,7 @@ export interface S_ChunkData {
   biome: string;
   tiles: TileType[][];
   lights?: { x: number; y: number; radius: number; color: number; flicker?: boolean }[];
+  landmarks?: { landmarkId: string; originX: number; originY: number }[];
 }
 
 export interface S_ChunkUnload {

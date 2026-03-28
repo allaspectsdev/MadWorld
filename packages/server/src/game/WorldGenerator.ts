@@ -22,6 +22,9 @@ import {
   TileType,
   WORLD_CHUNK_SIZE,
   TERRAIN_SCALES,
+  getLandmarksForBiome,
+  type LandmarkDef,
+  type LandmarkPlacement,
 } from "@madworld/shared";
 
 export interface GeneratedChunk {
@@ -31,6 +34,7 @@ export interface GeneratedChunk {
   tiles: TileType[][];    // 32×32 tile grid [y][x]
   mobSpawns: ChunkMobSpawn[];
   lights: ChunkLight[];
+  landmarks: LandmarkPlacement[];
 }
 
 export interface ChunkMobSpawn {
@@ -151,11 +155,44 @@ export class WorldGenerator {
     // Pass 2: Smooth edges — add beaches between water and land
     this.smoothWaterEdges(tiles);
 
-    // Pass 3: Generate mob spawns
+    // Pass 3: Place landmarks (~5% chance per chunk)
+    const landmarks = this.placeLandmarks(tiles, dominantBiome, chunkX, chunkY);
+
+    // Pass 4: Generate mob spawns (landmarks add their own mobs too)
     const mobSpawns = this.generateMobSpawns(dominantBiome, tiles, chunkX, chunkY);
 
-    // Pass 4: Generate lights (torches in forest, campfires, etc.)
+    // Add landmark mob spawns
+    for (const lp of landmarks) {
+      const lDef = getLandmarksForBiome(dominantBiome).find(l => l.id === lp.landmarkId);
+      if (!lDef) continue;
+      for (const mob of lDef.mobs) {
+        mobSpawns.push({
+          mobId: mob.mobId,
+          x: lp.originX + mob.offsetX,
+          y: lp.originY + mob.offsetY,
+          count: 1,
+          wanderRadius: mob.wanderRadius,
+        });
+      }
+    }
+
+    // Pass 5: Generate lights (torches in forest, campfires, etc.)
     const lights = this.generateLights(dominantBiome, tiles, chunkX, chunkY);
+
+    // Add landmark lights
+    for (const lp of landmarks) {
+      const lDef = getLandmarksForBiome(dominantBiome).find(l => l.id === lp.landmarkId);
+      if (!lDef) continue;
+      for (const lt of lDef.lights) {
+        lights.push({
+          x: lp.originX + lt.offsetX,
+          y: lp.originY + lt.offsetY,
+          radius: lt.radius,
+          color: lt.color,
+          flicker: lt.flicker,
+        });
+      }
+    }
 
     return {
       chunkX,
@@ -164,6 +201,7 @@ export class WorldGenerator {
       tiles,
       mobSpawns,
       lights,
+      landmarks,
     };
   }
 
@@ -323,6 +361,85 @@ export class WorldGenerator {
     }
 
     return lights;
+  }
+
+  /**
+   * Attempt to place a landmark in this chunk.
+   * ~5% of chunks get a landmark. The landmark must fit within the chunk
+   * and land on mostly walkable terrain.
+   */
+  private placeLandmarks(
+    tiles: TileType[][],
+    biome: Biome,
+    chunkX: number,
+    chunkY: number,
+  ): LandmarkPlacement[] {
+    const rng = this.makeChunkRng(chunkX + 77777, chunkY + 77777);
+    if (rng() > 0.05) return []; // 5% chance
+
+    const candidates = getLandmarksForBiome(biome);
+    if (candidates.length === 0) return [];
+
+    const landmark = candidates[Math.floor(rng() * candidates.length)];
+    const S = WORLD_CHUNK_SIZE;
+
+    // Try a few random positions to find one where the landmark fits
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const ox = Math.floor(rng() * (S - landmark.width));
+      const oy = Math.floor(rng() * (S - landmark.height));
+
+      if (this.canPlaceLandmark(tiles, landmark, ox, oy)) {
+        this.stampLandmark(tiles, landmark, ox, oy);
+        return [{ landmarkId: landmark.id, originX: ox, originY: oy }];
+      }
+    }
+
+    return []; // Couldn't find a valid placement
+  }
+
+  /** Check if a landmark footprint fits at the given offset without colliding with water/mountains. */
+  private canPlaceLandmark(
+    tiles: TileType[][],
+    landmark: LandmarkDef,
+    ox: number,
+    oy: number,
+  ): boolean {
+    let walkableCount = 0;
+    const total = landmark.width * landmark.height;
+
+    for (let y = 0; y < landmark.height; y++) {
+      for (let x = 0; x < landmark.width; x++) {
+        const landmarkTile = landmark.tiles[y]?.[x];
+        if (landmarkTile === null) continue; // null = keep terrain, doesn't matter
+
+        const existing = tiles[oy + y]?.[ox + x];
+        if (existing === undefined) return false; // Out of bounds
+
+        // Count how much of the footprint is walkable terrain
+        if (existing !== TileType.WATER && existing !== TileType.MOUNTAIN) {
+          walkableCount++;
+        }
+      }
+    }
+
+    // At least 60% of the footprint should be on walkable terrain
+    return walkableCount / total >= 0.6;
+  }
+
+  /** Stamp a landmark's tile layout onto the chunk grid. */
+  private stampLandmark(
+    tiles: TileType[][],
+    landmark: LandmarkDef,
+    ox: number,
+    oy: number,
+  ): void {
+    for (let y = 0; y < landmark.height; y++) {
+      for (let x = 0; x < landmark.width; x++) {
+        const landmarkTile = landmark.tiles[y]?.[x];
+        if (landmarkTile === null) continue; // Keep underlying terrain
+        tiles[oy + y][ox + x] = landmarkTile;
+      }
+    }
   }
 
   /** Simple seeded RNG for deterministic per-chunk placement. */

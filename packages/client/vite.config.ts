@@ -14,4 +14,11 @@ export default defineConfig({
   build: {
     target: "ES2022",
   },
+  resolve: {
+    alias: {
+      // Zustand 5.x tries to optionally require React — stub it out
+      // since we use vanilla (non-React) Zustand.
+      react: new URL("./src/shims/react.ts", import.meta.url).pathname,
+    },
+  },
 });

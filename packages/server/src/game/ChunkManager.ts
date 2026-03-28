@@ -227,6 +227,7 @@ export class ChunkManager {
       tiles: row.tileData as any,
       mobSpawns: row.mobSpawns as any,
       lights: row.lights as any,
+      landmarks: (row as any).landmarks ?? [],
     };
   }
 
@@ -241,6 +242,7 @@ export class ChunkManager {
         tileData: chunk.tiles,
         mobSpawns: chunk.mobSpawns,
         lights: chunk.lights,
+        landmarks: chunk.landmarks,
       })
       .onConflictDoNothing();
   }

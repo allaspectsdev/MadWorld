@@ -489,7 +489,13 @@ function drawPlayer(g: Graphics, a: Appearance, equip?: Record<string, string>):
 }
 
 export function getPlayerTexture(appearance?: Appearance, equipment?: Record<string, string>): Texture {
-  const a = appearance ?? { hairStyle: 0, hairColor: 0, skinColor: 0, shirtColor: 0 };
+  const a: Appearance = {
+    hairStyle: appearance?.hairStyle ?? 0,
+    hairColor: appearance?.hairColor ?? 0,
+    skinColor: appearance?.skinColor ?? 0,
+    shirtColor: appearance?.shirtColor ?? 0,
+    bodyType: appearance?.bodyType ?? 0,
+  };
   const key = cacheKey(a, equipment);
 
   if (cache.has(key)) return cache.get(key)!;

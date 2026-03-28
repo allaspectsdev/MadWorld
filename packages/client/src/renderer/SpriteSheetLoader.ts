@@ -49,19 +49,30 @@ function parseAnimationsFromSheet(sheet: Spritesheet): AnimationDef[] {
 export async function loadSpriteSheets(): Promise<Map<string, AnimationDef[]>> {
   const result = new Map<string, AnimationDef[]>();
 
-  for (const key of SPRITE_REGISTRY) {
-    try {
-      const sheet = await Assets.load<Spritesheet>(`/sprites/${key}.json`);
-      if (sheet && sheet.textures) {
-        const anims = parseAnimationsFromSheet(sheet);
-        if (anims.length > 0) {
-          result.set(key, anims);
+  // Load all sheets in parallel with a per-sheet timeout.
+  // Missing sheets (Vite returns HTML fallback) would hang Assets.load,
+  // so we pre-check with a HEAD request.
+  await Promise.all(
+    SPRITE_REGISTRY.map(async (key) => {
+      try {
+        const url = `/sprites/${key}.json`;
+        // Quick existence check — if the server returns HTML it's not a real asset
+        const probe = await fetch(url, { method: "HEAD" });
+        const ct = probe.headers.get("content-type") ?? "";
+        if (!probe.ok || !ct.includes("json")) return;
+
+        const sheet = await Assets.load<Spritesheet>(url);
+        if (sheet && sheet.textures) {
+          const anims = parseAnimationsFromSheet(sheet);
+          if (anims.length > 0) {
+            result.set(key, anims);
+          }
         }
+      } catch {
+        // No sprite sheet for this entity — will use procedural fallback
       }
-    } catch {
-      // No sprite sheet for this entity - will use procedural fallback
-    }
-  }
+    }),
+  );
 
   return result;
 }
