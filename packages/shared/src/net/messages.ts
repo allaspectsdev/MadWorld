@@ -285,6 +285,27 @@ export interface S_BoatUpdate {
   y?: number;
 }
 
+// ---- Pets ----
+
+export interface S_PetList {
+  pets: { petId: string; name: string; bondXp: number; bondLevel: number; isActive: boolean }[];
+}
+
+export interface S_PetUpdate {
+  petId: string;
+  name: string;
+  bondXp: number;
+  bondLevel: number;
+  isActive: boolean;
+}
+
+export interface S_PetTameResult {
+  success: boolean;
+  petId?: string;
+  petName?: string;
+  message: string;
+}
+
 // ---- Weather ----
 
 export interface S_WeatherUpdate {
@@ -546,6 +567,9 @@ export type ClientMessage =
   | { op: Op.C_PLACE_FURNITURE; d: { campId: number; furnitureId: string; gridX: number; gridY: number; displayItemId?: string } }
   | { op: Op.C_REMOVE_FURNITURE; d: { campId: number; gridX: number; gridY: number } }
   | { op: Op.C_GARDEN_PLANT; d: { campId: number; gridX: number; gridY: number; seedId: string } }
+  | { op: Op.C_PET_TAME; d: { targetEid: number } }
+  | { op: Op.C_PET_SUMMON; d: { petId: string } }
+  | { op: Op.C_PET_RENAME; d: { petId: string; name: string } }
   | { op: Op.C_PING; d: { t: number } };
 
 export type ServerMessage =
@@ -598,6 +622,9 @@ export type ServerMessage =
   | { op: Op.S_VISITOR_ARRIVED; d: S_VisitorArrived }
   | { op: Op.S_BOAT_UPDATE; d: S_BoatUpdate }
   | { op: Op.S_WEATHER_UPDATE; d: S_WeatherUpdate }
+  | { op: Op.S_PET_LIST; d: S_PetList }
+  | { op: Op.S_PET_UPDATE; d: S_PetUpdate }
+  | { op: Op.S_PET_TAME_RESULT; d: S_PetTameResult }
   | { op: Op.S_CHUNK_DATA; d: S_ChunkData }
   | { op: Op.S_CHUNK_UNLOAD; d: S_ChunkUnload }
   | { op: Op.S_DISCOVERY_UPDATE; d: S_DiscoveryUpdate }

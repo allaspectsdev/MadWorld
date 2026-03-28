@@ -72,6 +72,14 @@ const godNameStyle = new TextStyle({
   stroke: { color: 0x885500, width: 3 },
 });
 
+const petNameStyle = new TextStyle({
+  fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+  fontSize: 10,
+  fontWeight: "bold",
+  fill: 0xff99cc,
+  stroke: { color: 0x442233, width: 3 },
+});
+
 export class EntityRenderer {
   readonly container = new Container();
   private sprites = new Map<number, EntitySprite>();
@@ -479,6 +487,9 @@ export class EntityRenderer {
       const fitScale = (TILE_SIZE / maxDim) * scale;
       mainSprite.width = size.w * fitScale;
       mainSprite.height = size.h * fitScale;
+    } else if (type === EntityType.PET) {
+      mainSprite.width = TILE_SIZE * 0.7;
+      mainSprite.height = TILE_SIZE * 0.7;
     } else {
       mainSprite.width = TILE_SIZE * 0.8;
       mainSprite.height = TILE_SIZE * 0.8;
@@ -533,8 +544,9 @@ export class EntityRenderer {
     }
 
     // Name label - include level for mobs and color by level difference
+    const isPet = type === EntityType.PET;
     let displayName = isLocal ? "You" : name;
-    let selectedNameStyle: TextStyle = isGod ? godNameStyle : isLocal ? localNameStyle : isNpc ? npcNameStyle : nameStyle;
+    let selectedNameStyle: TextStyle = isPet ? petNameStyle : isGod ? godNameStyle : isLocal ? localNameStyle : isNpc ? npcNameStyle : nameStyle;
 
     if (type === EntityType.MOB && data?.level) {
       const isElite = data.isElite ?? false;

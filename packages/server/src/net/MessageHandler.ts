@@ -1,5 +1,5 @@
-import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong, getRecipe, RESOURCE_NODES } from "@madworld/shared";
-import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType, BOATS, FURNITURE, GARDEN_SEEDS, HOMESTEAD_SIZE, HOMESTEAD_MAX_FURNITURE } from "@madworld/shared";
+import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong, getRecipe, RESOURCE_NODES, PETS } from "@madworld/shared";
+import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType, BOATS, FURNITURE, GARDEN_SEEDS, HOMESTEAD_SIZE, HOMESTEAD_MAX_FURNITURE, petBondLevel } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
 import { Mob } from "../game/entities/Mob.js";
 import { GroundItem } from "../game/entities/GroundItem.js";
@@ -15,6 +15,7 @@ import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
 import { getCurrentTick } from "../game/GameLoop.js";
 import { instanceManager } from "../game/InstanceManager.js";
 import { CampManager } from "../game/CampManager.js";
+import { petManager } from "../game/PetManager.js";
 import type { ServerWebSocket } from "bun";
 
 // Singleton camp manager — shared across all message handling
@@ -1334,10 +1335,71 @@ export async function handleMessage(
     }
 
     case Op.C_CRAFT_CONTRIBUTE: {
-      // Combo crafting — two-player simultaneous ingredient contribution.
-      // Full implementation needs a pending craft session manager.
-      // For now, inform the player.
       player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Combo crafting requires a partner at a crafting station." } } satisfies ServerMessage);
+      break;
+    }
+
+    // ---- Pets ----
+
+    case Op.C_PET_TAME: {
+      const targetEid = msg.d.targetEid;
+      const zone = world.getZone(player.zoneId);
+      if (!zone) break;
+      const targetMob = zone.mobs.get(targetEid);
+      if (!targetMob) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "No creature to tame here." } } satisfies ServerMessage);
+        break;
+      }
+      // Check distance
+      const tameDist = movementFormulas.distance(player.x, player.y, targetMob.x, targetMob.y);
+      if (tameDist > 2.5) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Too far away." } } satisfies ServerMessage);
+        break;
+      }
+      // Find the pet def for this mob
+      const petDef = Object.values(PETS).find((p) => p.sourceMobId === targetMob.def.id);
+      if (!petDef) {
+        player.send({ op: Op.S_PET_TAME_RESULT, d: { success: false, message: "This creature can't be tamed." } } satisfies ServerMessage);
+        break;
+      }
+      // Check player has treat
+      const treatSlot = player.inventory.findIndex((s) => s && s.itemId === petDef.treatItemId);
+      if (treatSlot === -1) {
+        player.send({ op: Op.S_PET_TAME_RESULT, d: { success: false, message: `You need ${petDef.treatItemId} to tame this creature.` } } satisfies ServerMessage);
+        break;
+      }
+      // Consume treat
+      const ts = player.inventory[treatSlot]!;
+      ts.quantity -= 1;
+      if (ts.quantity <= 0) player.inventory[treatSlot] = null;
+      sendInventory(player);
+      // Attempt tame
+      const tamed = await petManager.attemptTame(
+        player.playerId, player.eid, targetMob.def.id,
+        player.x, player.y, player.zoneId,
+        true, (m) => player.send(m),
+      );
+      if (tamed) {
+        // Remove the mob from the world
+        zone.removeEntity(targetEid);
+      }
+      break;
+    }
+
+    case Op.C_PET_SUMMON: {
+      await petManager.summonPet(
+        player.playerId, player.eid, msg.d.petId,
+        player.x, player.y, player.zoneId,
+        (m) => player.send(m),
+      );
+      break;
+    }
+
+    case Op.C_PET_RENAME: {
+      await petManager.renamePet(
+        player.playerId, msg.d.petId, msg.d.name,
+        (m) => player.send(m),
+      );
       break;
     }
 

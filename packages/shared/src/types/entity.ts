@@ -17,4 +17,5 @@ export enum EntityType {
   MOB = "mob",
   NPC = "npc",
   GROUND_ITEM = "ground_item",
+  PET = "pet",
 }

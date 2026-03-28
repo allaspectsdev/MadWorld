@@ -90,6 +90,26 @@ export const questProgress = pgTable("quest_progress", {
   data: jsonb("data"),
 });
 
+// ---- Pets ----
+
+export const playerPets = pgTable(
+  "player_pets",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    petId: varchar("pet_id", { length: 32 }).notNull(),
+    name: varchar("name", { length: 24 }).notNull(),
+    bondXp: integer("bond_xp").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(false),
+    tamedAt: timestamp("tamed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("player_pets_player_pet_idx").on(table.playerId, table.petId),
+  ],
+);
+
 // ---- Procedural world tables ----
 
 export const worldChunks = pgTable(

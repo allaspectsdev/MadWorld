@@ -44,6 +44,13 @@ export * as movementFormulas from "./formulas/movement.js";
 export { Op } from "./net/opcodes.js";
 export * from "./net/messages.js";
 
+// Pets
+export {
+  PETS, PET_MAX_BOND_LEVEL, PET_PASSIVE_BOND_XP_PER_TICK, PET_BOND_EVENTS,
+  petBondLevel, petAbilityValue,
+  type PetDef, type PetAbility, type PetState,
+} from "./constants/pets.js";
+
 // Weather
 export {
   WeatherType, WEATHER_DEFS, BIOME_WEATHER,

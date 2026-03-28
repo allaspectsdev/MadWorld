@@ -10,6 +10,7 @@ import { instanceManager } from "./InstanceManager.js";
 import { GroundItem } from "./entities/GroundItem.js";
 import { resetAllRateLimits } from "../net/MessageHandler.js";
 import { weatherManager } from "./WeatherManager.js";
+import { petManager } from "./PetManager.js";
 import type { Zone } from "./Zone.js";
 
 let currentTick = 0;
@@ -49,7 +50,11 @@ function tick(): void {
     processAbilities();
     processFishing(currentTick);
 
-    // 5b. Weather tick (transitions, damage, region re-rolls)
+    // 5b. Pet follow + bond XP
+    petManager.updatePetPositions();
+    petManager.processTickBondXp();
+
+    // 5c. Weather tick (transitions, damage, region re-rolls)
     weatherManager.processTick();
 
     // 6. Despawn expired ground items
