@@ -88,6 +88,7 @@ export interface S_EntitySpawn {
   maxHp?: number;
   level?: number;
   isGod?: boolean;
+  isElite?: boolean;
   equipment?: Record<string, string>;
 }
 

@@ -18,6 +18,9 @@ export class Mob extends Entity {
   statusEffects: Map<string, { defId: string; ticksLeft: number; sourceEid: number }> = new Map();
   stunTicks: number = 0;
 
+  // Elite variant (5% chance, 3x HP, 2x loot/XP)
+  isElite: boolean;
+
   // Boss fields
   isBoss: boolean;
   abilityCooldowns: Map<string, number> = new Map();
@@ -39,6 +42,10 @@ export class Mob extends Entity {
     this.wanderRadius = wanderRadius;
     this.speed = 2;
     this.isBoss = def.isBoss ?? false;
+    this.isElite = !this.isBoss && Math.random() < 0.05;
+    if (this.isElite) {
+      this.hp = def.maxHp * 3;
+    }
 
     if (this.isBoss && def.bossAbilities) {
       for (const ability of def.bossAbilities) {

@@ -204,7 +204,7 @@ export function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
 
   // --- Shared XP ---
   const party = partyManager.getPartyForPlayer(killer.eid);
-  const baseXp = mob.def.xpReward;
+  const baseXp = mob.isElite ? mob.def.xpReward * 2 : mob.def.xpReward;
 
   if (party) {
     const membersInRange = partyManager.getPartyMembersInRange(
@@ -231,9 +231,10 @@ export function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
     instanceManager.handleBossKill(zone.instanceId);
   }
 
-  // --- Loot Drops ---
+  // --- Loot Drops (elites: double chance, capped at 1.0) ---
+  const lootMultiplier = mob.isElite ? 2 : 1;
   for (const loot of mob.def.lootTable) {
-    if (Math.random() < loot.chance) {
+    if (Math.random() < Math.min(1, loot.chance * lootMultiplier)) {
       const offsetX = (Math.random() - 0.5) * 1.5;
       const offsetY = (Math.random() - 0.5) * 1.5;
       const groundItem = new GroundItem(
@@ -241,7 +242,7 @@ export function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
         mob.x + offsetX,
         mob.y + offsetY,
         loot.itemId,
-        loot.quantity,
+        loot.quantity * lootMultiplier,
       );
       zone.addEntity(groundItem);
     }

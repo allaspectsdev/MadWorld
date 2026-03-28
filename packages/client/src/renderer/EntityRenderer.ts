@@ -537,25 +537,33 @@ export class EntityRenderer {
     let selectedNameStyle: TextStyle = isGod ? godNameStyle : isLocal ? localNameStyle : isNpc ? npcNameStyle : nameStyle;
 
     if (type === EntityType.MOB && data?.level) {
-      displayName = `${name} [Lv.${data.level}]`;
-      const playerLevel = useGameStore.getState().localPlayer?.level ?? 1;
-      const mobLevel = data.level;
+      const isElite = data.isElite ?? false;
+      const prefix = isElite ? "\u2726 " : "";
+      const suffix = isElite ? " \u2726" : "";
+      displayName = `${prefix}${name} [Lv.${data.level}]${suffix}`;
+
       let mobNameColor: number;
-      if (mobLevel > playerLevel + 5) {
-        mobNameColor = 0xff4444; // Red
-      } else if (mobLevel > playerLevel + 2) {
-        mobNameColor = 0xff8844; // Orange
-      } else if (mobLevel <= playerLevel - 5) {
-        mobNameColor = 0x55ff55; // Green
+      if (isElite) {
+        mobNameColor = 0xffd700; // Gold for elites
       } else {
-        mobNameColor = 0xffffff; // White
+        const playerLevel = useGameStore.getState().localPlayer?.level ?? 1;
+        const mobLevel = data.level;
+        if (mobLevel > playerLevel + 5) {
+          mobNameColor = 0xff4444; // Red
+        } else if (mobLevel > playerLevel + 2) {
+          mobNameColor = 0xff8844; // Orange
+        } else if (mobLevel <= playerLevel - 5) {
+          mobNameColor = 0x55ff55; // Green
+        } else {
+          mobNameColor = 0xffffff; // White
+        }
       }
       selectedNameStyle = new TextStyle({
         fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-        fontSize: 11,
+        fontSize: isElite ? 12 : 11,
         fontWeight: "bold",
         fill: mobNameColor,
-        stroke: { color: 0x000000, width: 3 },
+        stroke: { color: isElite ? 0x664400 : 0x000000, width: 3 },
       });
     }
 
