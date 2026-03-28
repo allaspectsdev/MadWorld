@@ -95,14 +95,26 @@ export class Zone {
     this.spatial.updateEntity(eid, x, y);
   }
 
-  broadcastToNearby(x: number, y: number, msg: ServerMessage, exclude?: number): void {
+  /**
+   * Broadcast a message to players near a position.
+   * Accepts a ServerMessage (auto-serialized) or a pre-encoded
+   * ArrayBuffer/string for binary hot-path messages.
+   */
+  broadcastToNearby(
+    x: number, y: number,
+    msg: ServerMessage | ArrayBuffer | string,
+    exclude?: number,
+  ): void {
     const nearbyEids = this.spatial.queryNearby(x, y);
-    const payload = JSON.stringify(msg);
+    // Pre-serialize once if it's a JSON object
+    const payload = (typeof msg === "string" || msg instanceof ArrayBuffer)
+      ? msg
+      : JSON.stringify(msg);
     for (const eid of nearbyEids) {
       if (eid === exclude) continue;
       const player = this.players.get(eid);
       if (player) {
-        player.send(msg);
+        player.send(payload);
       }
     }
   }

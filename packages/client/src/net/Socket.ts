@@ -1,4 +1,4 @@
-import { Op, type ServerMessage, type ClientMessage } from "@madworld/shared";
+import { Op, type ServerMessage, type ClientMessage, decodeBinary } from "@madworld/shared";
 
 type MessageHandler = (msg: ServerMessage) => void;
 
@@ -12,6 +12,7 @@ export class Socket {
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
     const url = `${protocol}//${location.host}/ws`;
     this.ws = new WebSocket(url);
+    this.ws.binaryType = "arraybuffer"; // Receive binary as ArrayBuffer
 
     this.ws.onopen = () => {
       console.log("[WS] Connected");
@@ -22,7 +23,18 @@ export class Socket {
 
     this.ws.onmessage = (event) => {
       try {
-        const msg = JSON.parse(event.data) as ServerMessage;
+        let msg: ServerMessage;
+
+        if (event.data instanceof ArrayBuffer) {
+          // Binary hot-path message
+          const decoded = decodeBinary(event.data);
+          if (!decoded) return;
+          msg = decoded as unknown as ServerMessage;
+        } else {
+          // JSON message (everything else)
+          msg = JSON.parse(event.data) as ServerMessage;
+        }
+
         for (const handler of this.handlers) {
           handler(msg);
         }

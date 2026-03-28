@@ -1,4 +1,4 @@
-import { Op, type ServerMessage } from "@madworld/shared";
+import { Op, type ServerMessage, encodeDamage } from "@madworld/shared";
 import { movementFormulas } from "@madworld/shared";
 import { world } from "../World.js";
 import { Mob } from "../entities/Mob.js";
@@ -94,16 +94,8 @@ function executeBossAbility(
           if (dist <= radius) {
             player.hp = Math.max(0, player.hp - damage);
             player.dirty = true;
-            z.broadcastToNearby(player.x, player.y, {
-              op: Op.S_DAMAGE,
-              d: {
-                sourceEid: bossEid,
-                targetEid: player.eid,
-                amount: damage,
-                isCrit: false,
-                targetHpAfter: player.hp,
-              },
-            } satisfies ServerMessage);
+            z.broadcastToNearby(player.x, player.y,
+              encodeDamage(bossEid, player.eid, damage, false, player.hp));
           }
         }
       },
@@ -154,16 +146,8 @@ function executeBossAbility(
 
         t.hp = Math.max(0, t.hp - damage);
         t.dirty = true;
-        z.broadcastToNearby(t.x, t.y, {
-          op: Op.S_DAMAGE,
-          d: {
-            sourceEid: bossEid,
-            targetEid: capturedTargetEid,
-            amount: damage,
-            isCrit: false,
-            targetHpAfter: t.hp,
-          },
-        } satisfies ServerMessage);
+        z.broadcastToNearby(t.x, t.y,
+          encodeDamage(bossEid, capturedTargetEid, damage, false, t.hp));
       },
     });
   }

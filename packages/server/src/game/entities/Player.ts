@@ -104,8 +104,12 @@ export class Player extends Entity {
     }
   }
 
-  send(msg: object): void {
-    if (this.ws && this.ws.readyState === 1) {
+  /** Send a message. Accepts JSON object or pre-serialized string/ArrayBuffer. */
+  send(msg: object | string | ArrayBuffer): void {
+    if (!this.ws || this.ws.readyState !== 1) return;
+    if (typeof msg === "string" || msg instanceof ArrayBuffer) {
+      this.ws.send(msg);
+    } else {
       this.ws.send(JSON.stringify(msg));
     }
   }

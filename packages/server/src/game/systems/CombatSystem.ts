@@ -6,7 +6,7 @@ import type { Zone } from "../Zone.js";
 import { partyManager } from "../PartyManager.js";
 import { instanceManager } from "../InstanceManager.js";
 import { onMobKill as questOnMobKill } from "./QuestSystem.js";
-import { Op, AIState, PARTY_XP_RANGE, PARTY_XP_BONUS, type ServerMessage } from "@madworld/shared";
+import { Op, AIState, PARTY_XP_RANGE, PARTY_XP_BONUS, type ServerMessage, encodeDamage } from "@madworld/shared";
 import { combatFormulas, movementFormulas } from "@madworld/shared";
 import { levelForXp, xpForLevel } from "@madworld/shared";
 import { SkillName } from "@madworld/shared";
@@ -91,16 +91,8 @@ export function processCombat(): void {
         }
       }
 
-      zone.broadcastToNearby(target.x, target.y, {
-        op: Op.S_DAMAGE,
-        d: {
-          sourceEid: player.eid,
-          targetEid: target.eid,
-          amount: result.damage,
-          isCrit: result.isCrit,
-          targetHpAfter: target.hp,
-        },
-      } satisfies ServerMessage);
+      zone.broadcastToNearby(target.x, target.y,
+        encodeDamage(player.eid, target.eid, result.damage, result.isCrit, target.hp));
 
       if (target.hp <= 0) {
         handleMobDeath(target, player, zone);
@@ -149,16 +141,8 @@ export function processCombat(): void {
         target.dirty = true;
       }
 
-      zone.broadcastToNearby(target.x, target.y, {
-        op: Op.S_DAMAGE,
-        d: {
-          sourceEid: mob.eid,
-          targetEid: target.eid,
-          amount: result.damage,
-          isCrit: result.isCrit,
-          targetHpAfter: target.hp,
-        },
-      } satisfies ServerMessage);
+      zone.broadcastToNearby(target.x, target.y,
+        encodeDamage(mob.eid, target.eid, result.damage, result.isCrit, target.hp));
 
       if (target.hp <= 0) {
         handlePlayerDeath(target, zone);

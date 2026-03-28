@@ -3,7 +3,7 @@ import { Player } from "../entities/Player.js";
 import { partyManager } from "../PartyManager.js";
 import { instanceManager } from "../InstanceManager.js";
 import { onZoneEnter as questOnZoneEnter } from "./QuestSystem.js";
-import { Op, TICK_MS, TileType, type ServerMessage, type Portal } from "@madworld/shared";
+import { Op, TICK_MS, TileType, type ServerMessage, type Portal, encodeEntityMove } from "@madworld/shared";
 import { movementFormulas } from "@madworld/shared";
 
 export function processMovement(): void {
@@ -34,19 +34,8 @@ export function processMovement(): void {
     // allow movement to escape (don't trap them forever)
     const currentlyStuck = !movementFormulas.isWalkable(zone.def, player.x, player.y);
     if (!currentlyStuck && !movementFormulas.isWalkable(zone.def, newX, newY)) {
-      // Send correction back
-      player.send({
-        op: Op.S_ENTITY_MOVE,
-        d: {
-          eid: player.eid,
-          x: player.x,
-          y: player.y,
-          dx: 0,
-          dy: 0,
-          speed: player.speed,
-          seq: move.seq,
-        },
-      } satisfies ServerMessage);
+      // Send correction back (binary hot path)
+      player.send(encodeEntityMove(player.eid, player.x, player.y, 0, 0, player.speed, move.seq));
       continue;
     }
 
@@ -73,19 +62,9 @@ export function processMovement(): void {
     player.lastMoveSeq = move.seq;
     player.dirty = true;
 
-    // Broadcast to nearby
-    zone.broadcastToNearby(newX, newY, {
-      op: Op.S_ENTITY_MOVE,
-      d: {
-        eid: player.eid,
-        x: newX,
-        y: newY,
-        dx: move.dx,
-        dy: move.dy,
-        speed: effectiveSpeed,
-        seq: move.seq,
-      },
-    } satisfies ServerMessage);
+    // Broadcast to nearby (binary hot path — serialize once for all recipients)
+    const moveBuf = encodeEntityMove(player.eid, newX, newY, move.dx, move.dy, effectiveSpeed, move.seq);
+    zone.broadcastToNearby(newX, newY, moveBuf);
   }
 }
 

@@ -40,6 +40,14 @@ export * as movementFormulas from "./formulas/movement.js";
 export { Op } from "./net/opcodes.js";
 export * from "./net/messages.js";
 
+// Binary protocol
+export {
+  BINARY_OPCODES,
+  encodeEntityMove, encodeEntityStop, encodeTick, encodePong, encodeDamage,
+  decodeBinary,
+  type DecodedBinaryMessage,
+} from "./net/binary.js";
+
 // Spatial
 export * from "./spatial.js";
 

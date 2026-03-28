@@ -1,4 +1,4 @@
-import { TICK_MS, Op, type ServerMessage } from "@madworld/shared";
+import { TICK_MS, Op, type ServerMessage, encodeTick } from "@madworld/shared";
 import { world } from "./World.js";
 import { partyManager } from "./PartyManager.js";
 import { processMovement } from "./systems/MovementSystem.js";
@@ -56,13 +56,10 @@ function tick(): void {
       partyManager.syncPartyMemberHp(player);
     }
 
-    // 8. Send tick sync to all players
-    const tickMsg: ServerMessage = {
-      op: Op.S_TICK,
-      d: { tick: currentTick, serverTime: Date.now() },
-    };
+    // 8. Send tick sync to all players (binary — 13 bytes vs ~60 bytes JSON)
+    const tickBuf = encodeTick(currentTick, Date.now());
     for (const [, player] of world.playersByEid) {
-      player.send(tickMsg);
+      player.send(tickBuf);
     }
 
     // 9. Persist dirty players every 30 seconds (300 ticks)
