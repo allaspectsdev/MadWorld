@@ -1,5 +1,5 @@
 import { Container, Graphics } from "pixi.js";
-import { TILE_SIZE } from "@madworld/shared";
+import { cartToIso, ISO_TILE_W, ISO_TILE_H } from "@madworld/shared";
 
 interface Telegraph {
   graphic: Graphics;
@@ -20,11 +20,12 @@ export class TelegraphRenderer {
     graphic.alpha = 0;
     this.container.addChild(graphic);
 
+    const iso = cartToIso(worldX, worldY);
     this.active.push({
       graphic,
-      x: worldX * TILE_SIZE,
-      y: worldY * TILE_SIZE,
-      maxRadius: radius * TILE_SIZE,
+      x: iso.x,
+      y: iso.y,
+      maxRadius: radius * ISO_TILE_W * 0.5,
       duration: durationMs / 1000,
       elapsed: 0,
       color,

@@ -3,14 +3,16 @@ import { QUESTS } from "@madworld/shared";
 
 export class QuestLog {
   private container: HTMLElement;
+  private list: HTMLElement;
   private unsubscribe: (() => void) | null = null;
 
   constructor() {
     this.container = document.getElementById("quest-log")!;
+    this.list = document.getElementById("quest-list") ?? this.container;
     // Close button
     this.container.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains("quest-log-close")) {
+      if (target.classList.contains("quest-log-close") || target.classList.contains("panel-close")) {
         useGameStore.getState().toggleQuestLog();
       }
     });
@@ -41,10 +43,10 @@ export class QuestLog {
     }
     this.container.classList.add("open");
 
-    let html = '<div class="quest-log-header"><span>Quest Log</span><button class="quest-log-close">X</button></div>';
+    let html = "";
 
     if (quests.length === 0 && completedQuests.length === 0) {
-      html += '<div class="quest-log-empty">No quests yet. Talk to NPCs to find tasks.</div>';
+      html += '<div style="padding:20px;text-align:center;color:var(--ui-text-muted);font-size:var(--font-size-sm);">No quests yet. Talk to NPCs to find tasks.</div>';
     }
 
     // Active quests
@@ -80,6 +82,6 @@ export class QuestLog {
       </div>`;
     }
 
-    this.container.innerHTML = html;
+    this.list.innerHTML = html;
   }
 }

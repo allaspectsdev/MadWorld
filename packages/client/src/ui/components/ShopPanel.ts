@@ -11,21 +11,14 @@ export class ShopPanel {
   constructor(socket: Socket) {
     this.socket = socket;
 
-    // Create shop panel HTML
+    // Create shop panel — uses game-panel design system
     this.container = document.createElement("div");
     this.container.id = "shop-panel";
-    this.container.style.cssText = `
-      display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 400px; max-height: 80vh; background: rgba(10,10,20,0.95);
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-      padding: 16px; z-index: 100; color: #fff; overflow-y: auto;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-    `;
+    this.container.className = "game-panel";
     document.getElementById("ui-root")?.appendChild(this.container);
   }
 
   start(): void {
-    // Subscribe to shop data changes
     useGameStore.subscribe((state) => {
       if (state.shopData) {
         this.show(state.shopData);
@@ -35,11 +28,11 @@ export class ShopPanel {
 
   private show(data: { npcName: string; items: { itemId: string; buyPrice: number; stock: number }[] }): void {
     this.container.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="margin:0;color:#ffd700">${escapeHtml(data.npcName)}'s Shop</h3>
-        <button id="shop-close" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:4px 8px;">&#x2715;</button>
+      <div class="panel-header">
+        <span class="panel-title">${escapeHtml(data.npcName)}'s Shop</span>
+        <button class="panel-close" id="shop-close">&times;</button>
       </div>
-      <div id="shop-items" style="display:grid;grid-template-columns:1fr;gap:6px;"></div>
+      <div id="shop-items"></div>
     `;
 
     const itemsContainer = this.container.querySelector("#shop-items")!;
@@ -49,26 +42,14 @@ export class ShopPanel {
       if (!itemDef) continue;
 
       const row = document.createElement("div");
-      row.style.cssText = `
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 8px 10px; background: rgba(255,255,255,0.05); border-radius: 6px;
-        cursor: pointer; transition: background 0.15s;
-      `;
-      row.addEventListener("mouseenter", () => { row.style.background = "rgba(255,255,255,0.1)"; });
-      row.addEventListener("mouseleave", () => { row.style.background = "rgba(255,255,255,0.05)"; });
-
+      row.className = "shop-item";
       row.innerHTML = `
-        <div>
-          <div style="font-weight:bold;font-size:13px;">${escapeHtml(itemDef.name)}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.5);">${escapeHtml(itemDef.description)}</div>
+        <div class="shop-item-info">
+          <div class="shop-item-name">${escapeHtml(itemDef.name)}</div>
+          <div class="shop-item-desc">${escapeHtml(itemDef.description)}</div>
         </div>
-        <button class="shop-buy-btn" data-item-id="${escapeHtml(shopItem.itemId)}" style="
-          background: linear-gradient(135deg, #ffd700, #ff8c00); border: none; color: #111;
-          padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 12px;
-          cursor: pointer;
-        ">${shopItem.buyPrice}g</button>
+        <button class="shop-buy-btn" data-item-id="${escapeHtml(shopItem.itemId)}">${shopItem.buyPrice}g</button>
       `;
-
       itemsContainer.appendChild(row);
     }
 
@@ -86,11 +67,11 @@ export class ShopPanel {
       });
     });
 
-    this.container.style.display = "block";
+    this.container.classList.add("open");
   }
 
   hide(): void {
-    this.container.style.display = "none";
+    this.container.classList.remove("open");
     useGameStore.getState().setShopData(null);
   }
 

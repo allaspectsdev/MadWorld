@@ -1,5 +1,5 @@
 import { Container, Graphics, RenderTexture, Sprite, type Application } from "pixi.js";
-import { TILE_SIZE } from "@madworld/shared";
+import { TILE_SIZE, cartToIso, ISO_TILE_W } from "@madworld/shared";
 
 export interface LightSource {
   x: number;
@@ -130,7 +130,7 @@ export class LightingSystem {
       const screenPos = this.worldToLightMap(light.x, light.y);
 
       // Skip lights far off screen
-      const radiusPx = light.radius * TILE_SIZE * this.camZoom * LIGHT_MAP_SCALE;
+      const radiusPx = light.radius * ISO_TILE_W * 0.5 * this.camZoom * LIGHT_MAP_SCALE;
       if (
         screenPos.x < -radiusPx || screenPos.x > lmW + radiusPx ||
         screenPos.y < -radiusPx || screenPos.y > lmH + radiusPx
@@ -175,7 +175,7 @@ export class LightingSystem {
     const glowIntensity = ambient.isNight ? 0.4 : 0.05;
     for (const light of allLights) {
       const screenPos = this.worldToLightMap(light.x, light.y);
-      const radiusPx = light.radius * TILE_SIZE * this.camZoom * LIGHT_MAP_SCALE;
+      const radiusPx = light.radius * ISO_TILE_W * 0.5 * this.camZoom * LIGHT_MAP_SCALE;
       if (
         screenPos.x < -radiusPx || screenPos.x > lmW + radiusPx ||
         screenPos.y < -radiusPx || screenPos.y > lmH + radiusPx
@@ -219,9 +219,11 @@ export class LightingSystem {
   }
 
   private worldToLightMap(worldX: number, worldY: number): { x: number; y: number } {
-    // Convert world tile position to screen position, then to light map coords
-    const screenX = (worldX * TILE_SIZE - this.camX * TILE_SIZE) * this.camZoom + this.screenW / 2;
-    const screenY = (worldY * TILE_SIZE - this.camY * TILE_SIZE) * this.camZoom + this.screenH / 2;
+    // Convert world tile position to isometric pixel, then to screen, then to light map
+    const iso = cartToIso(worldX, worldY);
+    const camIso = cartToIso(this.camX, this.camY);
+    const screenX = (iso.x - camIso.x) * this.camZoom + this.screenW / 2;
+    const screenY = (iso.y - camIso.y) * this.camZoom + this.screenH / 2;
     return {
       x: screenX * LIGHT_MAP_SCALE,
       y: screenY * LIGHT_MAP_SCALE,

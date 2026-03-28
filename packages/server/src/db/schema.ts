@@ -1,5 +1,6 @@
 import {
   pgTable,
+  serial,
   integer,
   varchar,
   text,
@@ -88,3 +89,61 @@ export const questProgress = pgTable("quest_progress", {
   completed: boolean("completed").notNull().default(false),
   data: jsonb("data"),
 });
+
+// ---- Procedural world tables ----
+
+export const worldChunks = pgTable(
+  "world_chunks",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    worldSeed: integer("world_seed").notNull(),
+    chunkX: integer("chunk_x").notNull(),
+    chunkY: integer("chunk_y").notNull(),
+    biome: varchar("biome", { length: 32 }).notNull(),
+    tileData: jsonb("tile_data").notNull(),        // TileType[][] compressed
+    mobSpawns: jsonb("mob_spawns").notNull(),       // ChunkMobSpawn[]
+    lights: jsonb("lights").notNull(),              // ChunkLight[]
+    generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("world_chunks_seed_pos_idx").on(table.worldSeed, table.chunkX, table.chunkY),
+  ],
+);
+
+export const partyCamps = pgTable(
+  "party_camps",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    partyId: varchar("party_id", { length: 64 }).notNull(),
+    ownerPlayerId: integer("owner_player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 32 }).notNull().default("Camp"),
+    worldX: real("world_x").notNull(),
+    worldY: real("world_y").notNull(),
+    chunkX: integer("chunk_x").notNull(),
+    chunkY: integer("chunk_y").notNull(),
+    tier: smallint("tier").notNull().default(1), // 1=campfire, 2=small camp, 3=full camp
+    storage: jsonb("storage").notNull().default([]),  // InventorySlot[]
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("party_camps_party_idx").on(table.partyId, table.id),
+  ],
+);
+
+export const playerDiscovery = pgTable(
+  "player_discovery",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    chunkX: integer("chunk_x").notNull(),
+    chunkY: integer("chunk_y").notNull(),
+    discoveredAt: timestamp("discovered_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("player_discovery_player_chunk_idx").on(table.playerId, table.chunkX, table.chunkY),
+  ],
+);

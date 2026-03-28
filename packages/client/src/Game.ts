@@ -1,5 +1,5 @@
 import { Application, ColorMatrixFilter } from "pixi.js";
-import { PLAYER_SPEED, TILE_SIZE, EntityType, Op, TileType, type ClientMessage } from "@madworld/shared";
+import { PLAYER_SPEED, TILE_SIZE, EntityType, Op, TileType, type ClientMessage, cartToIso, ISO_TILE_H } from "@madworld/shared";
 import { Socket } from "./net/Socket.js";
 import { Dispatcher } from "./net/Dispatcher.js";
 import { useGameStore } from "./state/GameStore.js";
@@ -436,7 +436,8 @@ export class Game {
       this.lastDustY = current.y;
       const dustTile = state.tiles?.[Math.floor(current.y)]?.[Math.floor(current.x)];
       if (dustTile === TileType.DIRT || dustTile === TileType.SAND || dustTile === TileType.COBBLESTONE) {
-        this.particles.emit(current.x * TILE_SIZE, current.y * TILE_SIZE + TILE_SIZE * 0.3, 3, {
+        const dustIso = cartToIso(current.x, current.y);
+        this.particles.emit(dustIso.x, dustIso.y + ISO_TILE_H * 0.3, 3, {
           texType: "circle",
           tint: dustTile === TileType.SAND ? 0xc2b280 : 0x998877,
           speed: 15, spread: Math.PI, life: 0.4, gravity: -10,
@@ -521,11 +522,12 @@ export class Game {
 
     // Ambient particles
     const bounds = this.camera.getViewBounds();
+    // getViewBounds returns iso-pixel space; pass directly to ambient particles
     this.ambientParticles.setCamera(
-      bounds.left * TILE_SIZE,
-      bounds.top * TILE_SIZE,
-      (bounds.right - bounds.left) * TILE_SIZE,
-      (bounds.bottom - bounds.top) * TILE_SIZE,
+      bounds.left,
+      bounds.top,
+      bounds.right - bounds.left,
+      bounds.bottom - bounds.top,
     );
     this.ambientParticles.update(dt, current.x, current.y);
   }

@@ -76,9 +76,9 @@ export class NPCDialog {
     }
     this.container.classList.add("open");
 
-    let html = `<div class="npc-dialog-header">
-      <span class="npc-dialog-name">${escapeHtml(dialog.npcName)}</span>
-      <button class="npc-dialog-close">X</button>
+    let html = `<div class="panel-header">
+      <span class="panel-title">${escapeHtml(dialog.npcName)}</span>
+      <button class="panel-close npc-dialog-close">&times;</button>
     </div>`;
 
     html += `<div class="npc-dialog-text">${escapeHtml(dialog.dialog)}</div>`;
@@ -114,12 +114,12 @@ export class NPCDialog {
     const hasShop = SHOPS[npcKey] !== undefined;
     if (hasShop) {
       html += `<div class="npc-quest-section">
-        <button class="npc-quest-btn npc-shop-btn" data-shop-key="${escapeHtml(npcKey)}" data-npc-name="${escapeHtml(dialog.npcName)}" style="background:linear-gradient(135deg,#ffd700,#ff8c00);color:#111;font-weight:bold;">Browse Shop</button>
+        <button class="npc-shop-btn" data-shop-key="${escapeHtml(npcKey)}" data-npc-name="${escapeHtml(dialog.npcName)}">Browse Shop</button>
       </div>`;
     }
 
     if (dialog.availableQuests.length === 0 && dialog.turnInQuests.length === 0 && !hasShop) {
-      html += '<div class="npc-no-quests">No quests available.</div>';
+      html += '<div style="padding:14px;text-align:center;color:var(--ui-text-muted);font-size:var(--font-size-sm);">No quests available.</div>';
     }
 
     this.container.innerHTML = html;

@@ -106,6 +106,14 @@ export interface GameState {
   toggleChat: () => void;
   setChatOpen: (open: boolean) => void;
 
+  // Procedural world chunks & discovery
+  discoveredChunks: Set<string>;
+  loadedChunks: Map<string, { chunkX: number; chunkY: number; biome: string; tiles: TileType[][]; lights?: any[] }>;
+  setDiscoveredChunks: (chunks: string[]) => void;
+  addDiscoveredChunks: (chunks: string[]) => void;
+  addChunkData: (chunkX: number, chunkY: number, biome: string, tiles: TileType[][], lights?: any[]) => void;
+  removeChunkData: (chunkX: number, chunkY: number) => void;
+
   setConnected: (v: boolean) => void;
   setToken: (t: string) => void;
   setLocalPlayer: (p: LocalPlayer) => void;
@@ -230,6 +238,29 @@ export const useGameStore = create<GameState>()((set, get) => ({
     }),
   toggleChat: () => set((state) => ({ chatOpen: !state.chatOpen })),
   setChatOpen: (open) => set({ chatOpen: open }),
+
+  // Procedural world chunks & discovery
+  discoveredChunks: new Set<string>(),
+  loadedChunks: new Map(),
+  setDiscoveredChunks: (chunks) => set({ discoveredChunks: new Set(chunks) }),
+  addDiscoveredChunks: (chunks) =>
+    set((state) => {
+      const next = new Set(state.discoveredChunks);
+      for (const c of chunks) next.add(c);
+      return { discoveredChunks: next };
+    }),
+  addChunkData: (chunkX, chunkY, biome, tiles, lights) =>
+    set((state) => {
+      const next = new Map(state.loadedChunks);
+      next.set(`${chunkX},${chunkY}`, { chunkX, chunkY, biome, tiles, lights });
+      return { loadedChunks: next };
+    }),
+  removeChunkData: (chunkX, chunkY) =>
+    set((state) => {
+      const next = new Map(state.loadedChunks);
+      next.delete(`${chunkX},${chunkY}`);
+      return { loadedChunks: next };
+    }),
 
   setConnected: (v) => set({ connected: v }),
   setToken: (t) => set({ token: t }),

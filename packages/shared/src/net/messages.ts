@@ -177,6 +177,95 @@ export interface S_SystemMessage {
   message: string;
 }
 
+// ---- Gathering / Crafting ----
+
+export interface S_GatherStart {
+  nodeEid: number;
+  nodeId: string;
+  waitingForAssist: boolean;
+  ticks: number;
+}
+
+export interface S_GatherResult {
+  nodeEid: number;
+  success: boolean;
+  items?: { itemId: string; quantity: number }[];
+  xp?: number;
+  skillId?: string;
+  coopCompleted?: boolean;
+}
+
+export interface S_GatherAssistReq {
+  nodeEid: number;
+  nodeId: string;
+  gathererName: string;
+  worldX: number;
+  worldY: number;
+}
+
+export interface S_CraftResult {
+  recipeId: string;
+  success: boolean;
+  items?: { itemId: string; quantity: number };
+  xp?: number;
+  burned?: boolean;
+}
+
+// ---- Camp System ----
+
+export interface S_CampList {
+  camps: {
+    id: number;
+    name: string;
+    worldX: number;
+    worldY: number;
+    tier: number;
+    storageSlots: number;
+  }[];
+}
+
+export interface S_CampStorage {
+  campId: number;
+  storage: { itemId: string; quantity: number }[];
+}
+
+export interface S_CampPlaced {
+  campId: number;
+  name: string;
+  worldX: number;
+  worldY: number;
+  tier: number;
+}
+
+// ---- Chunk Streaming / Procedural World ----
+
+export interface S_ChunkData {
+  chunkX: number;
+  chunkY: number;
+  biome: string;
+  tiles: TileType[][];
+  lights?: { x: number; y: number; radius: number; color: number; flicker?: boolean }[];
+}
+
+export interface S_ChunkUnload {
+  chunkX: number;
+  chunkY: number;
+}
+
+export interface S_DiscoveryUpdate {
+  /** Newly discovered chunks as "cx,cy" strings. */
+  chunks: string[];
+  /** XP awarded for discovery (if any). */
+  xp?: number;
+}
+
+export interface S_DiscoveryInit {
+  /** All previously discovered chunks as "cx,cy" strings. */
+  chunks: string[];
+}
+
+// ---- Tick / Pong ----
+
 export interface S_Tick {
   tick: number;
   serverTime: number;
@@ -423,5 +512,16 @@ export type ServerMessage =
   | { op: Op.S_SHOP_OPEN; d: S_ShopOpen }
   | { op: Op.S_FISH_BITE; d: S_FishBite }
   | { op: Op.S_FISH_RESULT; d: S_FishResult }
+  | { op: Op.S_GATHER_START; d: S_GatherStart }
+  | { op: Op.S_GATHER_RESULT; d: S_GatherResult }
+  | { op: Op.S_GATHER_ASSIST_REQ; d: S_GatherAssistReq }
+  | { op: Op.S_CRAFT_RESULT; d: S_CraftResult }
+  | { op: Op.S_CAMP_LIST; d: S_CampList }
+  | { op: Op.S_CAMP_STORAGE; d: S_CampStorage }
+  | { op: Op.S_CAMP_PLACED; d: S_CampPlaced }
+  | { op: Op.S_CHUNK_DATA; d: S_ChunkData }
+  | { op: Op.S_CHUNK_UNLOAD; d: S_ChunkUnload }
+  | { op: Op.S_DISCOVERY_UPDATE; d: S_DiscoveryUpdate }
+  | { op: Op.S_DISCOVERY_INIT; d: S_DiscoveryInit }
   | { op: Op.S_TICK; d: S_Tick }
   | { op: Op.S_PONG; d: S_Pong };

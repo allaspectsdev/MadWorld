@@ -267,6 +267,8 @@ class PartyManager {
         zoneId: p.zoneId,
         zoneName: zone?.def.name ?? p.zoneId,
         isLeader: eid === party.leaderEid,
+        worldX: p.x,
+        worldY: p.y,
       });
     }
 

@@ -1,5 +1,5 @@
 import { Container, Graphics, Text, TextStyle } from "pixi.js";
-import { TILE_SIZE } from "@madworld/shared";
+import { cartToIso, ISO_TILE_H } from "@madworld/shared";
 
 interface ChatBubble {
   container: Container;
@@ -85,8 +85,9 @@ export class ChatBubbleRenderer {
 
       const pos = getEntityPos(b.eid);
       if (pos) {
-        b.container.x = pos.x * TILE_SIZE;
-        b.container.y = pos.y * TILE_SIZE - TILE_SIZE * 0.9;
+        const iso = cartToIso(pos.x, pos.y);
+        b.container.x = iso.x;
+        b.container.y = iso.y - ISO_TILE_H * 0.9;
       }
 
       // Fade out in last second

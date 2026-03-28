@@ -1,4 +1,9 @@
-import { Op, EntityType, TILE_SIZE, type ServerMessage } from "@madworld/shared";
+import { Op, EntityType, TILE_SIZE, type ServerMessage, cartToIso } from "@madworld/shared";
+
+/** Convert world-tile position to iso-pixel for particle effects. */
+function toIso(wx: number, wy: number): { x: number; y: number } {
+  return cartToIso(wx, wy);
+}
 import { useGameStore, type RemoteEntity } from "../state/GameStore.js";
 import type { HitSplatRenderer } from "../renderer/HitSplatRenderer.js";
 import type { EntityRenderer } from "../renderer/EntityRenderer.js";
@@ -227,7 +232,8 @@ export class Dispatcher {
           const sourceEntity = store.entities.get(msg.d.sourceEid);
           const dx = sourceEntity ? tx - sourceEntity.nextX : 0;
           const dy = sourceEntity ? ty - sourceEntity.nextY : 0;
-          this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 8, {
+          const hitIso = toIso(tx, ty);
+          this.particles.emit(hitIso.x, hitIso.y, 8, {
             tint: msg.d.isCrit ? 0xff4444 : 0xffaa44,
             speed: 80,
             spread: Math.PI * 0.6,
@@ -239,7 +245,7 @@ export class Dispatcher {
           });
           // Extra star burst on critical hits
           if (msg.d.isCrit) {
-            this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 12, {
+            this.particles.emit(hitIso.x, hitIso.y, 12, {
               texType: "star",
               tint: 0xff2222,
               speed: 100,
@@ -276,8 +282,9 @@ export class Dispatcher {
         const deadEntity = store.entities.get(msg.d.eid);
         if (deadEntity) {
           const isBoss = deadEntity.type === EntityType.MOB && isBossMob(deadEntity.name ?? "");
-          const bx = deadEntity.nextX * TILE_SIZE;
-          const by = deadEntity.nextY * TILE_SIZE;
+          const deathIso = toIso(deadEntity.nextX, deadEntity.nextY);
+          const bx = deathIso.x;
+          const by = deathIso.y;
 
           if (isBoss) {
             // Boss death: 3-wave particle explosion
@@ -359,7 +366,8 @@ export class Dispatcher {
           this.updateHUD();
           // Respawn visual effects
           this.screenEffects.flash(0xffffff, 0.4);
-          this.particles.emit(msg.d.x * TILE_SIZE, msg.d.y * TILE_SIZE, 25, {
+          const respIso = toIso(msg.d.x, msg.d.y);
+          this.particles.emit(respIso.x, respIso.y, 25, {
             texType: "star",
             tint: 0x44ff88,
             speed: 40,
@@ -386,7 +394,8 @@ export class Dispatcher {
         // Level-up sparkles
         const lpLvl = store.localPlayer;
         if (lpLvl) {
-          this.particles.emit(lpLvl.x * TILE_SIZE, lpLvl.y * TILE_SIZE, 20, {
+          const lvlIso = toIso(lpLvl.x, lpLvl.y);
+          this.particles.emit(lvlIso.x, lvlIso.y, 20, {
             texType: "star",
             tint: 0xffd700,
             speed: 30,
@@ -531,8 +540,9 @@ export class Dispatcher {
         // Ability cast particles
         const lpCast = store.localPlayer;
         if (lpCast) {
-          const px = lpCast.x * TILE_SIZE;
-          const py = lpCast.y * TILE_SIZE;
+          const castIso = toIso(lpCast.x, lpCast.y);
+          const px = castIso.x;
+          const py = castIso.y;
           const ABILITY_VFX: Record<string, { tint: number; texType: "circle" | "glow" | "star" | "trail"; count: number; speed: number; spread: number; life: number; gravity: number }> = {
             power_strike: { tint: 0xff6644, texType: "star", count: 10, speed: 60, spread: Math.PI, life: 0.4, gravity: 40 },
             shield_bash: { tint: 0xffdd44, texType: "circle", count: 8, speed: 40, spread: Math.PI * 0.8, life: 0.3, gravity: 40 },
@@ -565,7 +575,8 @@ export class Dispatcher {
           const color = STATUS_COLORS[msg.d.effectId] ?? 0xffffff;
           const tx = targetEntity?.nextX ?? lp?.x ?? 0;
           const ty = targetEntity?.nextY ?? lp?.y ?? 0;
-          this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 8, {
+          const statusIso = toIso(tx, ty);
+          this.particles.emit(statusIso.x, statusIso.y, 8, {
             texType: "glow",
             tint: color,
             speed: 30,
@@ -581,7 +592,8 @@ export class Dispatcher {
           const tx = targetEntity?.nextX ?? lp?.x ?? 0;
           const ty = targetEntity?.nextY ?? lp?.y ?? 0;
           if (msg.d.effectId === "poison") {
-            this.particles.emit(tx * TILE_SIZE, ty * TILE_SIZE, 3, {
+            const tickIso = toIso(tx, ty);
+            this.particles.emit(tickIso.x, tickIso.y, 3, {
               tint: 0x44ff44, speed: 15, spread: Math.PI, life: 0.4, gravity: 10, baseScale: 0.4,
             });
           }
@@ -605,6 +617,37 @@ export class Dispatcher {
           this.showSystemMessage(`Caught a fish! (+${msg.d.xp ?? 0} fishing XP)`);
         } else {
           this.showSystemMessage("The fish got away...");
+        }
+        break;
+      }
+
+      // ---- Procedural world / chunk streaming ----
+
+      case Op.S_CHUNK_DATA: {
+        store.addChunkData(
+          msg.d.chunkX,
+          msg.d.chunkY,
+          msg.d.biome,
+          msg.d.tiles,
+          msg.d.lights,
+        );
+        break;
+      }
+
+      case Op.S_CHUNK_UNLOAD: {
+        store.removeChunkData(msg.d.chunkX, msg.d.chunkY);
+        break;
+      }
+
+      case Op.S_DISCOVERY_INIT: {
+        store.setDiscoveredChunks(msg.d.chunks);
+        break;
+      }
+
+      case Op.S_DISCOVERY_UPDATE: {
+        store.addDiscoveredChunks(msg.d.chunks);
+        if (msg.d.xp && msg.d.xp > 0) {
+          this.showSystemMessage(`Explored new territory! +${msg.d.xp} XP`);
         }
         break;
       }

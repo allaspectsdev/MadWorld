@@ -1,0 +1,339 @@
+/**
+ * Procedural world generator.
+ *
+ * Generates 32×32 tile chunks on demand using layered simplex noise.
+ * Each chunk is deterministic given the world seed + chunk coordinates.
+ *
+ * Pipeline per chunk:
+ *   1. Sample elevation/moisture/temperature noise at each tile
+ *   2. Derive biome from noise values
+ *   3. Map biome to tile types with detail noise for variation
+ *   4. Apply feature placement (trees, rocks, water edges)
+ *   5. Generate mob spawn points based on biome
+ */
+
+import {
+  createNoise2D,
+  octaveNoise,
+  type Noise2D,
+  deriveBiome,
+  Biome,
+  biomePrimaryTile,
+  TileType,
+  WORLD_CHUNK_SIZE,
+  TERRAIN_SCALES,
+} from "@madworld/shared";
+
+export interface GeneratedChunk {
+  chunkX: number;
+  chunkY: number;
+  biome: Biome;           // Dominant biome for this chunk
+  tiles: TileType[][];    // 32×32 tile grid [y][x]
+  mobSpawns: ChunkMobSpawn[];
+  lights: ChunkLight[];
+}
+
+export interface ChunkMobSpawn {
+  mobId: string;
+  x: number; // tile-local (0..31)
+  y: number;
+  count: number;
+  wanderRadius: number;
+}
+
+export interface ChunkLight {
+  x: number; // tile-local
+  y: number;
+  radius: number;
+  color: number;
+  flicker?: boolean;
+}
+
+// Biome → mob spawns
+const BIOME_MOBS: Partial<Record<Biome, { mobId: string; density: number; wanderRadius: number }[]>> = {
+  [Biome.PLAINS]: [
+    { mobId: "chicken", density: 0.003, wanderRadius: 4 },
+    { mobId: "cow", density: 0.002, wanderRadius: 5 },
+  ],
+  [Biome.FOREST]: [
+    { mobId: "goblin", density: 0.004, wanderRadius: 5 },
+    { mobId: "forest_spider", density: 0.002, wanderRadius: 3 },
+  ],
+  [Biome.DENSE_FOREST]: [
+    { mobId: "forest_spider", density: 0.005, wanderRadius: 4 },
+    { mobId: "skeleton", density: 0.003, wanderRadius: 5 },
+  ],
+  [Biome.SWAMP]: [
+    { mobId: "swamp_leech", density: 0.004, wanderRadius: 3 },
+    { mobId: "bog_toad", density: 0.003, wanderRadius: 4 },
+  ],
+  [Biome.DESERT]: [
+    { mobId: "sand_scorpion", density: 0.003, wanderRadius: 5 },
+  ],
+  [Biome.MOUNTAINS]: [
+    { mobId: "skeleton", density: 0.003, wanderRadius: 4 },
+  ],
+  [Biome.SAVANNA]: [
+    { mobId: "goblin", density: 0.003, wanderRadius: 6 },
+  ],
+  [Biome.JUNGLE]: [
+    { mobId: "forest_spider", density: 0.004, wanderRadius: 4 },
+    { mobId: "goblin", density: 0.003, wanderRadius: 5 },
+  ],
+};
+
+export class WorldGenerator {
+  private elevNoise: Noise2D;
+  private moistNoise: Noise2D;
+  private tempNoise: Noise2D;
+  private detailNoise: Noise2D;
+  private featureNoise: Noise2D;
+  readonly seed: number;
+
+  constructor(seed: number) {
+    this.seed = seed;
+    // Use different seed offsets for each noise layer so they're independent
+    this.elevNoise = createNoise2D(seed);
+    this.moistNoise = createNoise2D(seed + 1000);
+    this.tempNoise = createNoise2D(seed + 2000);
+    this.detailNoise = createNoise2D(seed + 3000);
+    this.featureNoise = createNoise2D(seed + 4000);
+  }
+
+  /**
+   * Generate a single chunk at the given chunk coordinates.
+   * Chunk (0,0) starts at world tile (0,0).
+   * Chunk (1,0) starts at world tile (32,0), etc.
+   */
+  generateChunk(chunkX: number, chunkY: number): GeneratedChunk {
+    const S = WORLD_CHUNK_SIZE;
+    const baseX = chunkX * S;
+    const baseY = chunkY * S;
+
+    const tiles: TileType[][] = [];
+    const biomeCounts = new Map<Biome, number>();
+
+    // Pass 1: Generate biome + primary tile for each cell
+    for (let y = 0; y < S; y++) {
+      const row: TileType[] = [];
+      for (let x = 0; x < S; x++) {
+        const wx = baseX + x;
+        const wy = baseY + y;
+
+        const elev = octaveNoise(this.elevNoise, wx, wy, 6, 0.5, 2.0, TERRAIN_SCALES.elevation);
+        const moist = octaveNoise(this.moistNoise, wx, wy, 5, 0.5, 2.0, TERRAIN_SCALES.moisture);
+        const temp = octaveNoise(this.tempNoise, wx, wy, 4, 0.5, 2.0, TERRAIN_SCALES.temperature);
+
+        const biome = deriveBiome(elev, moist, temp);
+        biomeCounts.set(biome, (biomeCounts.get(biome) ?? 0) + 1);
+
+        let tile = biomePrimaryTile(biome);
+
+        // Detail variation within biome
+        const detail = this.detailNoise(wx * TERRAIN_SCALES.detail, wy * TERRAIN_SCALES.detail);
+        tile = this.applyBiomeDetail(tile, biome, detail, elev);
+
+        row.push(tile);
+      }
+      tiles.push(row);
+    }
+
+    // Determine dominant biome
+    let dominantBiome = Biome.PLAINS;
+    let maxCount = 0;
+    for (const [biome, count] of biomeCounts) {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantBiome = biome;
+      }
+    }
+
+    // Pass 2: Smooth edges — add beaches between water and land
+    this.smoothWaterEdges(tiles);
+
+    // Pass 3: Generate mob spawns
+    const mobSpawns = this.generateMobSpawns(dominantBiome, tiles, chunkX, chunkY);
+
+    // Pass 4: Generate lights (torches in forest, campfires, etc.)
+    const lights = this.generateLights(dominantBiome, tiles, chunkX, chunkY);
+
+    return {
+      chunkX,
+      chunkY,
+      biome: dominantBiome,
+      tiles,
+      mobSpawns,
+      lights,
+    };
+  }
+
+  /**
+   * Apply fine-grained detail variation within a biome.
+   * This creates natural-looking variation (patches of dirt in grass, etc.)
+   */
+  private applyBiomeDetail(tile: TileType, biome: Biome, detail: number, elev: number): TileType {
+    switch (biome) {
+      case Biome.PLAINS:
+        if (detail > 0.5) return TileType.DIRT; // dirt patches
+        if (detail > 0.4) return TileType.GRASS;
+        return tile;
+
+      case Biome.FOREST:
+        if (detail > 0.6) return TileType.FOREST; // dense tree patches
+        if (detail < -0.4) return TileType.DIRT;   // forest paths
+        return tile;
+
+      case Biome.SWAMP:
+        if (detail > 0.3) return TileType.WATER;   // swamp pools
+        if (detail < -0.3) return TileType.GRASS;   // dry patches
+        return tile;
+
+      case Biome.DESERT:
+        if (detail > 0.6) return TileType.DIRT;    // rocky patches
+        if (elev > 0.3) return TileType.MOUNTAIN;  // desert mesas
+        return tile;
+
+      case Biome.MOUNTAINS:
+        if (detail < -0.3) return TileType.DIRT;   // mountain paths
+        if (detail > 0.4 && elev < 0.5) return TileType.GRASS; // alpine meadow
+        return tile;
+
+      case Biome.COAST:
+        if (detail > 0.4) return TileType.GRASS;   // coastal grass
+        if (detail < -0.5) return TileType.WATER;  // tidal pools
+        return tile;
+
+      case Biome.TUNDRA:
+        if (detail > 0.5) return TileType.MOUNTAIN; // rocky outcrops
+        if (detail < -0.3) return TileType.GRASS;    // tundra grass
+        return tile;
+
+      case Biome.JUNGLE:
+        if (detail > 0.4) return TileType.FOREST;  // thick canopy
+        if (detail < -0.5) return TileType.WATER;   // jungle streams
+        return tile;
+
+      case Biome.SAVANNA:
+        if (detail > 0.6) return TileType.GRASS;   // tall grass
+        if (detail > 0.4) return TileType.FOREST;  // lone trees
+        return tile;
+
+      default:
+        return tile;
+    }
+  }
+
+  /** Add sand tiles between water and land for natural coastlines. */
+  private smoothWaterEdges(tiles: TileType[][]): void {
+    const S = tiles.length;
+    const isWater = (y: number, x: number) =>
+      y >= 0 && y < S && x >= 0 && x < S && tiles[y][x] === TileType.WATER;
+
+    const changes: [number, number, TileType][] = [];
+
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        if (tiles[y][x] === TileType.WATER) continue;
+        if (tiles[y][x] === TileType.SAND) continue;
+
+        // Check if adjacent to water
+        const adj = isWater(y - 1, x) || isWater(y + 1, x) ||
+                    isWater(y, x - 1) || isWater(y, x + 1);
+        if (adj) {
+          changes.push([y, x, TileType.SAND]);
+        }
+      }
+    }
+
+    for (const [y, x, tile] of changes) {
+      tiles[y][x] = tile;
+    }
+  }
+
+  /** Generate mob spawn points based on biome and walkable tiles. */
+  private generateMobSpawns(
+    biome: Biome,
+    tiles: TileType[][],
+    chunkX: number,
+    chunkY: number,
+  ): ChunkMobSpawn[] {
+    const defs = BIOME_MOBS[biome];
+    if (!defs) return [];
+
+    const S = WORLD_CHUNK_SIZE;
+    const spawns: ChunkMobSpawn[] = [];
+
+    // Use deterministic placement based on chunk position
+    const rng = this.makeChunkRng(chunkX, chunkY);
+
+    for (const def of defs) {
+      const count = Math.floor(S * S * def.density);
+      for (let i = 0; i < count; i++) {
+        const x = Math.floor(rng() * S);
+        const y = Math.floor(rng() * S);
+
+        // Only spawn on walkable tiles
+        const tile = tiles[y]?.[x];
+        if (tile === undefined) continue;
+        if (tile === TileType.WATER || tile === TileType.MOUNTAIN ||
+            tile === TileType.FOREST || tile === TileType.FENCE) continue;
+
+        spawns.push({
+          mobId: def.mobId,
+          x,
+          y,
+          count: 1,
+          wanderRadius: def.wanderRadius,
+        });
+      }
+    }
+
+    return spawns;
+  }
+
+  /** Generate light sources (campfires, torches) in appropriate biomes. */
+  private generateLights(
+    biome: Biome,
+    tiles: TileType[][],
+    chunkX: number,
+    chunkY: number,
+  ): ChunkLight[] {
+    // Only some biomes have natural light sources
+    if (biome === Biome.OCEAN || biome === Biome.DESERT || biome === Biome.SNOW_PEAKS) return [];
+
+    const rng = this.makeChunkRng(chunkX + 9999, chunkY + 9999);
+    const lights: ChunkLight[] = [];
+    const S = WORLD_CHUNK_SIZE;
+
+    // Sparse campfire-like lights
+    const lightCount = biome === Biome.FOREST || biome === Biome.DENSE_FOREST ? 2 : 1;
+    for (let i = 0; i < lightCount; i++) {
+      const x = Math.floor(rng() * S);
+      const y = Math.floor(rng() * S);
+      const tile = tiles[y]?.[x];
+      if (tile === TileType.WATER || tile === TileType.MOUNTAIN || tile === TileType.FOREST) continue;
+
+      lights.push({
+        x,
+        y,
+        radius: 4 + Math.floor(rng() * 3),
+        color: biome === Biome.SWAMP ? 0x44ff88 : 0xff8844,
+        flicker: true,
+      });
+    }
+
+    return lights;
+  }
+
+  /** Simple seeded RNG for deterministic per-chunk placement. */
+  private makeChunkRng(cx: number, cy: number): () => number {
+    let s = ((cx * 73856093) ^ (cy * 19349663) ^ (this.seed * 83492791)) >>> 0;
+    if (s === 0) s = 1;
+    return () => {
+      s ^= s << 13;
+      s ^= s >> 17;
+      s ^= s << 5;
+      return (s >>> 0) / 4294967296;
+    };
+  }
+}

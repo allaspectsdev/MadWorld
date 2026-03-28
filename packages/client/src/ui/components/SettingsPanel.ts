@@ -17,20 +17,21 @@ export class SettingsPanel {
   private buildContent(): void {
     this.panel.innerHTML = "";
 
-    // Close button
-    const closeBtn = document.createElement("div");
-    closeBtn.style.cssText =
-      "text-align:right;margin-bottom:8px;cursor:pointer;color:rgba(255,255,255,0.5);font-size:18px;";
+    // Panel header
+    const header = document.createElement("div");
+    header.className = "panel-header";
+    header.innerHTML = '<span class="panel-title">Settings</span>';
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "panel-close";
     closeBtn.textContent = "\u2715";
     closeBtn.addEventListener("click", () => this.close());
-    this.panel.appendChild(closeBtn);
+    header.appendChild(closeBtn);
+    this.panel.appendChild(header);
 
-    // Title
-    const title = document.createElement("div");
-    title.style.cssText =
-      "text-align:center;font-size:18px;font-weight:700;color:#e94560;margin-bottom:16px;letter-spacing:2px;text-transform:uppercase;";
-    title.textContent = "Settings";
-    this.panel.appendChild(title);
+    // Body wrapper
+    const body = document.createElement("div");
+    body.className = "panel-body";
+    this.panel.appendChild(body);
 
     // Audio section
     this.buildSection("Audio", [
@@ -60,7 +61,8 @@ export class SettingsPanel {
       section.appendChild(child);
     }
 
-    this.panel.appendChild(section);
+    const body = this.panel.querySelector(".panel-body");
+    (body ?? this.panel).appendChild(section);
   }
 
   private buildSlider(

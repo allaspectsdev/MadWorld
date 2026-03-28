@@ -1,12 +1,23 @@
 import { Container, Graphics, Sprite } from "pixi.js";
-import { TILE_SIZE, TileType, type TileType as TT } from "@madworld/shared";
+import { TILE_SIZE, TileType, type TileType as TT, cartToIso, isoDepth, ISO_TILE_W, ISO_TILE_H } from "@madworld/shared";
 import { TextureFactory } from "./TextureFactory.js";
 
 export class DecorationRenderer {
   readonly container = new Container();
 
+  /** Place a decoration sprite at the given tile position in isometric space. */
+  private placeSprite(sprite: Sprite, x: number, y: number, offsetX = 0, offsetY = 0): void {
+    const iso = cartToIso(x, y);
+    sprite.anchor.set(0.5, 0.5);
+    sprite.x = iso.x + offsetX;
+    sprite.y = iso.y + offsetY;
+    sprite.zIndex = isoDepth(x, y) + 0.0001; // slightly above tile
+    this.container.addChild(sprite);
+  }
+
   setTiles(tiles: TT[][]): void {
     this.container.removeChildren();
+    this.container.sortableChildren = true;
 
     const rows = tiles.length;
     if (rows === 0) return;
@@ -163,9 +174,7 @@ export class DecorationRenderer {
     const sprite = new Sprite(tex);
     const offsetX = this.seededRand(seed, 10) * 4 - 2;
     const offsetY = this.seededRand(seed, 11) * 4 - 2;
-    sprite.x = x * TILE_SIZE + offsetX;
-    sprite.y = y * TILE_SIZE + offsetY;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y, offsetX, offsetY);
   }
 
   private placeLogOrStump(x: number, y: number, seed: number): void {
@@ -214,9 +223,7 @@ export class DecorationRenderer {
     const sprite = new Sprite(tex);
     const offsetX = this.seededRand(seed, 10) * 6 - 3;
     const offsetY = this.seededRand(seed, 11) * 6 - 3;
-    sprite.x = x * TILE_SIZE + offsetX;
-    sprite.y = y * TILE_SIZE + offsetY;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y, offsetX, offsetY);
   }
 
   private placeBarrelOrCrate(x: number, y: number, seed: number): void {
@@ -268,9 +275,7 @@ export class DecorationRenderer {
     const sprite = new Sprite(tex);
     const offsetX = this.seededRand(seed, 10) * 6 - 3;
     const offsetY = this.seededRand(seed, 11) * 6 - 3;
-    sprite.x = x * TILE_SIZE + offsetX;
-    sprite.y = y * TILE_SIZE + offsetY;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y, offsetX, offsetY);
   }
 
   private placeLilyPads(x: number, y: number, seed: number): void {
@@ -310,9 +315,7 @@ export class DecorationRenderer {
     const sprite = new Sprite(tex);
     const offsetX = this.seededRand(seed, 10) * 4 - 2;
     const offsetY = this.seededRand(seed, 11) * 4 - 2;
-    sprite.x = x * TILE_SIZE + offsetX;
-    sprite.y = y * TILE_SIZE + offsetY;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y, offsetX, offsetY);
   }
 
   private placeWildflowers(x: number, y: number, seed: number): void {
@@ -348,9 +351,7 @@ export class DecorationRenderer {
 
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
     const sprite = new Sprite(tex);
-    sprite.x = x * TILE_SIZE;
-    sprite.y = y * TILE_SIZE;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y);
   }
 
   private placeMushroomCluster(x: number, y: number, seed: number): void {
@@ -381,9 +382,7 @@ export class DecorationRenderer {
     const sprite = new Sprite(tex);
     const offsetX = this.seededRand(seed, 10) * 4 - 2;
     const offsetY = this.seededRand(seed, 11) * 4 - 2;
-    sprite.x = x * TILE_SIZE + offsetX;
-    sprite.y = y * TILE_SIZE + offsetY;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y, offsetX, offsetY);
   }
 
   private placeTallGrass(x: number, y: number, seed: number): void {
@@ -402,9 +401,7 @@ export class DecorationRenderer {
     }
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
     const sprite = new Sprite(tex);
-    sprite.x = x * TILE_SIZE;
-    sprite.y = y * TILE_SIZE;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y);
   }
 
   private placePebbleScatter(x: number, y: number, seed: number): void {
@@ -420,9 +417,7 @@ export class DecorationRenderer {
     }
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
     const sprite = new Sprite(tex);
-    sprite.x = x * TILE_SIZE;
-    sprite.y = y * TILE_SIZE;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y);
   }
 
   private placeTorchStand(x: number, y: number, seed: number): void {
@@ -447,9 +442,7 @@ export class DecorationRenderer {
     g.fill({ color: 0xff8844, alpha: 0.06 });
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
     const sprite = new Sprite(tex);
-    sprite.x = x * TILE_SIZE;
-    sprite.y = y * TILE_SIZE;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y);
   }
 
   private placeFallenLeaves(x: number, y: number, seed: number): void {
@@ -465,9 +458,7 @@ export class DecorationRenderer {
     }
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
     const sprite = new Sprite(tex);
-    sprite.x = x * TILE_SIZE;
-    sprite.y = y * TILE_SIZE;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y);
   }
 
   private placeCattails(x: number, y: number, seed: number): void {
@@ -502,8 +493,6 @@ export class DecorationRenderer {
     const sprite = new Sprite(tex);
     const offsetX = this.seededRand(seed, 10) * 4 - 2;
     const offsetY = this.seededRand(seed, 11) * 4 - 2;
-    sprite.x = x * TILE_SIZE + offsetX;
-    sprite.y = y * TILE_SIZE + offsetY;
-    this.container.addChild(sprite);
+    this.placeSprite(sprite, x, y, offsetX, offsetY);
   }
 }

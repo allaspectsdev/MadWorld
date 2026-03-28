@@ -1,5 +1,15 @@
 import { Container, Graphics, Sprite } from "pixi.js";
-import { TILE_SIZE, TileType, type TileType as TT } from "@madworld/shared";
+import { TileType, type TileType as TT } from "@madworld/shared";
+import {
+  cartToIso,
+  isoDepth,
+  isoViewBounds,
+  ISO_TILE_W,
+  ISO_TILE_H,
+  ISO_HALF_W,
+  ISO_HALF_H,
+  ELEVATION_PX,
+} from "@madworld/shared";
 import {
   getTileTextureSet,
   tileVariantHash,
@@ -11,6 +21,8 @@ interface TileSprite {
   tileType: TT;
   textureSet: TileTextureSet;
   variantIndex: number;
+  cartX: number;
+  cartY: number;
 }
 
 // Tile type "priority" for edge blending — higher priority tiles draw edges over lower
@@ -45,14 +57,23 @@ const PAIR_EDGE_COLORS: Record<number, number> = {
   [(TileType.DIRT << 8) | TileType.FOREST]: 0x3a4a28,
 };
 
+/** Height map: some tile types sit at a higher elevation. */
+function tileElevation(type: TT): number {
+  switch (type) {
+    case TileType.MOUNTAIN: return 1;
+    case TileType.FENCE: return 1;
+    default: return 0;
+  }
+}
+
 export class TilemapRenderer {
   readonly container = new Container();
   private tiles: TileSprite[] = [];
   private animatedTiles: TileSprite[] = [];
   private animTimer = 0;
   private animFrame = 0;
-  private mapWidth = 0;
-  private mapHeight = 0;
+  mapWidth = 0;
+  mapHeight = 0;
   private tileData: TT[][] = [];
   private foamGfx = new Graphics();
   private foamTime = 0;
@@ -67,6 +88,9 @@ export class TilemapRenderer {
     this.mapWidth = tileData[0]?.length ?? 0;
     this.tileData = tileData;
 
+    // Enable depth sorting on the container so tiles render back-to-front
+    this.container.sortableChildren = true;
+
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
         const type = tileData[y][x];
@@ -77,15 +101,24 @@ export class TilemapRenderer {
         const variantIndex = hash % textureSet.variants.length;
         const texture = textureSet.variants[variantIndex];
 
+        const elevation = tileElevation(type);
+        const iso = cartToIso(x, y, elevation);
+
         const sprite = new Sprite(texture);
-        sprite.x = x * TILE_SIZE;
-        sprite.y = y * TILE_SIZE;
-        sprite.width = TILE_SIZE;
-        sprite.height = TILE_SIZE;
+        // Position: iso.x is diamond center, iso.y is diamond top-center
+        // Anchor at (0.5, 0.5) so the sprite is centered on the diamond
+        sprite.anchor.set(0.5, 0.5);
+        sprite.x = iso.x;
+        sprite.y = iso.y;
+        sprite.width = ISO_TILE_W;
+        sprite.height = ISO_TILE_H;
+
+        // Depth sort: tiles further from the viewer (higher x+y) render last
+        sprite.zIndex = isoDepth(x, y, elevation);
 
         this.container.addChild(sprite);
 
-        const ts: TileSprite = { sprite, tileType: type, textureSet, variantIndex };
+        const ts: TileSprite = { sprite, tileType: type, textureSet, variantIndex, cartX: x, cartY: y };
         this.tiles.push(ts);
 
         if (textureSet.frames) {
@@ -97,27 +130,27 @@ export class TilemapRenderer {
     // Draw edge blending overlays
     this.drawEdgeBlending(tileData);
 
+    // Draw elevation side faces for raised tiles
+    this.drawElevationFaces(tileData);
+
     // Add foam overlay (redrawn each frame)
     this.foamGfx = new Graphics();
+    this.foamGfx.zIndex = 999999; // foam on top of tiles
     this.container.addChild(this.foamGfx);
   }
 
   private drawEdgeBlending(tileData: TT[][]): void {
     const edgeGfx = new Graphics();
-    const STEPS = [0.35, 0.20, 0.08]; // alpha per gradient step
+    edgeGfx.zIndex = 999998; // above tiles, below foam
 
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
         const type = tileData[y][x];
         const myPri = TILE_PRIORITY[type] ?? 0;
-        const px = x * TILE_SIZE;
-        const py = y * TILE_SIZE;
+        const elevation = tileElevation(type);
+        const iso = cartToIso(x, y, elevation);
 
-        // Track which sides have higher-priority neighbors (for corner blending)
-        let hasTop = false, hasBottom = false, hasLeft = false, hasRight = false;
-        let topColor = 0, bottomColor = 0, leftColor = 0, rightColor = 0;
-
-        const neighbors: [number, number, "top" | "bottom" | "left" | "right"][] = [
+        const neighbors: [number, number, string][] = [
           [x, y - 1, "top"],
           [x, y + 1, "bottom"],
           [x - 1, y, "left"],
@@ -132,82 +165,94 @@ export class TilemapRenderer {
           const nPri = TILE_PRIORITY[nType] ?? 0;
           if (nPri <= myPri) continue;
 
-          // Use pair-specific color if available, else default
           const pairKey = (type << 8) | nType;
           const color = PAIR_EDGE_COLORS[pairKey] ?? EDGE_COLORS[nType];
           if (color === undefined) continue;
 
-          // Track for corner blending
-          if (side === "top") { hasTop = true; topColor = color; }
-          else if (side === "bottom") { hasBottom = true; bottomColor = color; }
-          else if (side === "left") { hasLeft = true; leftColor = color; }
-          else { hasRight = true; rightColor = color; }
+          // Draw a subtle gradient line along the edge of the diamond
+          // In isometric, edges run diagonally. We'll draw a thin line on
+          // the relevant half of the diamond.
+          const hw = ISO_HALF_W;
+          const hh = ISO_HALF_H;
+          const cx = iso.x;
+          const cy = iso.y;
 
-          // Draw 3-step gradient fade instead of single rect
+          // Diamond corners: top=(cx, cy-hh), right=(cx+hw, cy), bottom=(cx, cy+hh), left=(cx-hw, cy)
+          const alphas = [0.30, 0.15, 0.06];
           for (let step = 0; step < 3; step++) {
-            const alpha = STEPS[step];
-            let rx: number, ry: number, rw: number, rh: number;
+            const alpha = alphas[step];
+            const inset = step * 2; // pixels inward
 
             if (side === "top") {
-              rx = px; ry = py + step; rw = TILE_SIZE; rh = 1;
+              // Top-left edge of diamond
+              edgeGfx.moveTo(cx - hw + inset * 2, cy + inset);
+              edgeGfx.lineTo(cx, cy - hh + inset);
+              edgeGfx.stroke({ width: 1.5, color, alpha });
+            } else if (side === "right") {
+              // Top-right edge of diamond
+              edgeGfx.moveTo(cx, cy - hh + inset);
+              edgeGfx.lineTo(cx + hw - inset * 2, cy + inset);
+              edgeGfx.stroke({ width: 1.5, color, alpha });
             } else if (side === "bottom") {
-              rx = px; ry = py + TILE_SIZE - 1 - step; rw = TILE_SIZE; rh = 1;
+              // Bottom-right edge of diamond
+              edgeGfx.moveTo(cx + hw - inset * 2, cy - inset);
+              edgeGfx.lineTo(cx, cy + hh - inset);
+              edgeGfx.stroke({ width: 1.5, color, alpha });
             } else if (side === "left") {
-              rx = px + step; ry = py; rw = 1; rh = TILE_SIZE;
-            } else {
-              rx = px + TILE_SIZE - 1 - step; ry = py; rw = 1; rh = TILE_SIZE;
+              // Bottom-left edge of diamond
+              edgeGfx.moveTo(cx, cy + hh - inset);
+              edgeGfx.lineTo(cx - hw + inset * 2, cy - inset);
+              edgeGfx.stroke({ width: 1.5, color, alpha });
             }
-
-            edgeGfx.rect(rx, ry, rw, rh);
-            edgeGfx.fill({ color, alpha });
           }
-        }
-
-        // Corner blending: where two perpendicular edges meet
-        const corners: [boolean, boolean, number, number, number, number][] = [
-          [hasTop, hasLeft, px, py, 1, 1],
-          [hasTop, hasRight, px + TILE_SIZE - 3, py, -1, 1],
-          [hasBottom, hasLeft, px, py + TILE_SIZE - 3, 1, -1],
-          [hasBottom, hasRight, px + TILE_SIZE - 3, py + TILE_SIZE - 3, -1, -1],
-        ];
-
-        for (const [sideA, sideB, cx, cy] of corners) {
-          if (!sideA || !sideB) continue;
-          // Blend the two edge colors (just use the first)
-          const cColor = sideA ? topColor || bottomColor : leftColor || rightColor;
-          edgeGfx.moveTo(cx, cy);
-          edgeGfx.lineTo(cx + 3, cy);
-          edgeGfx.lineTo(cx, cy + 3);
-          edgeGfx.fill({ color: cColor || 0x333333, alpha: 0.25 });
-        }
-      }
-    }
-
-    // Elevation shadows: MOUNTAIN and FENCE cast shadows onto lower neighbors
-    const ELEVATED = new Set([TileType.MOUNTAIN, TileType.FENCE]);
-    for (let y = 0; y < this.mapHeight; y++) {
-      for (let x = 0; x < this.mapWidth; x++) {
-        const type = tileData[y][x];
-        if (!ELEVATED.has(type)) continue;
-        const px = x * TILE_SIZE;
-        const py = y * TILE_SIZE;
-
-        // Shadow cast south (below)
-        if (y < this.mapHeight - 1 && !ELEVATED.has(tileData[y + 1][x])) {
-          edgeGfx.rect(px, py + TILE_SIZE, TILE_SIZE, 2);
-          edgeGfx.fill({ color: 0x000000, alpha: 0.18 });
-          edgeGfx.rect(px, py + TILE_SIZE + 2, TILE_SIZE, 1);
-          edgeGfx.fill({ color: 0x000000, alpha: 0.08 });
-        }
-        // Shadow cast east (right)
-        if (x < this.mapWidth - 1 && !ELEVATED.has(tileData[y][x + 1])) {
-          edgeGfx.rect(px + TILE_SIZE, py, 2, TILE_SIZE);
-          edgeGfx.fill({ color: 0x000000, alpha: 0.12 });
         }
       }
     }
 
     this.container.addChild(edgeGfx);
+  }
+
+  /** Draw visible "side faces" for elevated tiles (mountains, fences). */
+  private drawElevationFaces(tileData: TT[][]): void {
+    const faceGfx = new Graphics();
+    // Elevation faces should render just behind the top surface
+    faceGfx.zIndex = 999997;
+
+    const ELEVATED = new Set([TileType.MOUNTAIN, TileType.FENCE]);
+
+    for (let y = 0; y < this.mapHeight; y++) {
+      for (let x = 0; x < this.mapWidth; x++) {
+        const type = tileData[y][x];
+        if (!ELEVATED.has(type)) continue;
+
+        const elev = tileElevation(type);
+        const iso = cartToIso(x, y, elev);
+        const isoBase = cartToIso(x, y, 0);
+
+        const hw = ISO_HALF_W;
+        const hh = ISO_HALF_H;
+        const drop = elev * ELEVATION_PX;
+
+        // Draw south-facing side (bottom-left edge, visible to viewer)
+        // From diamond's left corner down to base, across to bottom corner down to base
+        faceGfx.moveTo(iso.x - hw, iso.y);            // left corner (elevated)
+        faceGfx.lineTo(iso.x, iso.y + hh);             // bottom corner (elevated)
+        faceGfx.lineTo(isoBase.x, isoBase.y + hh);     // bottom corner (ground)
+        faceGfx.lineTo(isoBase.x - hw, isoBase.y);     // left corner (ground)
+        faceGfx.closePath();
+        faceGfx.fill({ color: 0x555555, alpha: 0.6 });
+
+        // Draw east-facing side (bottom-right edge)
+        faceGfx.moveTo(iso.x, iso.y + hh);             // bottom corner (elevated)
+        faceGfx.lineTo(iso.x + hw, iso.y);             // right corner (elevated)
+        faceGfx.lineTo(isoBase.x + hw, isoBase.y);     // right corner (ground)
+        faceGfx.lineTo(isoBase.x, isoBase.y + hh);     // bottom corner (ground)
+        faceGfx.closePath();
+        faceGfx.fill({ color: 0x444444, alpha: 0.5 });
+      }
+    }
+
+    this.container.addChild(faceGfx);
   }
 
   update(dt: number): void {
@@ -238,7 +283,6 @@ export class TilemapRenderer {
     const g = this.foamGfx;
     g.clear();
 
-    const S = TILE_SIZE;
     const t = this.foamTime;
 
     for (let y = 0; y < this.mapHeight; y++) {
@@ -246,81 +290,53 @@ export class TilemapRenderer {
         const tileType = tiles[y][x];
         if (tileType !== TileType.WATER) continue;
 
-        const px = x * S;
-        const py = y * S;
+        const iso = cartToIso(x, y);
+        const cx = iso.x;
+        const cy = iso.y;
 
         const foamAlpha =
           0.15 + Math.sin(t * 2 + x * 0.5 + y * 0.7) * 0.08;
         const foamOffset =
           Math.sin(t * 1.5 + x * 0.3 + y * 0.5) * 1.5;
 
-        // Top edge foam
+        // Draw foam lines along diamond edges adjacent to non-water
+        // Top-left edge (neighbor at x, y-1)
         if (y > 0 && tiles[y - 1]?.[x] !== TileType.WATER) {
-          g.moveTo(px, py + foamOffset);
-          g.bezierCurveTo(
-            px + S * 0.25, py + foamOffset - 1,
-            px + S * 0.75, py + foamOffset + 1,
-            px + S,        py + foamOffset,
-          );
+          g.moveTo(cx - ISO_HALF_W + foamOffset, cy + foamOffset * 0.5);
+          g.lineTo(cx + foamOffset * 0.5, cy - ISO_HALF_H + foamOffset);
           g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
         }
-        // Bottom edge foam
-        if (
-          y < tiles.length - 1 &&
-          tiles[y + 1]?.[x] !== TileType.WATER
-        ) {
-          g.moveTo(px, py + S + foamOffset);
-          g.bezierCurveTo(
-            px + S * 0.25, py + S + foamOffset + 1,
-            px + S * 0.75, py + S + foamOffset - 1,
-            px + S,        py + S + foamOffset,
-          );
+        // Top-right edge (neighbor at x+1, y)
+        if (x < this.mapWidth - 1 && tiles[y]?.[x + 1] !== TileType.WATER) {
+          g.moveTo(cx + foamOffset * 0.5, cy - ISO_HALF_H + foamOffset);
+          g.lineTo(cx + ISO_HALF_W + foamOffset, cy + foamOffset * 0.5);
           g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
         }
-        // Left edge foam
+        // Bottom-right edge (neighbor at x, y+1)
+        if (y < tiles.length - 1 && tiles[y + 1]?.[x] !== TileType.WATER) {
+          g.moveTo(cx + ISO_HALF_W + foamOffset, cy + foamOffset * 0.5);
+          g.lineTo(cx + foamOffset * 0.5, cy + ISO_HALF_H + foamOffset);
+          g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
+        }
+        // Bottom-left edge (neighbor at x-1, y)
         if (x > 0 && tiles[y]?.[x - 1] !== TileType.WATER) {
-          g.moveTo(px + foamOffset, py);
-          g.bezierCurveTo(
-            px + foamOffset - 1, py + S * 0.25,
-            px + foamOffset + 1, py + S * 0.75,
-            px + foamOffset,     py + S,
-          );
-          g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
-        }
-        // Right edge foam
-        if (
-          x < (tiles[0]?.length ?? 0) - 1 &&
-          tiles[y]?.[x + 1] !== TileType.WATER
-        ) {
-          g.moveTo(px + S + foamOffset, py);
-          g.bezierCurveTo(
-            px + S + foamOffset + 1, py + S * 0.25,
-            px + S + foamOffset - 1, py + S * 0.75,
-            px + S + foamOffset,     py + S,
-          );
+          g.moveTo(cx + foamOffset * 0.5, cy + ISO_HALF_H + foamOffset);
+          g.lineTo(cx - ISO_HALF_W + foamOffset, cy + foamOffset * 0.5);
           g.stroke({ width: 1.5, color: 0xffffff, alpha: foamAlpha });
         }
       }
     }
   }
 
-  /** Cull tiles outside the viewport for performance */
+  /** Cull tiles outside the viewport for performance. */
   cullViewport(left: number, top: number, right: number, bottom: number): void {
-    const margin = 2;
-    const tLeft = Math.floor(left / TILE_SIZE) - margin;
-    const tTop = Math.floor(top / TILE_SIZE) - margin;
-    const tRight = Math.ceil(right / TILE_SIZE) + margin;
-    const tBottom = Math.ceil(bottom / TILE_SIZE) + margin;
+    // Compute cartesian tile bounds from iso-pixel viewport
+    const bounds = isoViewBounds(left, top, right, bottom, this.mapWidth, this.mapHeight, 3);
 
-    let idx = 0;
-    for (let y = 0; y < this.mapHeight; y++) {
-      for (let x = 0; x < this.mapWidth; x++) {
-        if (idx < this.tiles.length) {
-          this.tiles[idx].sprite.visible =
-            x >= tLeft && x <= tRight && y >= tTop && y <= tBottom;
-        }
-        idx++;
-      }
+    for (const ts of this.tiles) {
+      ts.sprite.visible =
+        ts.cartX >= bounds.minX && ts.cartX <= bounds.maxX &&
+        ts.cartY >= bounds.minY && ts.cartY <= bounds.maxY;
     }
   }
 }

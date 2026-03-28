@@ -1,5 +1,5 @@
 import { Container } from "pixi.js";
-import { TILE_SIZE } from "@madworld/shared";
+import { cartToIso, isoToCart, ISO_HALF_W, ISO_HALF_H } from "@madworld/shared";
 
 export class Camera {
   readonly container = new Container();
@@ -23,27 +23,29 @@ export class Camera {
     this.screenHeight = height;
   }
 
+  /** Set camera target using cartesian world-tile coordinates. */
   setTarget(worldX: number, worldY: number): void {
-    this.targetX = worldX * TILE_SIZE;
-    this.targetY = worldY * TILE_SIZE;
+    const iso = cartToIso(worldX, worldY);
+    this.targetX = iso.x;
+    this.targetY = iso.y;
   }
 
   setZoom(z: number): void {
-    this._targetZoom = Math.max(0.75, Math.min(2.5, z));
+    this._targetZoom = Math.max(0.5, Math.min(2.5, z));
   }
 
   get zoom(): number {
     return this._zoom;
   }
 
+  /** Movement lead — direction is still cartesian, but we convert to iso. */
   setMovementLead(dx: number, dy: number): void {
-    // Target lead is 1.5 tiles in movement direction
-    this.leadX = dx * 1.5 * TILE_SIZE;
-    this.leadY = dy * 1.5 * TILE_SIZE;
+    const lead = cartToIso(dx * 1.5, dy * 1.5);
+    this.leadX = lead.x;
+    this.leadY = lead.y;
   }
 
   shake(intensity: number, duration: number): void {
-    // Only override if new shake is stronger than remaining
     const remaining = this.shakeDuration - this.shakeTimer;
     const currentPower = this.shakeIntensity * Math.max(0, remaining);
     if (intensity * duration >= currentPower) {
@@ -69,9 +71,6 @@ export class Camera {
     this.currentLeadY += (this.leadY - this.currentLeadY) * leadLerp;
 
     // Center the target on screen, offset by movement lead
-    // container.x positions the scaled container. To put targetX at screen center:
-    // screenCenter = container.x + targetX * zoom
-    // container.x = screenCenter - targetX * zoom
     const targetWithLeadX = this.targetX + this.currentLeadX;
     const targetWithLeadY = this.targetY + this.currentLeadY;
     const desiredX = this.screenWidth / 2 - targetWithLeadX * this._zoom;
@@ -97,18 +96,48 @@ export class Camera {
     }
   }
 
+  /**
+   * Convert screen pixel coordinates to cartesian world-tile coordinates.
+   * This is the inverse of the full projection pipeline:
+   *   screen → iso-pixel (undo camera pan+zoom) → cartesian (isoToCart)
+   */
   screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
+    // Undo camera pan and zoom to get iso-pixel space
+    const isoX = (screenX - this.container.x) / this._zoom;
+    const isoY = (screenY - this.container.y) / this._zoom;
+    return isoToCart(isoX, isoY);
+  }
+
+  /**
+   * Return the iso-pixel viewport bounds (before camera transform).
+   * Useful for culling — callers convert these to cartesian tile bounds
+   * using isoViewBounds().
+   */
+  getViewBounds(): { left: number; top: number; right: number; bottom: number } {
+    const left = -this.container.x / this._zoom;
+    const top = -this.container.y / this._zoom;
+    const right = left + this.screenWidth / this._zoom;
+    const bottom = top + this.screenHeight / this._zoom;
+    return { left, top, right, bottom };
+  }
+
+  /**
+   * Convert a cartesian world position to the camera's current screen position.
+   * Useful for lighting and UI overlays that need screen-space coordinates.
+   */
+  worldToScreen(worldX: number, worldY: number): { x: number; y: number } {
+    const iso = cartToIso(worldX, worldY);
     return {
-      x: (screenX - this.container.x) / (TILE_SIZE * this._zoom),
-      y: (screenY - this.container.y) / (TILE_SIZE * this._zoom),
+      x: iso.x * this._zoom + this.container.x,
+      y: iso.y * this._zoom + this.container.y,
     };
   }
 
-  getViewBounds(): { left: number; top: number; right: number; bottom: number } {
-    const left = -this.container.x / (TILE_SIZE * this._zoom);
-    const top = -this.container.y / (TILE_SIZE * this._zoom);
-    const right = left + this.screenWidth / (TILE_SIZE * this._zoom);
-    const bottom = top + this.screenHeight / (TILE_SIZE * this._zoom);
-    return { left, top, right, bottom };
+  /** Expose the camera's current iso-pixel center position (for lighting). */
+  get worldCenterX(): number {
+    return -this.container.x / this._zoom + this.screenWidth / (2 * this._zoom);
+  }
+  get worldCenterY(): number {
+    return -this.container.y / this._zoom + this.screenHeight / (2 * this._zoom);
   }
 }

@@ -1,5 +1,5 @@
 import { Container, Text, TextStyle } from "pixi.js";
-import { TILE_SIZE } from "@madworld/shared";
+import { cartToIso, ISO_TILE_H } from "@madworld/shared";
 
 interface HitSplat {
   text: Text;
@@ -53,9 +53,10 @@ export class HitSplatRenderer {
 
     const text = new Text({ text: label, style });
     text.anchor.set(0.5);
-    // Centered above target, no random horizontal offset
-    const px = worldX * TILE_SIZE;
-    const py = worldY * TILE_SIZE - TILE_SIZE * 0.6;
+    // Centered above target in isometric space
+    const iso = cartToIso(worldX, worldY);
+    const px = iso.x;
+    const py = iso.y - ISO_TILE_H * 0.6;
     text.x = px;
     text.y = py;
 

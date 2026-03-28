@@ -8,4 +8,7 @@ export interface PartyMemberInfo {
   zoneId: string;
   zoneName: string;
   isLeader: boolean;
+  /** World position for map display (party members visible through fog). */
+  worldX?: number;
+  worldY?: number;
 }

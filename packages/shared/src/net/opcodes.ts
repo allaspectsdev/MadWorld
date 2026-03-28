@@ -22,6 +22,10 @@ export enum Op {
   C_FISH_CAST = 0x30,
   C_FISH_REEL = 0x31,
   C_COOK_START = 0x32,
+  C_GATHER_START = 0x33,    // Begin gathering at a resource node
+  C_GATHER_ASSIST = 0x34,   // Assist another player at a co-op node
+  C_CRAFT_START = 0x35,     // Begin crafting a recipe
+  C_CRAFT_CONTRIBUTE = 0x36,// Contribute ingredient to combo craft
 
   C_INV_MOVE = 0x40,
   C_INV_DROP = 0x41,
@@ -39,6 +43,12 @@ export enum Op {
   C_TRADE_CANCEL = 0x62,
   C_TRADE_SET_ITEM = 0x63,
   C_TRADE_CONFIRM = 0x64,
+
+  C_PLACE_CAMP = 0x68,       // Place a campfire/camp structure
+  C_INTERACT_CAMP = 0x69,    // Open camp storage/crafting
+  C_CAMP_STORE = 0x6a,       // Store item in camp chest
+  C_CAMP_WITHDRAW = 0x6b,    // Withdraw item from camp chest
+  C_FAST_TRAVEL = 0x6c,      // Fast-travel to a camp
 
   C_PING = 0x70,
 
@@ -60,6 +70,10 @@ export enum Op {
   S_FISH_BITE = 0xa8,
   S_FISH_RESULT = 0xa9,
   S_COOK_RESULT = 0xaa,
+  S_GATHER_START = 0xab,     // Gathering progress started
+  S_GATHER_RESULT = 0xac,    // Gathering success/fail + loot
+  S_GATHER_ASSIST_REQ = 0xad,// Node needs a second player
+  S_CRAFT_RESULT = 0xae,     // Crafting result
 
   S_INV_UPDATE = 0xb0,
   S_EQUIP_UPDATE = 0xb1,
@@ -93,6 +107,17 @@ export enum Op {
   S_QUEST_UPDATE = 0xda,
   S_QUEST_COMPLETE = 0xdb,
   S_QUEST_LIST = 0xdc,
+
+  // Camp system
+  S_CAMP_LIST = 0xdd,         // All camps owned by party
+  S_CAMP_STORAGE = 0xde,      // Camp chest contents
+  S_CAMP_PLACED = 0xdf,       // Confirm camp placement
+
+  // Procedural world / chunk streaming
+  S_CHUNK_DATA = 0xe0,         // Server sends chunk tile data
+  S_CHUNK_UNLOAD = 0xe1,       // Server tells client to unload a chunk
+  S_DISCOVERY_UPDATE = 0xe2,   // New chunks discovered (fog reveal)
+  S_DISCOVERY_INIT = 0xe3,     // Initial discovered chunk list on login
 
   S_TICK = 0xf0,
   S_PONG = 0xf1,

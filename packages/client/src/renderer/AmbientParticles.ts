@@ -1,5 +1,5 @@
 import type { ParticleSystem } from "./ParticleSystem.js";
-import { TILE_SIZE } from "@madworld/shared";
+import { cartToIso } from "@madworld/shared";
 
 export class AmbientParticles {
   private particles: ParticleSystem;
@@ -193,9 +193,8 @@ export class AmbientParticles {
     // Fireflies at night
     if (this.isNight) {
       if (Math.random() < 0.02) {
-        const fx = (playerX + (Math.random() - 0.5) * 20) * TILE_SIZE;
-        const fy = (playerY + (Math.random() - 0.5) * 20) * TILE_SIZE;
-        this.particles.emit(fx, fy, 1, {
+        const ffIso = cartToIso(playerX + (Math.random() - 0.5) * 20, playerY + (Math.random() - 0.5) * 20);
+        this.particles.emit(ffIso.x, ffIso.y, 1, {
           texType: "glow", tint: 0xffee44,
           speed: 5, spread: Math.PI * 2, life: 3.0,
           gravity: -3, baseScale: 0.6, scaleDecay: 0.3,
@@ -206,7 +205,8 @@ export class AmbientParticles {
     // Torch/campfire ember particles
     for (const light of this.zoneLights) {
       if (Math.random() < 0.05) {
-        this.particles.emit(light.x * TILE_SIZE, light.y * TILE_SIZE, 1, {
+        const lightIso = cartToIso(light.x, light.y);
+        this.particles.emit(lightIso.x, lightIso.y, 1, {
           texType: "circle", tint: light.color ?? 0xff8844,
           speed: 20, spread: Math.PI * 0.3, life: 0.6,
           gravity: -40, dirY: -1, baseScale: 0.5,

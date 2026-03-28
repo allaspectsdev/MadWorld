@@ -1,5 +1,5 @@
 import { Container, Graphics, Sprite, Text, TextStyle, Texture, ColorMatrixFilter } from "pixi.js";
-import { TILE_SIZE, EntityType } from "@madworld/shared";
+import { TILE_SIZE, EntityType, cartToIso, isoToCart, isoDepth, ISO_TILE_W, ISO_TILE_H } from "@madworld/shared";
 import { useGameStore, type RemoteEntity } from "../state/GameStore.js";
 import { getEntityTexture } from "./SpriteFactory.js";
 import { isBossMob, getMobSize } from "./MobSpriteDefinitions.js";
@@ -157,13 +157,14 @@ export class EntityRenderer {
       }
     }
 
-    const px = x * TILE_SIZE + anim.offsetX;
-    const py = y * TILE_SIZE + anim.offsetY;
+    const iso = cartToIso(x, y);
+    const px = iso.x + anim.offsetX;
+    const py = iso.y + anim.offsetY;
     sprite.container.x = px;
     sprite.container.y = py;
 
     // Shadow stays at feet (doesn't bob)
-    sprite.shadow.y = TILE_SIZE * 0.35 - anim.offsetY;
+    sprite.shadow.y = ISO_TILE_H * 0.5 - anim.offsetY;
 
     // Boss/God aura pulse
     if (sprite.aura && (sprite.isBoss || sprite.isGod)) {
@@ -245,7 +246,7 @@ export class EntityRenderer {
       }
     }
 
-    sprite.container.zIndex = y;
+    sprite.container.zIndex = isoDepth(x, y);
   }
 
   /** Force recreation of the local player sprite (e.g., when appearance loads). */
@@ -285,9 +286,10 @@ export class EntityRenderer {
       }
     }
 
-    sprite.container.x = x * TILE_SIZE + anim.offsetX;
-    sprite.container.y = y * TILE_SIZE + anim.offsetY;
-    sprite.shadow.y = TILE_SIZE * 0.35 - anim.offsetY;
+    const localIso = cartToIso(x, y);
+    sprite.container.x = localIso.x + anim.offsetX;
+    sprite.container.y = localIso.y + anim.offsetY;
+    sprite.shadow.y = ISO_TILE_H * 0.5 - anim.offsetY;
 
     if (sprite.arrow) {
       sprite.arrow.y = -TILE_SIZE * 0.7 + Math.sin(this.globalTimer * 3) * 2;
@@ -307,7 +309,7 @@ export class EntityRenderer {
       }
     }
 
-    sprite.container.zIndex = y;
+    sprite.container.zIndex = isoDepth(x, y);
   }
 
   removeEntity(eid: number): void {
@@ -374,10 +376,10 @@ export class EntityRenderer {
 
     for (const [eid, sprite] of this.sprites) {
       if (eid === this.localPlayerEid) continue;
-      const ex = sprite.container.x / TILE_SIZE;
-      const ey = sprite.container.y / TILE_SIZE;
-      const dx = worldX - ex;
-      const dy = worldY - ey;
+      // Entity container is in iso-pixel space; convert back to cart-tile space
+      const cart = isoToCart(sprite.container.x, sprite.container.y);
+      const dx = worldX - cart.x;
+      const dy = worldY - cart.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < hitRadius && dist < closestDist) {
         closest = eid;
