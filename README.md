@@ -1,37 +1,41 @@
 # MadWorld
 
-A lightweight browser-based MMORPG where every player starts equal and progresses by actually doing things in the world. No class selection, no pay-to-win. You are what you practice.
-
-Traverse an open map of roads, wilderness, and cities. Fight, fish, cook, craft, trade, and explore.
+A browser-based MMORPG built for co-op exploration. Procedurally generated isometric world, fog-of-war discovery, two-player gathering, party camps, and skill-based progression. No class selection, no pay-to-win. You are what you practice.
 
 ## Features
 
-- **Skill-based progression** — 11 skills (melee, ranged, defense, agility, fishing, mining, woodcutting, foraging, cooking, smithing, alchemy), all starting at level 1 with a cap of 99
-- **Real-time multiplayer** — Server-authoritative game loop at 10 ticks/sec with client-side prediction and entity interpolation
-- **Tile-based world** — Multiple zones with distinct themes, mobs, and resources connected by portals
-- **Combat** — Click-to-attack with cooldowns, mob AI (patrol, aggro, chase, leash), damage rolls, and XP rewards
-- **Gathering & crafting** — Fish at water spots, mine ore veins, chop trees, cook food, smith weapons, brew potions
-- **Equipment** — 10 gear slots, 6 tiers of equipment, stat-based progression
-- **Persistent world** — Player state saved to PostgreSQL, sessions managed with Redis
+- **Procedural open world** — Infinite terrain generated from layered simplex noise. 12 biomes (ocean, forest, desert, mountains, swamp, tundra, jungle, savanna, and more) derived from elevation, moisture, and temperature noise layers. Chunks generated on demand, persisted to PostgreSQL.
+- **Fog-of-war exploration** — The map starts hidden. Walk into new territory to reveal it. Discovery grants XP. Party members share discoveries automatically.
+- **Isometric renderer** — 2:1 diamond projection with height map support, depth-sorted entities, elevation side faces, and LOD (near chunks: full tiles, far chunks: biome-colored diamonds).
+- **Co-op gathering** — 9 resource node types across mining, woodcutting, and foraging. Some nodes (crystal formations, ancient trees, giant flowers) require two players — one holds, one extracts — for bonus loot and 1.5x XP.
+- **Camp system** — Place campfires as respawn points and fast-travel anchors. Upgrade to small camps (shared storage) or full camps (crafting station, cooking fire). Max 3 camps per party, persisted to DB.
+- **Combo crafting** — Certain recipes (healing potions, crystal amulets, camp station kits) require two players contributing ingredients simultaneously.
+- **Skill-based progression** — 11 skills (melee, ranged, defense, agility, fishing, mining, woodcutting, foraging, cooking, smithing, alchemy), levels 1-99.
+- **Real-time multiplayer** — Server-authoritative game loop at 10 ticks/sec, client-side prediction with Gambetta reconciliation, entity interpolation at 60fps.
+- **Elite mobs** — 5% chance any mob spawns as Elite (gold name, 3x HP, 2x loot, 2x XP).
+- **Parties** — Up to 5 players. Shared XP for nearby kills, cross-zone HP display, map visibility through fog.
+- **Instanced dungeons** — Party-based dungeons with boss encounters, telegraph mechanics, and loot.
+- **Combat** — Click-to-attack with cooldowns, 7 abilities, status effects, mob AI (patrol, aggro, chase, leash).
+- **Equipment** — 10 gear slots, 6 tiers, stat-based progression.
 
 ## Tech Stack
 
 | Layer | Tech |
 |---|---|
-| Client | TypeScript, PixiJS (WebGL 2D), Zustand, Vite |
+| Client | TypeScript, PixiJS 8 (WebGL 2D isometric), Zustand, Vite |
 | Server | TypeScript, Bun, Hono |
-| Database | PostgreSQL + Drizzle ORM |
-| Cache | Redis |
-| Networking | WebSocket (JSON protocol) |
+| Database | PostgreSQL 16 + Drizzle ORM |
+| Cache | Redis 7 |
+| Networking | WebSocket (JSON, numeric opcodes) |
 | Monorepo | pnpm workspaces |
 
 ## Project Structure
 
 ```
 packages/
-  shared/     # Types, constants, formulas, protocol — shared by client & server
-  server/     # Bun game server — game loop, entities, systems, DB, auth
-  client/     # Browser client — PixiJS renderer, input, UI, state management
+  shared/     # Types, constants, formulas, protocol, noise, biomes, isometric math
+  server/     # Game loop, entities, systems, world generator, chunk manager, DB, auth
+  client/     # Isometric renderer, LOD chunks, fog-of-war, UI panels, input, pathfinding
 ```
 
 ## Getting Started
@@ -46,27 +50,16 @@ packages/
 ### Setup
 
 ```bash
-# Clone the repo
 git clone https://github.com/allaspectsdev/MadWorld.git
 cd MadWorld
-
-# Install dependencies
 pnpm install
-
-# Start PostgreSQL and Redis
 docker compose up -d
-
-# Copy environment variables
 cp .env.example .env
-
-# Run database migrations
 pnpm db:migrate
-
-# Start development servers (client on :3000, server on :4000)
 pnpm dev
 ```
 
-Open `http://localhost:3000` in your browser, register an account, and start playing.
+Open `http://localhost:3000`, register an account, and start exploring.
 
 ### Commands
 
@@ -76,44 +69,37 @@ Open `http://localhost:3000` in your browser, register an account, and start pla
 | `pnpm dev:server` | Start only the game server |
 | `pnpm dev:client` | Start only the Vite dev server |
 | `pnpm build` | Build all packages for production |
+| `pnpm build:shared` | Build shared package (required before server/client) |
 | `pnpm test` | Run tests across all packages |
 | `pnpm typecheck` | Type-check all packages |
-| `pnpm db:generate` | Generate Drizzle migrations |
+| `pnpm db:generate` | Generate Drizzle migrations from schema changes |
 | `pnpm db:migrate` | Apply database migrations |
 
 ## Architecture
 
 ### Server
 
-The server runs a fixed-rate game loop at 10 ticks/second. All game logic is server-authoritative — the client sends intents (move, attack, fish) and the server validates and broadcasts results.
+10 ticks/sec game loop. All logic is server-authoritative — clients send intents, server validates and broadcasts results.
 
-**Systems processed each tick:** movement → mob AI → combat → XP/skills → respawns → state broadcast → periodic DB persistence
+**Tick order:** rate-limit reset → movement → mob AI → boss AI → instance wipes → combat → abilities → ground items → party HP sync → tick broadcast → persistence (every 30s) → instance cleanup (every 60s).
 
-Spatial partitioning uses a chunk-based grid (16x16 tiles per chunk) for efficient "nearby entity" queries and viewport-scoped broadcasting.
+Spatial partitioning via chunk grid (16x16 tiles). Server broadcasts only to players within 2 chunks. Per-connection WebSocket message rate limiting (20 msgs/tick).
+
+### Procedural World
+
+Layered simplex noise generates terrain on demand. Three noise layers (elevation, moisture, temperature) combine to derive biomes. Each 32x32-tile chunk is deterministic from the world seed. Generated chunks cache in memory (LRU, 512 max) and persist to PostgreSQL.
+
+The `ChunkManager` handles generation, caching, and per-player discovery tracking. The `DiscoverySystem` processes fog-of-war reveals each tick, awards XP, and shares discoveries across party members.
 
 ### Client
 
-The client renders at 60fps using PixiJS. Movement uses client-side prediction with server reconciliation (Gambetta model). Remote entities are interpolated between server snapshots for smooth animation.
+60fps rendering via PixiJS with 2:1 isometric projection. All coordinate math in `shared/isometric.ts`. LOD system: near chunks get full tile sprites + decorations, far chunks render as single biome-colored diamonds. Fog-of-war overlay hides undiscovered chunks with soft edge fading.
 
-UI is DOM-based (HTML/CSS overlays on top of the game canvas) for panels like inventory, skills, chat, and shops.
+UI is DOM-based with a unified design system (`game-ui.css`) — CSS custom properties, `.game-panel` component pattern, backdrop blur, dark fantasy aesthetic. Not React — vanilla TypeScript DOM components backed by Zustand state.
 
 ### Networking
 
-All messages are JSON over WebSocket with a numeric opcode discriminator:
-- Opcodes `0x00-0x7F` = client-to-server
-- Opcodes `0x80-0xFF` = server-to-client
-
-The full protocol is defined as TypeScript discriminated unions in `packages/shared/src/net/messages.ts`.
-
-## World
-
-The game currently includes three zones:
-
-- **Greendale Village** — Starter town with shops, a pond, chickens, and cows
-- **Darkwood Forest** — Dense forest with goblins, spiders, and skeletons
-- **Open Fields** — Grasslands with a river crossing, more mobs, and gathering spots
-
-Zones are connected by portal tiles at their edges.
+JSON over WebSocket with numeric opcode discriminators (`0x00-0x7F` client→server, `0x80-0xFF` server→client). Full protocol as TypeScript discriminated unions in `shared/net/messages.ts`.
 
 ## License
 

@@ -18,18 +18,50 @@ import type { ServerWebSocket } from "bun";
 export interface SocketData {
   userId: number | null;
   player: Player | null;
+  /** Message count this tick — reset by resetAllRateLimits(). */
+  msgCount: number;
 }
 
 export type GameWebSocket = ServerWebSocket<SocketData>;
 
+/** Max messages processed per connection per tick (100ms). */
+const MSG_RATE_LIMIT = 20;
+
+/** All active WebSocket connections (for rate-limit resets). */
+const activeWebSockets = new Set<GameWebSocket>();
+
 export function createSocketData(): SocketData {
-  return { userId: null, player: null };
+  return { userId: null, player: null, msgCount: 0 };
+}
+
+/** Track a new connection for rate-limit resets. */
+export function trackConnection(ws: GameWebSocket): void {
+  activeWebSockets.add(ws);
+}
+
+/** Remove a connection from tracking. */
+export function untrackConnection(ws: GameWebSocket): void {
+  activeWebSockets.delete(ws);
+}
+
+/**
+ * Reset all connection rate-limit counters. Call once per game tick
+ * so the budget refreshes at the server's cadence.
+ */
+export function resetAllRateLimits(): void {
+  for (const ws of activeWebSockets) {
+    ws.data.msgCount = 0;
+  }
 }
 
 export async function handleMessage(
   ws: GameWebSocket,
   raw: string,
 ): Promise<void> {
+  // Rate-limit: drop messages beyond budget
+  ws.data.msgCount++;
+  if (ws.data.msgCount > MSG_RATE_LIMIT) return;
+
   let msg: ClientMessage;
   try {
     msg = JSON.parse(raw);

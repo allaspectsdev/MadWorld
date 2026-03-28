@@ -8,14 +8,26 @@ import { processCombat } from "./systems/CombatSystem.js";
 import { processAbilities } from "./systems/AbilitySystem.js";
 import { instanceManager } from "./InstanceManager.js";
 import { GroundItem } from "./entities/GroundItem.js";
+import { resetAllRateLimits } from "../net/MessageHandler.js";
 import type { Zone } from "./Zone.js";
 
 let currentTick = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
+/** Injected at startup to break the circular dep chain. */
+let persistFn: ((player: import("./entities/Player.js").Player) => Promise<void>) | null = null;
+
+/** Call from index.ts before startGameLoop() to wire in PlayerService.savePlayer. */
+export function setPlayerPersist(fn: typeof persistFn): void {
+  persistFn = fn;
+}
+
 function tick(): void {
   try {
     currentTick++;
+
+    // 0. Reset per-connection message rate limits
+    resetAllRateLimits();
 
     // 1. Process player movement intents
     processMovement();
@@ -113,12 +125,11 @@ function processGroundItemDespawn(): void {
 }
 
 async function persistDirtyPlayers(): Promise<void> {
+  if (!persistFn) return;
   for (const [, player] of world.playersByEid) {
     if (!player.dirty) continue;
     player.dirty = false;
-    // Persistence handled by PlayerService — imported dynamically to avoid circular deps
-    const { savePlayer } = await import("../services/PlayerService.js");
-    await savePlayer(player).catch((err) =>
+    await persistFn(player).catch((err) =>
       console.error(`[Persist] Failed to save player ${player.name}:`, err),
     );
   }

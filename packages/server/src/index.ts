@@ -2,11 +2,14 @@ import { Hono } from "hono";
 import { config } from "./config.js";
 import { authRoutes } from "./auth/routes.js";
 import { world } from "./game/World.js";
-import { startGameLoop, stopGameLoop } from "./game/GameLoop.js";
+import { startGameLoop, stopGameLoop, setPlayerPersist } from "./game/GameLoop.js";
+import { savePlayer } from "./services/PlayerService.js";
 import {
   handleMessage,
   handleDisconnect,
   createSocketData,
+  trackConnection,
+  untrackConnection,
   type GameWebSocket,
   type SocketData,
 } from "./net/MessageHandler.js";
@@ -23,7 +26,8 @@ app.route("/", authRoutes);
 // Initialize world
 world.init();
 
-// Start game loop
+// Inject persistence function to break circular dep, then start game loop
+setPlayerPersist(savePlayer);
 startGameLoop();
 
 // Connection limit
@@ -72,7 +76,7 @@ const server = Bun.serve<SocketData>({
 
     open(ws) {
       activeConnections++;
-      // Wait for auth message
+      trackConnection(ws as GameWebSocket);
     },
 
     async message(ws, message) {
@@ -81,6 +85,7 @@ const server = Bun.serve<SocketData>({
 
     async close(ws) {
       activeConnections--;
+      untrackConnection(ws as GameWebSocket);
       await handleDisconnect(ws as GameWebSocket);
     },
   },
@@ -92,8 +97,6 @@ console.log(`[MadWorld] Server running on http://localhost:${config.port}`);
 process.on("SIGINT", async () => {
   console.log("\n[MadWorld] Shutting down...");
   stopGameLoop();
-  // Save all players
-  const { savePlayer } = await import("./services/PlayerService.js");
   for (const [, player] of world.playersByEid) {
     await savePlayer(player).catch(console.error);
   }
