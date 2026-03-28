@@ -52,6 +52,9 @@ export enum Op {
   C_PLACE_FURNITURE = 0x6d,  // Place furniture in homestead
   C_REMOVE_FURNITURE = 0x6e, // Remove furniture from homestead
   C_GARDEN_PLANT = 0x6f,     // Plant a seed in a garden plot
+  C_BOAT_PLACE = 0x37,       // Place boat at coast tile
+  C_BOAT_ENTER = 0x38,       // Enter a nearby boat
+  C_BOAT_EXIT = 0x39,        // Exit boat onto adjacent land
 
   C_PING = 0x70,
 
@@ -119,6 +122,7 @@ export enum Op {
   S_FURNITURE_UPDATE = 0xc4,  // Furniture placed/removed
   S_GARDEN_UPDATE = 0xc5,     // Garden plant state changed
   S_VISITOR_ARRIVED = 0xc6,   // NPC visitor arrived at homestead
+  S_BOAT_UPDATE = 0xc7,       // Boat state changed (entered, exited, damaged, destroyed)
 
   // Procedural world / chunk streaming
   S_CHUNK_DATA = 0xe0,         // Server sends chunk tile data

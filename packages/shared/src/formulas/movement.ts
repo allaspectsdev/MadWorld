@@ -15,6 +15,19 @@ export function isWalkable(zone: ZoneDef, x: number, y: number): boolean {
   return WALKABLE_TILES.has(tile);
 }
 
+/** Tiles navigable by boat (water + sand for docking). */
+const BOAT_TILES = new Set([TileType.WATER, TileType.SAND, TileType.BRIDGE]);
+
+/**
+ * Check if a position is traversable while in a boat.
+ * Boats can move on water, sand (coasts for docking), and bridges.
+ */
+export function isBoatWalkable(zone: ZoneDef, x: number, y: number): boolean {
+  const tile = tileAt(zone, x, y);
+  if (tile === null) return false;
+  return BOAT_TILES.has(tile);
+}
+
 export function distance(x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1;
   const dy = y2 - y1;

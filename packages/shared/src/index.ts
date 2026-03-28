@@ -24,6 +24,10 @@ export { RESOURCE_NODES, getNodesForBiome, type ResourceNodeDef } from "./consta
 export { CAMP_ITEMS, RECIPES, getRecipe, getRecipesForSkill, type CampItemDef, type CraftRecipe } from "./constants/camps.js";
 export { LANDMARKS, getLandmark, getLandmarksForBiome, type LandmarkDef, type LandmarkPlacement } from "./constants/landmarks.js";
 export {
+  BOATS, SEA_CREATURES, ISLAND_CHANCE, ISLAND_RADIUS_MIN, ISLAND_RADIUS_MAX, ISLAND_RESOURCES,
+  type BoatDef, type BoatState, type SeaCreatureDef,
+} from "./constants/boats.js";
+export {
   FURNITURE, GARDEN_SEEDS, VISITORS,
   HOMESTEAD_SIZE, HOMESTEAD_MAX_FURNITURE, HOMESTEAD_MAX_GARDENS,
   type FurnitureDef, type FurnitureCategory, type PlacedFurniture,

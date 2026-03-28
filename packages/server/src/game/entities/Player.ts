@@ -3,6 +3,7 @@ import {
   EntityType,
   type Appearance,
   type SkillName,
+  type BoatState,
   ALL_SKILLS,
   PLAYER_SPEED,
   INVENTORY_SIZE,
@@ -54,6 +55,9 @@ export class Player extends Entity {
 
   // Fishing
   fishingState: { startTick: number; fish: string; catchTick: number; biteSent: boolean } | null = null;
+
+  // Boat
+  boatState: BoatState | null = null;
 
   // Party
   partyId: string | null = null;

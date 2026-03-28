@@ -272,6 +272,19 @@ export interface S_VisitorArrived {
   expiresAt: number;
 }
 
+// ---- Boats ----
+
+export interface S_BoatUpdate {
+  action: "entered" | "exited" | "damaged" | "destroyed" | "placed";
+  boatId?: string;
+  hp?: number;
+  maxHp?: number;
+  /** Entity ID of the boat in the world. */
+  boatEid?: number;
+  x?: number;
+  y?: number;
+}
+
 // ---- Chunk Streaming / Procedural World ----
 
 export interface S_ChunkData {
@@ -559,6 +572,7 @@ export type ServerMessage =
   | { op: Op.S_FURNITURE_UPDATE; d: S_FurnitureUpdate }
   | { op: Op.S_GARDEN_UPDATE; d: S_GardenUpdate }
   | { op: Op.S_VISITOR_ARRIVED; d: S_VisitorArrived }
+  | { op: Op.S_BOAT_UPDATE; d: S_BoatUpdate }
   | { op: Op.S_CHUNK_DATA; d: S_ChunkData }
   | { op: Op.S_CHUNK_UNLOAD; d: S_ChunkUnload }
   | { op: Op.S_DISCOVERY_UPDATE; d: S_DiscoveryUpdate }

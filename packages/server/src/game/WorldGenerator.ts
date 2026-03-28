@@ -25,6 +25,10 @@ import {
   getLandmarksForBiome,
   type LandmarkDef,
   type LandmarkPlacement,
+  ISLAND_CHANCE,
+  ISLAND_RADIUS_MIN,
+  ISLAND_RADIUS_MAX,
+  SEA_CREATURES,
 } from "@madworld/shared";
 
 export interface GeneratedChunk {
@@ -155,6 +159,11 @@ export class WorldGenerator {
     // Pass 2: Smooth edges — add beaches between water and land
     this.smoothWaterEdges(tiles);
 
+    // Pass 2b: Generate islands in ocean chunks
+    if (dominantBiome === Biome.OCEAN) {
+      this.generateIsland(tiles, chunkX, chunkY);
+    }
+
     // Pass 3: Place landmarks (~5% chance per chunk)
     const landmarks = this.placeLandmarks(tiles, dominantBiome, chunkX, chunkY);
 
@@ -174,6 +183,11 @@ export class WorldGenerator {
           wanderRadius: mob.wanderRadius,
         });
       }
+    }
+
+    // Pass 4b: Spawn sea creatures in ocean/coast chunks
+    if (dominantBiome === Biome.OCEAN || dominantBiome === Biome.COAST) {
+      this.generateSeaCreatures(mobSpawns, dominantBiome, chunkX, chunkY);
     }
 
     // Pass 5: Generate lights (torches in forest, campfires, etc.)
@@ -361,6 +375,61 @@ export class WorldGenerator {
     }
 
     return lights;
+  }
+
+  /** Generate a small island in an ocean chunk. */
+  private generateIsland(tiles: TileType[][], chunkX: number, chunkY: number): void {
+    const rng = this.makeChunkRng(chunkX + 55555, chunkY + 55555);
+    if (rng() > ISLAND_CHANCE) return; // 8% chance
+
+    const S = WORLD_CHUNK_SIZE;
+    const radius = ISLAND_RADIUS_MIN + Math.floor(rng() * (ISLAND_RADIUS_MAX - ISLAND_RADIUS_MIN + 1));
+    const cx = Math.floor(S * 0.3 + rng() * S * 0.4); // Keep island away from chunk edges
+    const cy = Math.floor(S * 0.3 + rng() * S * 0.4);
+
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        const dx = x - cx;
+        const dy = y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist <= radius - 1) {
+          // Island interior — grass with random detail
+          tiles[y][x] = rng() < 0.15 ? TileType.DIRT : TileType.GRASS;
+        } else if (dist <= radius) {
+          // Beach ring
+          tiles[y][x] = TileType.SAND;
+        }
+      }
+    }
+  }
+
+  /** Spawn sea creatures in ocean/coast chunks. */
+  private generateSeaCreatures(
+    spawns: ChunkMobSpawn[],
+    biome: Biome,
+    chunkX: number,
+    chunkY: number,
+  ): void {
+    const S = WORLD_CHUNK_SIZE;
+    const rng = this.makeChunkRng(chunkX + 88888, chunkY + 88888);
+    const isDeep = biome === Biome.OCEAN;
+
+    for (const creature of SEA_CREATURES) {
+      if (creature.deepOnly && !isDeep) continue;
+      const count = Math.floor(S * S * creature.density);
+      for (let i = 0; i < count; i++) {
+        const x = Math.floor(rng() * S);
+        const y = Math.floor(rng() * S);
+        spawns.push({
+          mobId: creature.mobId,
+          x,
+          y,
+          count: 1,
+          wanderRadius: 6,
+        });
+      }
+    }
   }
 
   /**

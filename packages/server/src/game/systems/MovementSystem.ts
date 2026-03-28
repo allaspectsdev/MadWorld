@@ -26,14 +26,21 @@ export function processMovement(): void {
     if (player.stunTicks > 0) continue;
 
     const dt = TICK_MS / 1000;
-    const effectiveSpeed = player.speed * player.speedMultiplier;
+    const boatSpeed = player.boatState ? player.boatState.speedMultiplier : 1;
+    const effectiveSpeed = player.speed * player.speedMultiplier * boatSpeed;
     const newX = player.x + move.dx * effectiveSpeed * dt;
     const newY = player.y + move.dy * effectiveSpeed * dt;
 
-    // Check walkability — but if player is currently stuck in a non-walkable tile,
-    // allow movement to escape (don't trap them forever)
-    const currentlyStuck = !movementFormulas.isWalkable(zone.def, player.x, player.y);
-    if (!currentlyStuck && !movementFormulas.isWalkable(zone.def, newX, newY)) {
+    // Check walkability — boats use water navigation, on-foot uses land
+    const inBoat = player.boatState !== null;
+    const currentlyStuck = inBoat
+      ? !movementFormulas.isBoatWalkable(zone.def, player.x, player.y)
+      : !movementFormulas.isWalkable(zone.def, player.x, player.y);
+    const destWalkable = inBoat
+      ? movementFormulas.isBoatWalkable(zone.def, newX, newY)
+      : movementFormulas.isWalkable(zone.def, newX, newY);
+
+    if (!currentlyStuck && !destWalkable) {
       // Send correction back (binary hot path)
       player.send(encodeEntityMove(player.eid, player.x, player.y, 0, 0, player.speed, move.seq));
       continue;
