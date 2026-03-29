@@ -11,6 +11,7 @@ import { GroundItem } from "./entities/GroundItem.js";
 import { resetAllRateLimits } from "../net/MessageHandler.js";
 import { weatherManager } from "./WeatherManager.js";
 import { petManager } from "./PetManager.js";
+import { processGatheringTick } from "../net/handlers/gathering.js";
 import type { Zone } from "./Zone.js";
 
 let currentTick = 0;
@@ -46,9 +47,10 @@ function tick(): void {
     // 4. Resolve combat (world + instance zones, shared XP)
     processCombat();
 
-    // 5. Process ability cooldowns, status effects, and fishing timers
+    // 5. Process ability cooldowns, status effects, fishing timers, and gathering
     processAbilities();
     processFishing(currentTick);
+    processGathering(currentTick);
 
     // 5b. Pet follow + bond XP
     petManager.updatePetPositions();
@@ -115,6 +117,22 @@ function processFishing(tick: number): void {
       } satisfies ServerMessage);
       player.fishingState = null;
     }
+  }
+}
+
+function processGathering(tick: number): void {
+  for (const [, player] of world.playersByEid) {
+    if (!player.gatheringState) continue;
+    // Cancel gathering if player moved
+    if (player.moveQueue.length > 0 || player.dx !== 0 || player.dy !== 0) {
+      player.gatheringState = null;
+      player.send({
+        op: Op.S_SYSTEM_MESSAGE,
+        d: { message: "Gathering interrupted." },
+      } satisfies ServerMessage);
+      continue;
+    }
+    processGatheringTick(player, tick);
   }
 }
 

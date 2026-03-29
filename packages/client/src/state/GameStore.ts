@@ -114,6 +114,8 @@ export interface GameState {
   // Procedural world chunks & discovery
   discoveredChunks: Set<string>;
   loadedChunks: Map<string, { chunkX: number; chunkY: number; biome: string; tiles: TileType[][]; lights?: any[] }>;
+  /** Persisted biome per chunk key — survives unloads for the world map. */
+  chunkBiomes: Map<string, string>;
   setDiscoveredChunks: (chunks: string[]) => void;
   addDiscoveredChunks: (chunks: string[]) => void;
   addChunkData: (chunkX: number, chunkY: number, biome: string, tiles: TileType[][], lights?: any[]) => void;
@@ -252,6 +254,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   // Procedural world chunks & discovery
   discoveredChunks: new Set<string>(),
   loadedChunks: new Map(),
+  chunkBiomes: new Map(),
   setDiscoveredChunks: (chunks) => set({ discoveredChunks: new Set(chunks) }),
   addDiscoveredChunks: (chunks) =>
     set((state) => {
@@ -261,9 +264,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
     }),
   addChunkData: (chunkX, chunkY, biome, tiles, lights) =>
     set((state) => {
+      const key = `${chunkX},${chunkY}`;
       const next = new Map(state.loadedChunks);
-      next.set(`${chunkX},${chunkY}`, { chunkX, chunkY, biome, tiles, lights });
-      return { loadedChunks: next };
+      next.set(key, { chunkX, chunkY, biome, tiles, lights });
+      const biomes = new Map(state.chunkBiomes);
+      biomes.set(key, biome);
+      return { loadedChunks: next, chunkBiomes: biomes };
     }),
   removeChunkData: (chunkX, chunkY) =>
     set((state) => {

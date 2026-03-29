@@ -14,6 +14,7 @@ import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQu
 // grantXp imported above with handleMobDeath
 import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
 import { getCurrentTick } from "../game/GameLoop.js";
+import { weatherManager } from "../game/WeatherManager.js";
 import type { ServerWebSocket } from "bun";
 
 // ---- Per-system handlers (extracted from the monolith) ----
@@ -323,7 +324,10 @@ export async function handleMessage(
       if (!useDef) break;
 
       if (useDef.healAmount) {
-        player.hp = Math.min(player.maxHp, player.hp + useDef.healAmount);
+        // Apply potion_power spec bonus to healing items
+        const potionPower = 1 + player.getSpecBonus("potion_power");
+        const healAmount = Math.floor(useDef.healAmount * potionPower);
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
         player.send({
           op: Op.S_PLAYER_STATS,
           d: { hp: player.hp, maxHp: player.maxHp, level: 1 },
@@ -815,8 +819,16 @@ export async function handleMessage(
       const state = player.fishingState;
       const elapsed = getCurrentTick() - state.startTick;
 
-      // Must wait for the bite (70% of catch time)
-      const biteAt = Math.floor(state.catchTick * 0.7);
+      // Weather fishing multiplier — affects catch window
+      const weatherFishMult = weatherManager.getFishingMultiplier(player.x, player.y);
+      // Spec fish_catch_mult bonus
+      const specFishMult = 1 + player.getSpecBonus("fish_catch_mult");
+
+      // Effective catch window is wider with bonuses
+      const effectiveCatchTick = Math.floor(state.catchTick / (weatherFishMult * specFishMult));
+
+      // Must wait for the bite (70% of effective catch time)
+      const biteAt = Math.floor(effectiveCatchTick * 0.7);
       if (elapsed < biteAt) {
         // Too early - scare away the fish
         player.send({ op: Op.S_FISH_RESULT, d: { success: false } } satisfies ServerMessage);
@@ -825,8 +837,16 @@ export async function handleMessage(
         break;
       }
 
+      // Sandstorm blocks fishing entirely
+      if (weatherFishMult <= 0) {
+        player.send({ op: Op.S_FISH_RESULT, d: { success: false } } satisfies ServerMessage);
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "The weather is too harsh to fish!" } } satisfies ServerMessage);
+        player.fishingState = null;
+        break;
+      }
+
       // Success window: between bite and catch + grace period
-      if (elapsed <= state.catchTick + 20) {
+      if (elapsed <= effectiveCatchTick + 20) {
         // Find the spot for XP
         const spot = FISHING_SPOTS.find((s) => s.fish === state.fish);
         const xp = spot?.baseXp ?? 10;

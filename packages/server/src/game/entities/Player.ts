@@ -76,6 +76,19 @@ export class Player extends Entity {
   // Death respawn guard
   respawnPending: boolean = false;
 
+  // Specialization effects (loaded on login from skill_specializations table)
+  specEffects: Array<{ type: string; value: number; skill?: string }> = [];
+
+  // Gathering
+  gatheringState: {
+    nodeEid: number;
+    nodeId: string;
+    skill: string;
+    completeTick: number;
+    yields: Array<{ itemId: string; quantity: number; chance?: number }>;
+    xp: number;
+  } | null = null;
+
   // Persistence
   dirty: boolean = false;
 
@@ -106,6 +119,22 @@ export class Player extends Entity {
     for (const skill of ALL_SKILLS) {
       this.skills.set(skill as SkillName, { xp: 0 });
     }
+  }
+
+  /**
+   * Sum all spec effect values of the given type.
+   * For skill-specific effects (xp_mult, yield_mult, gather_speed),
+   * pass the skill to filter by.
+   */
+  getSpecBonus(effectType: string, skill?: string): number {
+    let total = 0;
+    for (const e of this.specEffects) {
+      if (e.type === effectType) {
+        if (e.skill && skill && e.skill !== skill) continue;
+        total += e.value;
+      }
+    }
+    return total;
   }
 
   /** Send a message. Accepts JSON object or pre-serialized string/ArrayBuffer. */

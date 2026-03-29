@@ -1,8 +1,8 @@
 import { db } from "../db/index.js";
-import { players, skills, inventory, equipment, users, questProgress } from "../db/schema.js";
+import { players, skills, inventory, equipment, users, questProgress, skillSpecializations } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { Player } from "../game/entities/Player.js";
-import { type SkillName, type Appearance, levelForXp, movementFormulas } from "@madworld/shared";
+import { type SkillName, type Appearance, levelForXp, movementFormulas, getSpecNode } from "@madworld/shared";
 import { ZONE_DEFS } from "../game/data/zones/index.js";
 
 export async function loadPlayer(userId: number): Promise<Player | null> {
@@ -91,13 +91,37 @@ export async function loadPlayer(userId: number): Promise<Player | null> {
     player.equipment.set(equip.slot, equip.itemId);
   }
 
-  // Calculate combat level
-  const meleeXp = player.skills.get("melee" as SkillName)?.xp ?? 0;
+  // Load specialization effects
+  const specRows = await db
+    .select()
+    .from(skillSpecializations)
+    .where(eq(skillSpecializations.playerId, row.id));
+
+  for (const spec of specRows) {
+    const node = getSpecNode(spec.skillId as SkillName, spec.level);
+    if (!node) continue;
+    const choice = node.choiceA.id === spec.choiceId ? node.choiceA : node.choiceB;
+    const effect = choice.effect as { type: string; value: number; skill?: string };
+    player.specEffects.push({
+      type: effect.type,
+      value: effect.value,
+      skill: (effect as any).skill,
+    });
+  }
+
+  // Calculate combat level + apply spec bonuses
   const defenseXp = player.skills.get("defense" as SkillName)?.xp ?? 0;
-  const meleeLevel = levelForXp(meleeXp);
   const defenseLevel = levelForXp(defenseXp);
-  player.maxHp = 100 + defenseLevel * 5;
+  const baseMaxHp = 100 + defenseLevel * 5;
+  const hpMult = player.getSpecBonus("hp_mult");
+  player.maxHp = Math.floor(baseMaxHp * (1 + hpMult));
   player.hp = Math.min(player.hp, player.maxHp);
+
+  // Apply speed_mult spec bonus to base speed multiplier
+  const speedMult = player.getSpecBonus("speed_mult");
+  if (speedMult > 0) {
+    player.speedMultiplier = 1 + speedMult;
+  }
 
   return player;
 }

@@ -10,6 +10,7 @@ import { Op, AIState, PARTY_XP_RANGE, PARTY_XP_BONUS, type ServerMessage, encode
 import { combatFormulas, movementFormulas } from "@madworld/shared";
 import { levelForXp, xpForLevel, SkillName } from "@madworld/shared";
 import { ITEMS } from "@madworld/shared";
+import { petManager } from "../PetManager.js";
 
 function* allZones(): Iterable<Zone> {
   yield* world.zones.values();
@@ -81,6 +82,17 @@ export function processCombat(): void {
         0,
       );
 
+      // Apply spec bonuses: damage_mult and crit_chance
+      if (result.hit) {
+        const damageMult = 1 + player.getSpecBonus("damage_mult");
+        const extraCrit = player.getSpecBonus("crit_chance");
+        if (!result.isCrit && extraCrit > 0 && Math.random() < extraCrit) {
+          result.damage = Math.floor(result.damage * 1.5);
+          (result as any).isCrit = true;
+        }
+        result.damage = Math.max(1, Math.floor(result.damage * damageMult));
+      }
+
       if (result.hit) {
         target.hp = Math.max(0, target.hp - result.damage);
         // Track threat for bosses
@@ -125,11 +137,15 @@ export function processCombat(): void {
         if (item?.stats?.defense) equipDefense += item.stats.defense;
       }
 
+      // Apply defense_mult spec bonus to effective defense
+      const defenseMult = 1 + target.getSpecBonus("defense_mult");
+      const effectiveDefense = Math.floor((defenseLevel + equipDefense) * defenseMult);
+
       const result = combatFormulas.rollDamage(
         mob.def.attack,
         0,
-        defenseLevel,
-        equipDefense,
+        effectiveDefense,
+        0,
       );
 
       // Skip damage if target is invulnerable
@@ -155,13 +171,20 @@ export function processCombat(): void {
 export function grantXp(player: Player, skill: SkillName, xp: number): void {
   const skillData = player.skills.get(skill);
   if (!skillData) return;
+
+  // Apply spec xp_mult bonus for this skill
+  const specXpMult = player.getSpecBonus("xp_mult", skill);
+  // Apply pet xp_bonus (rabbit)
+  const petXpBonus = petManager.getAbilityValue(player.eid, "xp_bonus");
+  const totalXp = Math.floor(xp * (1 + specXpMult + petXpBonus / 100));
+
   const oldLevel = levelForXp(skillData.xp);
-  skillData.xp += xp;
+  skillData.xp += totalXp;
   const newLevel = levelForXp(skillData.xp);
 
   player.send({
     op: Op.S_XP_GAIN,
-    d: { skillId: skill, xp, totalXp: skillData.xp },
+    d: { skillId: skill, xp: totalXp, totalXp: skillData.xp },
   } satisfies ServerMessage);
 
   if (newLevel > oldLevel) {
@@ -234,8 +257,9 @@ export function handleMobDeath(mob: Mob, killer: Player, zone: Zone): void {
 
   // --- Loot Drops (elites: double chance, capped at 1.0) ---
   const lootMultiplier = mob.isElite ? 2 : 1;
+  const petLootBonus = petManager.getAbilityValue(killer.eid, "loot_bonus") / 100;
   for (const loot of mob.def.lootTable) {
-    if (Math.random() < Math.min(1, loot.chance * lootMultiplier)) {
+    if (Math.random() < Math.min(1, loot.chance * lootMultiplier * (1 + petLootBonus))) {
       const offsetX = (Math.random() - 0.5) * 1.5;
       const offsetY = (Math.random() - 0.5) * 1.5;
       const groundItem = new GroundItem(

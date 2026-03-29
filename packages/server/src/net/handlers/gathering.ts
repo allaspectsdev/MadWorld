@@ -2,30 +2,84 @@ import { Op, type ServerMessage, RESOURCE_NODES, getRecipe, SkillName } from "@m
 import { levelForXp } from "@madworld/shared";
 import type { Player } from "../../game/entities/Player.js";
 import { grantXp } from "../../game/systems/CombatSystem.js";
+import { getCurrentTick } from "../../game/GameLoop.js";
 import { giveItem, sendInventory } from "./context.js";
 
 export function handleGatherStart(player: Player, d: any): void {
-  const nodeDef = RESOURCE_NODES[d.nodeEid as unknown as string];
+  // Can't gather while already gathering
+  if (player.gatheringState) {
+    player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Already gathering." } } satisfies ServerMessage);
+    return;
+  }
+
+  const nodeDef = RESOURCE_NODES[d.nodeId];
   if (!nodeDef) {
     player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown resource." } } satisfies ServerMessage);
     return;
   }
+
   const skillXp = player.skills.get(nodeDef.skill as SkillName)?.xp ?? 0;
-  if (levelForXp(skillXp) < nodeDef.levelRequired) {
+  const skillLevel = levelForXp(skillXp);
+  if (skillLevel < nodeDef.levelRequired) {
     player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires ${nodeDef.skill} level ${nodeDef.levelRequired}.` } } satisfies ServerMessage);
     return;
   }
-  for (const y of nodeDef.yields) {
+
+  // Apply gather_speed spec bonus — reduces ticks
+  const gatherSpeedBonus = player.getSpecBonus("gather_speed", nodeDef.skill);
+  const effectiveTicks = Math.max(5, Math.floor(nodeDef.gatherTicks / (1 + gatherSpeedBonus)));
+
+  const currentTick = getCurrentTick();
+  player.gatheringState = {
+    nodeEid: d.nodeEid ?? 0,
+    nodeId: nodeDef.id,
+    skill: nodeDef.skill,
+    completeTick: currentTick + effectiveTicks,
+    yields: nodeDef.yields,
+    xp: nodeDef.xp,
+  };
+
+  // Stop movement while gathering
+  player.moveQueue = [];
+  player.dx = 0;
+  player.dy = 0;
+  player.combatTarget = null;
+
+  player.send({
+    op: Op.S_GATHER_START,
+    d: { nodeEid: d.nodeEid, nodeId: nodeDef.id, waitingForAssist: false, ticks: effectiveTicks },
+  } satisfies ServerMessage);
+}
+
+/**
+ * Called each game tick to check for gathering completion.
+ * Returns true if a gather completed this tick.
+ */
+export function processGatheringTick(player: Player, currentTick: number): boolean {
+  const state = player.gatheringState;
+  if (!state) return false;
+  if (currentTick < state.completeTick) return false;
+
+  // Gathering complete — award items with yield_mult spec bonus
+  const yieldMult = 1 + player.getSpecBonus("yield_mult", state.skill);
+
+  for (const y of state.yields) {
     if (Math.random() < (y.chance ?? 1)) {
-      giveItem(player, y.itemId, y.quantity);
+      const qty = Math.max(1, Math.floor(y.quantity * yieldMult));
+      giveItem(player, y.itemId, qty);
     }
   }
-  grantXp(player, nodeDef.skill as SkillName, nodeDef.xp);
+
+  grantXp(player, state.skill as SkillName, state.xp);
   sendInventory(player);
+
   player.send({
     op: Op.S_GATHER_RESULT,
-    d: { nodeEid: d.nodeEid, success: true, xp: nodeDef.xp, skillId: nodeDef.skill },
+    d: { nodeEid: state.nodeEid, success: true, xp: state.xp, skillId: state.skill },
   } satisfies ServerMessage);
+
+  player.gatheringState = null;
+  return true;
 }
 
 export function handleGatherAssist(player: Player): void {
@@ -39,7 +93,8 @@ export function handleCraftStart(player: Player, d: any): void {
     return;
   }
   const skillXp = player.skills.get(recipe.skill as SkillName)?.xp ?? 0;
-  if (levelForXp(skillXp) < recipe.levelRequired) {
+  const skillLevel = levelForXp(skillXp);
+  if (skillLevel < recipe.levelRequired) {
     player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires ${recipe.skill} level ${recipe.levelRequired}.` } } satisfies ServerMessage);
     return;
   }
@@ -71,21 +126,30 @@ export function handleCraftStart(player: Player, d: any): void {
       }
     }
   }
-  const burned = recipe.burnChance
-    ? Math.random() < recipe.burnChance(levelForXp(skillXp))
-    : false;
+
+  // Apply cook_burn_reduce spec bonus
+  const burnReduce = player.getSpecBonus("cook_burn_reduce");
+  const baseBurnChance = recipe.burnChance ? recipe.burnChance(skillLevel) : 0;
+  const effectiveBurnChance = baseBurnChance * (1 - burnReduce);
+  const burned = effectiveBurnChance > 0 && Math.random() < effectiveBurnChance;
+
   if (burned) {
     sendInventory(player);
     player.send({ op: Op.S_CRAFT_RESULT, d: { recipeId: recipe.id, success: false, burned: true } } satisfies ServerMessage);
     player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You burned it!" } } satisfies ServerMessage);
     return;
   }
-  giveItem(player, recipe.result.itemId, recipe.result.quantity);
+
+  // Apply yield_mult spec bonus to crafting output
+  const yieldMult = 1 + player.getSpecBonus("yield_mult", recipe.skill);
+  const resultQty = Math.max(1, Math.floor(recipe.result.quantity * yieldMult));
+
+  giveItem(player, recipe.result.itemId, resultQty);
   grantXp(player, recipe.skill as SkillName, recipe.xp);
   sendInventory(player);
   player.send({
     op: Op.S_CRAFT_RESULT,
-    d: { recipeId: recipe.id, success: true, items: recipe.result, xp: recipe.xp },
+    d: { recipeId: recipe.id, success: true, items: { itemId: recipe.result.itemId, quantity: resultQty }, xp: recipe.xp },
   } satisfies ServerMessage);
 }
 

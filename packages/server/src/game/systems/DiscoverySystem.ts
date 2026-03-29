@@ -16,6 +16,7 @@ import {
   type Biome,
 } from "@madworld/shared";
 import type { ChunkManager } from "../ChunkManager.js";
+import { petManager } from "../PetManager.js";
 
 interface DiscoveryPlayer {
   playerId: number;
@@ -49,8 +50,9 @@ export async function processDiscovery(
   const cx = Math.floor(player.x / WORLD_CHUNK_SIZE);
   const cy = Math.floor(player.y / WORLD_CHUNK_SIZE);
 
-  // Determine reveal radius (could be modified by cartography skill later)
-  const revealRadius = BASE_REVEAL_RADIUS;
+  // Reveal radius: base + fox pet discovery_radius ability
+  const petBonus = petManager.getAbilityValue(player.eid, "discovery_radius");
+  const revealRadius = BASE_REVEAL_RADIUS + Math.floor(petBonus);
 
   // Collect chunks in reveal range
   const chunksToCheck: Array<{ cx: number; cy: number }> = [];
