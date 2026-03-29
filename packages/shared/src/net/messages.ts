@@ -285,6 +285,19 @@ export interface S_BoatUpdate {
   y?: number;
 }
 
+// ---- Specializations ----
+
+export interface S_SpecPrompt {
+  skillId: string;
+  level: number;
+  choiceA: { id: string; name: string; description: string };
+  choiceB: { id: string; name: string; description: string };
+}
+
+export interface S_SpecList {
+  specs: { skillId: string; level: number; choiceId: string; name: string; description: string }[];
+}
+
 // ---- Pets ----
 
 export interface S_PetList {
@@ -570,6 +583,7 @@ export type ClientMessage =
   | { op: Op.C_PET_TAME; d: { targetEid: number } }
   | { op: Op.C_PET_SUMMON; d: { petId: string } }
   | { op: Op.C_PET_RENAME; d: { petId: string; name: string } }
+  | { op: Op.C_SPEC_CHOOSE; d: { skillId: string; level: number; choiceId: string } }
   | { op: Op.C_PING; d: { t: number } };
 
 export type ServerMessage =
@@ -625,6 +639,8 @@ export type ServerMessage =
   | { op: Op.S_PET_LIST; d: S_PetList }
   | { op: Op.S_PET_UPDATE; d: S_PetUpdate }
   | { op: Op.S_PET_TAME_RESULT; d: S_PetTameResult }
+  | { op: Op.S_SPEC_PROMPT; d: S_SpecPrompt }
+  | { op: Op.S_SPEC_LIST; d: S_SpecList }
   | { op: Op.S_CHUNK_DATA; d: S_ChunkData }
   | { op: Op.S_CHUNK_UNLOAD; d: S_ChunkUnload }
   | { op: Op.S_DISCOVERY_UPDATE; d: S_DiscoveryUpdate }

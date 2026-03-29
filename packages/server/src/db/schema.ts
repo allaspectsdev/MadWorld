@@ -90,6 +90,25 @@ export const questProgress = pgTable("quest_progress", {
   data: jsonb("data"),
 });
 
+// ---- Skill Specializations ----
+
+export const skillSpecializations = pgTable(
+  "skill_specializations",
+  {
+    id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+    playerId: integer("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    skillId: varchar("skill_id", { length: 32 }).notNull(),
+    level: smallint("level").notNull(), // 25, 50, or 75
+    choiceId: varchar("choice_id", { length: 64 }).notNull(),
+    chosenAt: timestamp("chosen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("skill_specs_player_skill_level_idx").on(table.playerId, table.skillId, table.level),
+  ],
+);
+
 // ---- Pets ----
 
 export const playerPets = pgTable(

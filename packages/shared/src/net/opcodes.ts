@@ -55,6 +55,7 @@ export enum Op {
   C_BOAT_PLACE = 0x37,       // Place boat at coast tile
   C_BOAT_ENTER = 0x38,       // Enter a nearby boat
   C_BOAT_EXIT = 0x39,        // Exit boat onto adjacent land
+  C_SPEC_CHOOSE = 0x3d,      // Choose a skill specialization
   C_PET_TAME = 0x3a,         // Attempt to tame a passive mob
   C_PET_SUMMON = 0x3b,       // Summon/dismiss active pet
   C_PET_RENAME = 0x3c,       // Rename a pet
@@ -138,6 +139,8 @@ export enum Op {
   S_PET_LIST = 0xea,         // All player's pets
   S_PET_UPDATE = 0xeb,       // Pet state changed (tamed, bond level, summoned)
   S_PET_TAME_RESULT = 0xec,  // Tame attempt result (success/fail)
+  S_SPEC_PROMPT = 0xed,      // Prompt player to choose a specialization
+  S_SPEC_LIST = 0xee,        // All player's chosen specializations
 
   S_TICK = 0xf0,
   S_PONG = 0xf1,

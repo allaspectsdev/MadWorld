@@ -1,4 +1,4 @@
-import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong, getRecipe, RESOURCE_NODES, PETS } from "@madworld/shared";
+import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong, getRecipe, RESOURCE_NODES, PETS, getSpecNode, SPEC_LEVELS } from "@madworld/shared";
 import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType, BOATS, FURNITURE, GARDEN_SEEDS, HOMESTEAD_SIZE, HOMESTEAD_MAX_FURNITURE, petBondLevel } from "@madworld/shared";
 import { Player } from "../game/entities/Player.js";
 import { Mob } from "../game/entities/Mob.js";
@@ -16,6 +16,9 @@ import { getCurrentTick } from "../game/GameLoop.js";
 import { instanceManager } from "../game/InstanceManager.js";
 import { CampManager } from "../game/CampManager.js";
 import { petManager } from "../game/PetManager.js";
+import { skillSpecializations } from "../db/schema.js";
+import { db } from "../db/index.js";
+import { eq, and } from "drizzle-orm";
 import type { ServerWebSocket } from "bun";
 
 // Singleton camp manager — shared across all message handling
@@ -1403,10 +1406,73 @@ export async function handleMessage(
       break;
     }
 
+    // ---- Specializations ----
+
+    case Op.C_SPEC_CHOOSE: {
+      const { skillId, level, choiceId } = msg.d;
+      const node = getSpecNode(skillId as SkillName, level);
+      if (!node) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Invalid specialization." } } satisfies ServerMessage);
+        break;
+      }
+      // Validate the choice is one of the two options
+      const choice = node.choiceA.id === choiceId ? node.choiceA
+        : node.choiceB.id === choiceId ? node.choiceB : null;
+      if (!choice) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Invalid choice." } } satisfies ServerMessage);
+        break;
+      }
+      // Validate player has reached the required level
+      const specSkillXp = player.skills.get(skillId as SkillName)?.xp ?? 0;
+      if (levelForXp(specSkillXp) < level) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires ${skillId} level ${level}.` } } satisfies ServerMessage);
+        break;
+      }
+      // Check not already chosen at this node
+      const existing = await db.select().from(skillSpecializations)
+        .where(and(
+          eq(skillSpecializations.playerId, player.playerId),
+          eq(skillSpecializations.skillId, skillId),
+          eq(skillSpecializations.level, level),
+        )).limit(1);
+      if (existing.length > 0) {
+        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You already chose a specialization at this level." } } satisfies ServerMessage);
+        break;
+      }
+      // Persist choice
+      await db.insert(skillSpecializations).values({
+        playerId: player.playerId,
+        skillId,
+        level,
+        choiceId,
+      });
+      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Specialized as ${choice.name}!` } } satisfies ServerMessage);
+      // Send updated spec list
+      await sendSpecList(player);
+      break;
+    }
+
     default:
       // Unknown or unimplemented opcode
       break;
   }
+}
+
+async function sendSpecList(player: Player): Promise<void> {
+  const rows = await db.select().from(skillSpecializations)
+    .where(eq(skillSpecializations.playerId, player.playerId));
+  const specs = rows.map((r) => {
+    const node = getSpecNode(r.skillId as SkillName, r.level);
+    const choice = node?.choiceA.id === r.choiceId ? node.choiceA : node?.choiceB;
+    return {
+      skillId: r.skillId,
+      level: r.level,
+      choiceId: r.choiceId,
+      name: choice?.name ?? r.choiceId,
+      description: choice?.description ?? "",
+    };
+  });
+  player.send({ op: Op.S_SPEC_LIST, d: { specs } } satisfies ServerMessage);
 }
 
 function giveItem(player: Player, itemId: string, quantity: number): boolean {

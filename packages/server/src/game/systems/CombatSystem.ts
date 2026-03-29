@@ -6,10 +6,9 @@ import type { Zone } from "../Zone.js";
 import { partyManager } from "../PartyManager.js";
 import { instanceManager } from "../InstanceManager.js";
 import { onMobKill as questOnMobKill } from "./QuestSystem.js";
-import { Op, AIState, PARTY_XP_RANGE, PARTY_XP_BONUS, type ServerMessage, encodeDamage } from "@madworld/shared";
+import { Op, AIState, PARTY_XP_RANGE, PARTY_XP_BONUS, type ServerMessage, encodeDamage, getSpecNode, SPEC_LEVELS } from "@madworld/shared";
 import { combatFormulas, movementFormulas } from "@madworld/shared";
-import { levelForXp, xpForLevel } from "@madworld/shared";
-import { SkillName } from "@madworld/shared";
+import { levelForXp, xpForLevel, SkillName } from "@madworld/shared";
 import { ITEMS } from "@madworld/shared";
 
 function* allZones(): Iterable<Zone> {
@@ -170,6 +169,24 @@ export function grantXp(player: Player, skill: SkillName, xp: number): void {
       op: Op.S_LEVEL_UP,
       d: { skillId: skill, newLevel },
     } satisfies ServerMessage);
+
+    // Check if a specialization prompt is needed at this level
+    for (const specLevel of SPEC_LEVELS) {
+      if (newLevel >= specLevel && oldLevel < specLevel) {
+        const node = getSpecNode(skill as SkillName, specLevel);
+        if (node) {
+          player.send({
+            op: Op.S_SPEC_PROMPT,
+            d: {
+              skillId: skill,
+              level: specLevel,
+              choiceA: { id: node.choiceA.id, name: node.choiceA.name, description: node.choiceA.description },
+              choiceB: { id: node.choiceB.id, name: node.choiceB.name, description: node.choiceB.description },
+            },
+          } satisfies ServerMessage);
+        }
+      }
+    }
   }
 
   player.dirty = true;

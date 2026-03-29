@@ -44,6 +44,12 @@ export * as movementFormulas from "./formulas/movement.js";
 export { Op } from "./net/opcodes.js";
 export * from "./net/messages.js";
 
+// Specializations
+export {
+  SPEC_NODES, SPEC_LEVELS, getSpecNode,
+  type SpecNode, type SpecChoice, type SpecEffect, type PlayerSpec,
+} from "./constants/specializations.js";
+
 // Pets
 export {
   PETS, PET_MAX_BOND_LEVEL, PET_PASSIVE_BOND_XP_PER_TICK, PET_BOND_EVENTS,
