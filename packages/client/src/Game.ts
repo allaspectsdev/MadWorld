@@ -28,6 +28,7 @@ import { AudioManager } from "./audio/AudioManager.js";
 import { SkillBar } from "./ui/components/SkillBar.js";
 import { ShopPanel } from "./ui/components/ShopPanel.js";
 import { SettingsPanel } from "./ui/components/SettingsPanel.js";
+import { WorldMap } from "./ui/components/WorldMap.js";
 import { SkillsPanel } from "./ui/components/SkillsPanel.js";
 import { PathFollower, type PendingAction } from "./pathfinding/PathFollower.js";
 import { findPath, trimPathToRange } from "./pathfinding/Pathfinder.js";
@@ -60,6 +61,7 @@ export class Game {
   private questLog: QuestLog;
   private npcDialog: NPCDialog;
   private skillsPanel: SkillsPanel;
+  private worldMap: WorldMap;
   private colorGrading: ColorMatrixFilter;
   private sky: SkyRenderer;
 
@@ -124,6 +126,7 @@ export class Game {
     this.questLog = new QuestLog();
     this.npcDialog = new NPCDialog(this.socket);
     this.skillsPanel = new SkillsPanel();
+    this.worldMap = new WorldMap();
 
     // HUD toggle buttons
     document.getElementById("btn-inventory")?.addEventListener("click", () => {
@@ -142,6 +145,9 @@ export class Game {
       const ql = document.getElementById("quest-log");
       if (ql) ql.classList.toggle("open");
       this.updateHudButtons();
+    });
+    document.getElementById("btn-map")?.addEventListener("click", () => {
+      this.worldMap.toggle();
     });
     document.getElementById("btn-settings")?.addEventListener("click", () => {
       const sp = document.getElementById("settings-panel");
@@ -254,12 +260,24 @@ export class Game {
         useGameStore.getState().toggleQuestLog();
       }
 
-      // Escape key toggles settings panel
+      // Escape key toggles settings panel (or closes world map)
       if (e.key === "Escape") {
         const loginScreen = document.getElementById("login-screen");
         if (loginScreen && loginScreen.style.display !== "none") return;
         e.preventDefault();
-        this.settingsPanel.toggle();
+        if (this.worldMap.isOpen()) {
+          this.worldMap.toggle();
+        } else {
+          this.settingsPanel.toggle();
+        }
+      }
+
+      // M key toggles world map
+      if ((e.key === "m" || e.key === "M") && !useGameStore.getState().chatOpen) {
+        const loginScreen = document.getElementById("login-screen");
+        if (loginScreen && loginScreen.style.display !== "none") return;
+        e.preventDefault();
+        this.worldMap.toggle();
       }
 
       // Keys 2-8 for skill bar abilities
@@ -507,6 +525,7 @@ export class Game {
     this.screenEffects.update(dt);
     this.telegraphs.update(dt);
     this.minimap.update(dt);
+    this.worldMap.update(dt);
 
     // Lighting system
     this.lighting.setCamera(current.x, current.y, this.camera.zoom);
