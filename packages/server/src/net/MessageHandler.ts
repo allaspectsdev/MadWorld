@@ -1,5 +1,6 @@
-import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong, getRecipe, RESOURCE_NODES, PETS, getSpecNode, SPEC_LEVELS } from "@madworld/shared";
-import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType, BOATS, FURNITURE, GARDEN_SEEDS, HOMESTEAD_SIZE, HOMESTEAD_MAX_FURNITURE, petBondLevel } from "@madworld/shared";
+import { Op, type ClientMessage, type ServerMessage, ITEMS, ABILITIES, SHOPS, FISHING_SPOTS, movementFormulas, combatFormulas, encodePong } from "@madworld/shared";
+import { levelForXp, xpForLevel, SkillName, PARTY_XP_RANGE, AIState, TileType } from "@madworld/shared";
+import { handleMobDeath, grantXp } from "../game/systems/CombatSystem.js";
 import { Player } from "../game/entities/Player.js";
 import { Mob } from "../game/entities/Mob.js";
 import { GroundItem } from "../game/entities/GroundItem.js";
@@ -10,30 +11,24 @@ import { verifyToken } from "../auth/jwt.js";
 import { loadPlayer } from "../services/PlayerService.js";
 import { savePlayer } from "../services/PlayerService.js";
 import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQuests, cleanupQuestState, persistQuestState, onItemPickup as questOnItemPickup } from "../game/systems/QuestSystem.js";
-import { handleMobDeath, grantXp } from "../game/systems/CombatSystem.js";
+// grantXp imported above with handleMobDeath
 import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
 import { getCurrentTick } from "../game/GameLoop.js";
-import { instanceManager } from "../game/InstanceManager.js";
-import { CampManager } from "../game/CampManager.js";
-import { petManager } from "../game/PetManager.js";
-import { skillSpecializations } from "../db/schema.js";
-import { db } from "../db/index.js";
-import { eq, and } from "drizzle-orm";
 import type { ServerWebSocket } from "bun";
 
-// Singleton camp manager — shared across all message handling
-const campManager = new CampManager();
-
-/** Send the player's full inventory state. */
-function sendInventory(player: Player): void {
-  const slots: { index: number; itemId: string | null; quantity: number }[] = [];
-  for (let i = 0; i < player.inventory.length; i++) {
-    const s = player.inventory[i];
-    slots.push({ index: i, itemId: s?.itemId ?? null, quantity: s?.quantity ?? 0 });
-  }
-  player.send({ op: Op.S_INV_UPDATE, d: { slots } } satisfies ServerMessage);
-  player.dirty = true;
-}
+// ---- Per-system handlers (extracted from the monolith) ----
+import { handleMove, handleStop, handleGodTeleport } from "./handlers/movement.js";
+import { handleAttack } from "./handlers/combat.js";
+import { handlePartyInvite, handlePartyAccept, handlePartyDecline, handlePartyLeave, handlePartyKick } from "./handlers/party.js";
+import { handleDungeonEnter } from "./handlers/dungeon.js";
+import { handleBoatPlace, handleBoatEnter, handleBoatExit } from "./handlers/boat.js";
+import { handlePlaceCamp, handleInteractCamp, handleCampStore, handleCampWithdraw, handleFastTravel } from "./handlers/camp.js";
+import { handlePlaceFurniture, handleRemoveFurniture, handleGardenPlant } from "./handlers/homestead.js";
+import { handleGatherStart, handleGatherAssist, handleCraftStart, handleCraftContribute } from "./handlers/gathering.js";
+import { handlePetTame, handlePetSummon, handlePetRename } from "./handlers/pets.js";
+import { handleSpecChoose } from "./handlers/specialization.js";
+// giveItem and sendInventory used by remaining inline handlers
+// (shops, quests). Extracted handlers import from context.js directly.
 
 export interface SocketData {
   userId: number | null;
@@ -105,114 +100,18 @@ export async function handleMessage(
   }
 
   switch (msg.op) {
-    case Op.C_MOVE:
-      // Validate movement input
-      if (!Number.isFinite(msg.d.dx) || !Number.isFinite(msg.d.dy)) break;
-      const moveMag = Math.sqrt(msg.d.dx * msg.d.dx + msg.d.dy * msg.d.dy);
-      if (moveMag > 1.5) break; // Allow slight overshoot for diagonals (√2 ≈ 1.414)
-      if (player.moveQueue.length >= 10) break; // Prevent queue flooding
-      player.moveQueue.push({
-        dx: msg.d.dx,
-        dy: msg.d.dy,
-        seq: msg.d.seq,
-      });
-      break;
+    case Op.C_MOVE: handleMove(player, msg.d); break;
+    case Op.C_STOP: handleStop(player); break;
+    case Op.C_GOD_TELEPORT: handleGodTeleport(player, msg.d); break;
+    case Op.C_ATTACK: handleAttack(player, msg.d); break;
 
-    case Op.C_STOP:
-      player.moveQueue = [];
-      player.dx = 0;
-      player.dy = 0;
-      break;
+    case Op.C_PARTY_INVITE: handlePartyInvite(player, msg.d); break;
+    case Op.C_PARTY_ACCEPT: handlePartyAccept(player, msg.d); break;
+    case Op.C_PARTY_DECLINE: handlePartyDecline(player, msg.d); break;
+    case Op.C_PARTY_LEAVE: handlePartyLeave(player); break;
+    case Op.C_PARTY_KICK: handlePartyKick(player, msg.d); break;
 
-    case Op.C_GOD_TELEPORT: {
-      if (!player.isGod) break;
-      const tpX = msg.d.x;
-      const tpY = msg.d.y;
-      if (!Number.isFinite(tpX) || !Number.isFinite(tpY)) break;
-      const tpZone = world.getZone(player.zoneId);
-      if (!tpZone) break;
-      if (tpX < 0 || tpX >= tpZone.def.width || tpY < 0 || tpY >= tpZone.def.height) break;
-      if (!movementFormulas.isWalkable(tpZone.def, tpX, tpY)) break;
-      // Clear state
-      player.moveQueue = [];
-      player.dx = 0;
-      player.dy = 0;
-      player.combatTarget = null;
-      player.fishingState = null;
-      // Teleport
-      tpZone.moveEntity(player.eid, tpX, tpY);
-      player.dirty = true;
-      // Broadcast to nearby players
-      tpZone.broadcastToNearby(tpX, tpY, {
-        op: Op.S_ENTITY_MOVE,
-        d: { eid: player.eid, x: tpX, y: tpY, dx: 0, dy: 0, speed: 0, seq: player.lastMoveSeq },
-      } satisfies ServerMessage);
-      // Confirm to self
-      player.send({
-        op: Op.S_ENTITY_STOP,
-        d: { eid: player.eid, x: tpX, y: tpY },
-      } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_ATTACK: {
-      const zone = world.getZone(player.zoneId);
-      if (!zone) break;
-      const attackTarget = zone.entities.get(msg.d.targetEid);
-      if (!attackTarget) break;
-      if (!(attackTarget instanceof Mob)) break;
-      if (attackTarget.aiState === AIState.DEAD) break;
-      const attackDist = movementFormulas.distance(player.x, player.y, attackTarget.x, attackTarget.y);
-      if (attackDist > 10) break; // Reject obviously out-of-range targets
-      player.combatTarget = msg.d.targetEid;
-      player.attackCooldown = 0;
-      break;
-    }
-
-    case Op.C_PARTY_INVITE:
-      partyManager.invitePlayer(player, msg.d.targetEid);
-      break;
-
-    case Op.C_PARTY_ACCEPT:
-      partyManager.acceptInvite(player, msg.d.inviterEid);
-      break;
-
-    case Op.C_PARTY_DECLINE:
-      partyManager.declineInvite(player, msg.d.inviterEid);
-      break;
-
-    case Op.C_PARTY_LEAVE:
-      partyManager.leaveParty(player);
-      break;
-
-    case Op.C_PARTY_KICK:
-      partyManager.kickMember(player, msg.d.targetEid);
-      break;
-
-    case Op.C_DUNGEON_ENTER: {
-      // Client requests dungeon entry via opcode (as opposed to portal tile).
-      // This is used when a UI button triggers entry instead of walking onto a portal.
-      const partyForDungeon = partyManager.getPartyForPlayer(player.eid);
-      if (!partyForDungeon) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You need a party to enter a dungeon." } } satisfies ServerMessage);
-        break;
-      }
-      // Delegate to instanceManager — same logic as portal-based entry
-      const existingInstance = instanceManager.getInstanceForParty(partyForDungeon.id);
-      if (existingInstance) {
-        instanceManager.enterInstance(player, existingInstance.instanceId);
-      } else {
-        const portalId = msg.d.portalId;
-        if (!portalId) break;
-        try {
-          const inst = instanceManager.createInstance(partyForDungeon.id, portalId);
-          instanceManager.enterInstance(player, inst.instanceId);
-        } catch (err) {
-          player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Failed to create dungeon instance." } } satisfies ServerMessage);
-        }
-      }
-      break;
-    }
+    case Op.C_DUNGEON_ENTER: await handleDungeonEnter(player, msg.d); break;
 
     case Op.C_CHAT_SEND: {
       const now = Date.now();
@@ -979,500 +878,31 @@ export async function handleMessage(
       player.send(encodePong(msg.d.t ?? 0, Date.now()));
       break;
 
-    // ---- Boat system ----
-
-    case Op.C_BOAT_PLACE: {
-      const boatDef = BOATS[msg.d.boatId];
-      if (!boatDef) break;
-      // Check player has the boat item
-      const boatSlot = player.inventory.findIndex(
-        (s) => s && s.itemId === boatDef.itemId,
-      );
-      if (boatSlot === -1) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You don't have that boat." } } satisfies ServerMessage);
-        break;
-      }
-      // Must be on sand/coast tile adjacent to water
-      const zone = world.getZone(player.zoneId);
-      if (!zone) break;
-      const pTile = movementFormulas.tileAt(zone.def, player.x, player.y);
-      if (pTile !== TileType.SAND) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You can only place a boat on a beach." } } satisfies ServerMessage);
-        break;
-      }
-      // Consume item
-      const bSlot = player.inventory[boatSlot]!;
-      bSlot.quantity -= 1;
-      if (bSlot.quantity <= 0) player.inventory[boatSlot] = null;
-      sendInventory(player);
-      // Enter boat immediately
-      player.boatState = {
-        boatId: boatDef.id,
-        hp: boatDef.maxHp,
-        maxHp: boatDef.maxHp,
-        speedMultiplier: boatDef.speedMultiplier,
-        deepWater: boatDef.deepWater,
-      };
-      player.send({ op: Op.S_BOAT_UPDATE, d: { action: "entered", boatId: boatDef.id, hp: boatDef.maxHp, maxHp: boatDef.maxHp } } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_BOAT_ENTER: {
-      // For now, boats are placed-and-entered in one step via C_BOAT_PLACE.
-      // This opcode is reserved for entering parked boats (future).
-      break;
-    }
-
-    case Op.C_BOAT_EXIT: {
-      if (!player.boatState) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You're not in a boat." } } satisfies ServerMessage);
-        break;
-      }
-      const exitZone = world.getZone(player.zoneId);
-      if (!exitZone) break;
-      // Must be on or adjacent to a walkable (land) tile
-      const exitTile = movementFormulas.tileAt(exitZone.def, player.x, player.y);
-      if (exitTile !== TileType.SAND && exitTile !== TileType.BRIDGE) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Sail to a beach or bridge to disembark." } } satisfies ServerMessage);
-        break;
-      }
-      // Return boat to inventory if it has HP remaining
-      if (player.boatState.hp > 0) {
-        const boatDef = BOATS[player.boatState.boatId];
-        if (boatDef) giveItem(player, boatDef.itemId, 1);
-        sendInventory(player);
-      }
-      player.boatState = null;
-      player.send({ op: Op.S_BOAT_UPDATE, d: { action: "exited" } } satisfies ServerMessage);
-      break;
-    }
-
-    // ---- Camp / Homestead system ----
-
-    case Op.C_PLACE_CAMP: {
-      if (!player.partyId) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You must be in a party to place a camp." } } satisfies ServerMessage);
-        break;
-      }
-      // Check player has campfire_kit (or upgrade kits for higher tiers)
-      const kitSlot = player.inventory.findIndex((s) => s && s.itemId === "campfire_kit");
-      if (kitSlot === -1) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You need a Campfire Kit." } } satisfies ServerMessage);
-        break;
-      }
-      const result = await campManager.placeCamp(player.partyId, player.playerId, player.x, player.y, msg.d.name ?? "Camp");
-      if ("error" in result) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: result.error } } satisfies ServerMessage);
-        break;
-      }
-      // Consume kit
-      const ks = player.inventory[kitSlot]!;
-      ks.quantity -= 1;
-      if (ks.quantity <= 0) player.inventory[kitSlot] = null;
-      sendInventory(player);
-      player.send({ op: Op.S_CAMP_PLACED, d: { campId: result.id, name: result.name, worldX: result.worldX, worldY: result.worldY, tier: result.tier } } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_INTERACT_CAMP: {
-      if (!player.partyId) break;
-      const camps = await campManager.loadPartyCamps(player.partyId);
-      player.send({
-        op: Op.S_CAMP_LIST,
-        d: {
-          camps: camps.map((c) => ({
-            id: c.id,
-            name: c.name,
-            worldX: c.worldX,
-            worldY: c.worldY,
-            tier: c.tier,
-            storageSlots: { 1: 0, 2: 8, 3: 16, 4: 24 }[c.tier] ?? 0,
-          })),
-        },
-      } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_CAMP_STORE: {
-      if (!player.partyId) break;
-      const storeResult = await campManager.storeItem(msg.d.campId, player.partyId, msg.d.itemId, msg.d.quantity ?? 1);
-      if ("error" in storeResult) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: storeResult.error } } satisfies ServerMessage);
-        break;
-      }
-      // Remove from player inventory
-      const removeSlot = player.inventory.findIndex((s) => s && s.itemId === msg.d.itemId);
-      if (removeSlot !== -1) {
-        const rs = player.inventory[removeSlot]!;
-        rs.quantity -= (msg.d.quantity ?? 1);
-        if (rs.quantity <= 0) player.inventory[removeSlot] = null;
-      }
-      sendInventory(player);
-      player.send({ op: Op.S_CAMP_STORAGE, d: { campId: msg.d.campId, storage: storeResult } } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_CAMP_WITHDRAW: {
-      if (!player.partyId) break;
-      const wResult = await campManager.withdrawItem(msg.d.campId, player.partyId, msg.d.itemId, msg.d.quantity ?? 1);
-      if ("error" in wResult) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: wResult.error } } satisfies ServerMessage);
-        break;
-      }
-      giveItem(player, msg.d.itemId, msg.d.quantity ?? 1);
-      sendInventory(player);
-      player.send({ op: Op.S_CAMP_STORAGE, d: { campId: msg.d.campId, storage: wResult } } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_FAST_TRAVEL: {
-      if (!player.partyId) break;
-      const camps = campManager.getCamps(player.partyId);
-      const target = camps.find((c) => c.id === msg.d.campId);
-      if (!target) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Camp not found." } } satisfies ServerMessage);
-        break;
-      }
-      player.x = target.worldX;
-      player.y = target.worldY;
-      player.dirty = true;
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Traveled to ${target.name}.` } } satisfies ServerMessage);
-      break;
-    }
-
-    // ---- Homestead furniture ----
-
-    case Op.C_PLACE_FURNITURE: {
-      if (!player.partyId) break;
-      const furnitureDef = FURNITURE[msg.d.furnitureId];
-      if (!furnitureDef) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown furniture." } } satisfies ServerMessage);
-        break;
-      }
-      // Check player has the item
-      const fSlot = player.inventory.findIndex((s) => s && s.itemId === furnitureDef.itemId);
-      if (fSlot === -1) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `You need a ${furnitureDef.name} kit.` } } satisfies ServerMessage);
-        break;
-      }
-      const placeResult = await campManager.placeFurniture(
-        msg.d.campId, player.partyId, msg.d.furnitureId,
-        msg.d.gridX, msg.d.gridY, msg.d.displayItemId,
-      );
-      if ("error" in placeResult) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: placeResult.error } } satisfies ServerMessage);
-        break;
-      }
-      // Consume item
-      const fs = player.inventory[fSlot]!;
-      fs.quantity -= 1;
-      if (fs.quantity <= 0) player.inventory[fSlot] = null;
-      sendInventory(player);
-      player.send({
-        op: Op.S_FURNITURE_UPDATE,
-        d: { campId: msg.d.campId, action: "placed", furnitureId: msg.d.furnitureId, gridX: msg.d.gridX, gridY: msg.d.gridY },
-      } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_REMOVE_FURNITURE: {
-      if (!player.partyId) break;
-      const removeResult = await campManager.removeFurniture(msg.d.campId, player.partyId, msg.d.gridX, msg.d.gridY);
-      if ("error" in removeResult) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: removeResult.error } } satisfies ServerMessage);
-        break;
-      }
-      // Return item to player
-      const rDef = FURNITURE[removeResult.furnitureId];
-      if (rDef) giveItem(player, rDef.itemId, 1);
-      sendInventory(player);
-      player.send({
-        op: Op.S_FURNITURE_UPDATE,
-        d: { campId: msg.d.campId, action: "removed", furnitureId: removeResult.furnitureId, gridX: msg.d.gridX, gridY: msg.d.gridY },
-      } satisfies ServerMessage);
-      break;
-    }
-
-    // ---- Garden ----
-
-    case Op.C_GARDEN_PLANT: {
-      if (!player.partyId) break;
-      const seedDef = GARDEN_SEEDS[msg.d.seedId];
-      if (!seedDef) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown seed." } } satisfies ServerMessage);
-        break;
-      }
-      // Check player has the seed item
-      const seedSlot = player.inventory.findIndex((s) => s && s.itemId === seedDef.seedItemId);
-      if (seedSlot === -1) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `You need ${seedDef.name}.` } } satisfies ServerMessage);
-        break;
-      }
-      // Check foraging level
-      const foragingXp = player.skills.get(SkillName.FORAGING)?.xp ?? 0;
-      if (levelForXp(foragingXp) < seedDef.levelRequired) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires foraging level ${seedDef.levelRequired}.` } } satisfies ServerMessage);
-        break;
-      }
-      const plantResult = await campManager.plantSeed(msg.d.campId, player.partyId, msg.d.gridX, msg.d.gridY, msg.d.seedId);
-      if ("error" in plantResult) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: plantResult.error } } satisfies ServerMessage);
-        break;
-      }
-      // Consume seed
-      const ss = player.inventory[seedSlot]!;
-      ss.quantity -= 1;
-      if (ss.quantity <= 0) player.inventory[seedSlot] = null;
-      sendInventory(player);
-      player.send({
-        op: Op.S_GARDEN_UPDATE,
-        d: { campId: msg.d.campId, gridX: msg.d.gridX, gridY: msg.d.gridY, seedId: msg.d.seedId, plantedAt: plantResult.plantedAt, readyAt: plantResult.readyAt },
-      } satisfies ServerMessage);
-      break;
-    }
-
-    // ---- Gathering ----
-
-    case Op.C_GATHER_START: {
-      const nodeDef = RESOURCE_NODES[msg.d.nodeEid as unknown as string];
-      // For now, gathering uses a simplified inline flow since resource
-      // nodes aren't yet spawned as world entities. The GatheringSystem
-      // tick-based flow will replace this when nodes are entity-managed.
-      // This handler validates skill + gives items directly for testing.
-      if (!nodeDef) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown resource." } } satisfies ServerMessage);
-        break;
-      }
-      const gatherSkillXp = player.skills.get(nodeDef.skill as SkillName)?.xp ?? 0;
-      if (levelForXp(gatherSkillXp) < nodeDef.levelRequired) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires ${nodeDef.skill} level ${nodeDef.levelRequired}.` } } satisfies ServerMessage);
-        break;
-      }
-      // Grant items
-      for (const y of nodeDef.yields) {
-        if (Math.random() < (y.chance ?? 1)) {
-          giveItem(player, y.itemId, y.quantity);
-        }
-      }
-      // Grant XP
-      grantXp(player, nodeDef.skill as SkillName, nodeDef.xp);
-      sendInventory(player);
-      player.send({
-        op: Op.S_GATHER_RESULT,
-        d: { nodeEid: msg.d.nodeEid, success: true, xp: nodeDef.xp, skillId: nodeDef.skill },
-      } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_GATHER_ASSIST: {
-      // Co-op assist — for now echo back that assist was received.
-      // Full co-op flow requires GatheringSystem entity integration.
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Assisting gather..." } } satisfies ServerMessage);
-      break;
-    }
-
-    // ---- Crafting ----
-
-    case Op.C_CRAFT_START: {
-      const recipe = getRecipe(msg.d.recipeId);
-      if (!recipe) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Unknown recipe." } } satisfies ServerMessage);
-        break;
-      }
-      // Check skill level
-      const craftSkillXp = player.skills.get(recipe.skill as SkillName)?.xp ?? 0;
-      if (levelForXp(craftSkillXp) < recipe.levelRequired) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires ${recipe.skill} level ${recipe.levelRequired}.` } } satisfies ServerMessage);
-        break;
-      }
-      // Check combo requirement
-      if (recipe.combo) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "This recipe requires two players. Use combo crafting." } } satisfies ServerMessage);
-        break;
-      }
-      // Check ingredients
-      let hasAll = true;
-      for (const ing of recipe.ingredients) {
-        let found = 0;
-        for (const slot of player.inventory) {
-          if (slot && slot.itemId === ing.itemId) found += slot.quantity;
-        }
-        if (found < ing.quantity) { hasAll = false; break; }
-      }
-      if (!hasAll) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Missing ingredients." } } satisfies ServerMessage);
-        break;
-      }
-      // Consume ingredients
-      for (const ing of recipe.ingredients) {
-        let remaining = ing.quantity;
-        for (let i = 0; i < player.inventory.length && remaining > 0; i++) {
-          const slot = player.inventory[i];
-          if (slot && slot.itemId === ing.itemId) {
-            const take = Math.min(slot.quantity, remaining);
-            slot.quantity -= take;
-            remaining -= take;
-            if (slot.quantity <= 0) player.inventory[i] = null;
-          }
-        }
-      }
-      // Check burn chance (cooking)
-      const burned = recipe.burnChance
-        ? Math.random() < recipe.burnChance(levelForXp(craftSkillXp))
-        : false;
-      if (burned) {
-        sendInventory(player);
-        player.send({ op: Op.S_CRAFT_RESULT, d: { recipeId: recipe.id, success: false, burned: true } } satisfies ServerMessage);
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You burned it!" } } satisfies ServerMessage);
-        break;
-      }
-      // Grant result
-      giveItem(player, recipe.result.itemId, recipe.result.quantity);
-      grantXp(player, recipe.skill as SkillName, recipe.xp);
-      sendInventory(player);
-      player.send({
-        op: Op.S_CRAFT_RESULT,
-        d: { recipeId: recipe.id, success: true, items: recipe.result, xp: recipe.xp },
-      } satisfies ServerMessage);
-      break;
-    }
-
-    case Op.C_CRAFT_CONTRIBUTE: {
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Combo crafting requires a partner at a crafting station." } } satisfies ServerMessage);
-      break;
-    }
-
-    // ---- Pets ----
-
-    case Op.C_PET_TAME: {
-      const targetEid = msg.d.targetEid;
-      const zone = world.getZone(player.zoneId);
-      if (!zone) break;
-      const targetMob = zone.mobs.get(targetEid);
-      if (!targetMob) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "No creature to tame here." } } satisfies ServerMessage);
-        break;
-      }
-      // Check distance
-      const tameDist = movementFormulas.distance(player.x, player.y, targetMob.x, targetMob.y);
-      if (tameDist > 2.5) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Too far away." } } satisfies ServerMessage);
-        break;
-      }
-      // Find the pet def for this mob
-      const petDef = Object.values(PETS).find((p) => p.sourceMobId === targetMob.def.id);
-      if (!petDef) {
-        player.send({ op: Op.S_PET_TAME_RESULT, d: { success: false, message: "This creature can't be tamed." } } satisfies ServerMessage);
-        break;
-      }
-      // Check player has treat
-      const treatSlot = player.inventory.findIndex((s) => s && s.itemId === petDef.treatItemId);
-      if (treatSlot === -1) {
-        player.send({ op: Op.S_PET_TAME_RESULT, d: { success: false, message: `You need ${petDef.treatItemId} to tame this creature.` } } satisfies ServerMessage);
-        break;
-      }
-      // Consume treat
-      const ts = player.inventory[treatSlot]!;
-      ts.quantity -= 1;
-      if (ts.quantity <= 0) player.inventory[treatSlot] = null;
-      sendInventory(player);
-      // Attempt tame
-      const tamed = await petManager.attemptTame(
-        player.playerId, player.eid, targetMob.def.id,
-        player.x, player.y, player.zoneId,
-        true, (m) => player.send(m),
-      );
-      if (tamed) {
-        // Remove the mob from the world
-        zone.removeEntity(targetEid);
-      }
-      break;
-    }
-
-    case Op.C_PET_SUMMON: {
-      await petManager.summonPet(
-        player.playerId, player.eid, msg.d.petId,
-        player.x, player.y, player.zoneId,
-        (m) => player.send(m),
-      );
-      break;
-    }
-
-    case Op.C_PET_RENAME: {
-      await petManager.renamePet(
-        player.playerId, msg.d.petId, msg.d.name,
-        (m) => player.send(m),
-      );
-      break;
-    }
-
-    // ---- Specializations ----
-
-    case Op.C_SPEC_CHOOSE: {
-      const { skillId, level, choiceId } = msg.d;
-      const node = getSpecNode(skillId as SkillName, level);
-      if (!node) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Invalid specialization." } } satisfies ServerMessage);
-        break;
-      }
-      // Validate the choice is one of the two options
-      const choice = node.choiceA.id === choiceId ? node.choiceA
-        : node.choiceB.id === choiceId ? node.choiceB : null;
-      if (!choice) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "Invalid choice." } } satisfies ServerMessage);
-        break;
-      }
-      // Validate player has reached the required level
-      const specSkillXp = player.skills.get(skillId as SkillName)?.xp ?? 0;
-      if (levelForXp(specSkillXp) < level) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Requires ${skillId} level ${level}.` } } satisfies ServerMessage);
-        break;
-      }
-      // Check not already chosen at this node
-      const existing = await db.select().from(skillSpecializations)
-        .where(and(
-          eq(skillSpecializations.playerId, player.playerId),
-          eq(skillSpecializations.skillId, skillId),
-          eq(skillSpecializations.level, level),
-        )).limit(1);
-      if (existing.length > 0) {
-        player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: "You already chose a specialization at this level." } } satisfies ServerMessage);
-        break;
-      }
-      // Persist choice
-      await db.insert(skillSpecializations).values({
-        playerId: player.playerId,
-        skillId,
-        level,
-        choiceId,
-      });
-      player.send({ op: Op.S_SYSTEM_MESSAGE, d: { message: `Specialized as ${choice.name}!` } } satisfies ServerMessage);
-      // Send updated spec list
-      await sendSpecList(player);
-      break;
-    }
+    // ---- Delegated to per-system handlers ----
+    case Op.C_BOAT_PLACE: handleBoatPlace(player, msg.d); break;
+    case Op.C_BOAT_ENTER: handleBoatEnter(player, msg.d); break;
+    case Op.C_BOAT_EXIT: handleBoatExit(player); break;
+    case Op.C_PLACE_CAMP: await handlePlaceCamp(player, msg.d); break;
+    case Op.C_INTERACT_CAMP: await handleInteractCamp(player); break;
+    case Op.C_CAMP_STORE: await handleCampStore(player, msg.d); break;
+    case Op.C_CAMP_WITHDRAW: await handleCampWithdraw(player, msg.d); break;
+    case Op.C_FAST_TRAVEL: handleFastTravel(player, msg.d); break;
+    case Op.C_PLACE_FURNITURE: await handlePlaceFurniture(player, msg.d); break;
+    case Op.C_REMOVE_FURNITURE: await handleRemoveFurniture(player, msg.d); break;
+    case Op.C_GARDEN_PLANT: await handleGardenPlant(player, msg.d); break;
+    case Op.C_GATHER_START: handleGatherStart(player, msg.d); break;
+    case Op.C_GATHER_ASSIST: handleGatherAssist(player); break;
+    case Op.C_CRAFT_START: handleCraftStart(player, msg.d); break;
+    case Op.C_CRAFT_CONTRIBUTE: handleCraftContribute(player); break;
+    case Op.C_PET_TAME: await handlePetTame(player, msg.d); break;
+    case Op.C_PET_SUMMON: await handlePetSummon(player, msg.d); break;
+    case Op.C_PET_RENAME: await handlePetRename(player, msg.d); break;
+    case Op.C_SPEC_CHOOSE: await handleSpecChoose(player, msg.d); break;
 
     default:
       // Unknown or unimplemented opcode
       break;
   }
-}
-
-async function sendSpecList(player: Player): Promise<void> {
-  const rows = await db.select().from(skillSpecializations)
-    .where(eq(skillSpecializations.playerId, player.playerId));
-  const specs = rows.map((r) => {
-    const node = getSpecNode(r.skillId as SkillName, r.level);
-    const choice = node?.choiceA.id === r.choiceId ? node.choiceA : node?.choiceB;
-    return {
-      skillId: r.skillId,
-      level: r.level,
-      choiceId: r.choiceId,
-      name: choice?.name ?? r.choiceId,
-      description: choice?.description ?? "",
-    };
-  });
-  player.send({ op: Op.S_SPEC_LIST, d: { specs } } satisfies ServerMessage);
 }
 
 function giveItem(player: Player, itemId: string, quantity: number): boolean {
