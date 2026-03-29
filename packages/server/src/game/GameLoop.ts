@@ -12,6 +12,7 @@ import { resetAllRateLimits } from "../net/MessageHandler.js";
 import { weatherManager } from "./WeatherManager.js";
 import { petManager } from "./PetManager.js";
 import { processGatheringTick } from "../net/handlers/gathering.js";
+import { processDiscovery, cleanupPlayerDiscovery } from "./systems/DiscoverySystem.js";
 import type { Zone } from "./Zone.js";
 
 let currentTick = 0;
@@ -58,6 +59,13 @@ function tick(): void {
 
     // 5c. Weather tick (transitions, damage, region re-rolls)
     weatherManager.processTick();
+
+    // 5d. Chunk discovery (every 5 ticks = 500ms to avoid DB spam)
+    if (currentTick % 5 === 0) {
+      for (const [, player] of world.playersByEid) {
+        processDiscovery(player, world.chunkManager);
+      }
+    }
 
     // 6. Despawn expired ground items
     processGroundItemDespawn();

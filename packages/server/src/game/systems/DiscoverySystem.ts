@@ -25,6 +25,7 @@ interface DiscoveryPlayer {
   y: number;
   send: (msg: any) => void;
   partyId?: string | null;
+  getSpecBonus?: (type: string, skill?: string) => number;
 }
 
 /** Base reveal radius in chunks around the player. */
@@ -113,11 +114,15 @@ export async function processDiscovery(
     }
   }
 
+  // Apply discovery_xp_mult spec bonus
+  const discoveryXpMult = player.getSpecBonus?.("discovery_xp_mult") ?? 0;
+  const finalXp = Math.floor(totalXp * (1 + discoveryXpMult));
+
   // Award XP (exploration/agility)
-  if (totalXp > 0) {
+  if (finalXp > 0) {
     player.send({
       op: Op.S_XP_GAIN,
-      d: { skillId: "agility", xp: totalXp, totalXp: 0 },
+      d: { skillId: "agility", xp: finalXp, totalXp: 0 },
     });
   }
 }

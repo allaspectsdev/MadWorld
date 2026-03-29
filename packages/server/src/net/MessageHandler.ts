@@ -15,6 +15,7 @@ import { initQuestState, sendQuestList, acceptQuest, turnInQuest, getAvailableQu
 import { applyStatusEffect } from "../game/systems/AbilitySystem.js";
 import { getCurrentTick } from "../game/GameLoop.js";
 import { weatherManager } from "../game/WeatherManager.js";
+import { sendInitialDiscoveries } from "../game/systems/DiscoverySystem.js";
 import type { ServerWebSocket } from "bun";
 
 // ---- Per-system handlers (extracted from the monolith) ----
@@ -1355,6 +1356,11 @@ async function handleAuth(
     await initQuestState(player);
     sendQuestList(player);
 
+    // Initialize chunk discovery: load from DB + warm nearby chunks + send initial state
+    await world.chunkManager.loadPlayerDiscoveries(player.playerId);
+    await world.chunkManager.warmArea(player.x, player.y, 2);
+    sendInitialDiscoveries(player, world.chunkManager);
+
     // Send unlocked abilities based on skill levels
     const unlockedAbilities: { slot: number; abilityId: string; cooldownMs: number }[] = [];
     for (const [abilityId, aDef] of Object.entries(ABILITIES)) {
@@ -1399,6 +1405,7 @@ export async function handleDisconnect(ws: GameWebSocket): Promise<void> {
     await savePlayer(player).catch((err) =>
       console.error(`[Disconnect] Failed to save player ${player.name}:`, err),
     );
+    world.chunkManager.removePlayer(player.playerId);
     world.removePlayer(player);
   }
 }

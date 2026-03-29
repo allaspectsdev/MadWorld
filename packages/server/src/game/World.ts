@@ -4,12 +4,14 @@ import { Mob } from "./entities/Mob.js";
 import { NPC } from "./entities/NPC.js";
 import { MOBS, type ZoneDef } from "@madworld/shared";
 import { ZONE_DEFS } from "./data/zones/index.js";
+import { ChunkManager } from "./ChunkManager.js";
 
 export class World {
   readonly zones = new Map<string, Zone>();
   readonly instances = new Map<string, Zone>();
   readonly playersByEid = new Map<number, Player>();
   readonly playersByUserId = new Map<number, Player>();
+  readonly chunkManager = new ChunkManager();
 
   init(): void {
     for (const def of ZONE_DEFS) {

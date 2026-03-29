@@ -4,6 +4,7 @@ import { Player } from "../entities/Player.js";
 import { AIState, TICK_MS, Op, type ServerMessage } from "@madworld/shared";
 import { movementFormulas } from "@madworld/shared";
 import type { Zone } from "../Zone.js";
+import { petManager } from "../PetManager.js";
 
 function* allZones(): Iterable<Zone> {
   yield* world.zones.values();
@@ -46,8 +47,11 @@ function processIdle(mob: Mob): void {
     const zone = world.getZone(mob.zoneId);
     if (zone) {
       for (const [, player] of zone.players) {
+        // Wolf pet auto_aggro extends the effective aggro range
+        const wolfBonus = petManager.getAbilityValue(player.eid, "auto_aggro");
+        const effectiveRange = mob.def.aggroRange + wolfBonus;
         const dist = movementFormulas.distance(mob.x, mob.y, player.x, player.y);
-        if (dist <= mob.def.aggroRange) {
+        if (dist <= effectiveRange) {
           mob.aiState = AIState.CHASE;
           mob.targetEid = player.eid;
           return;
@@ -73,8 +77,10 @@ function processPatrol(mob: Mob, zone: Zone): void {
   // Check for aggro
   if (mob.def.aggroRange > 0) {
     for (const [, player] of zone.players) {
+      const wolfBonus = petManager.getAbilityValue(player.eid, "auto_aggro");
+      const effectiveRange = mob.def.aggroRange + wolfBonus;
       const dist = movementFormulas.distance(mob.x, mob.y, player.x, player.y);
-      if (dist <= mob.def.aggroRange) {
+      if (dist <= effectiveRange) {
         mob.aiState = AIState.CHASE;
         mob.targetEid = player.eid;
         return;
