@@ -30,6 +30,8 @@ import { ShopPanel } from "./ui/components/ShopPanel.js";
 import { SettingsPanel } from "./ui/components/SettingsPanel.js";
 import { WorldMap } from "./ui/components/WorldMap.js";
 import { SkillsPanel } from "./ui/components/SkillsPanel.js";
+import { BossHealthBar } from "./ui/components/BossHealthBar.js";
+import { isBossMob } from "./renderer/MobSpriteDefinitions.js";
 import { PathFollower, type PendingAction } from "./pathfinding/PathFollower.js";
 import { findPath, trimPathToRange } from "./pathfinding/Pathfinder.js";
 import { CharacterCreation } from "./ui/components/CharacterCreation.js";
@@ -69,6 +71,7 @@ export class Game {
   private worldMap: WorldMap;
   private colorGrading: ColorMatrixFilter;
   private sky: SkyRenderer;
+  private bossHealthBar: BossHealthBar;
 
   private isRegistering = false;
   private currentTarget: number | null = null;
@@ -134,6 +137,7 @@ export class Game {
     this.npcDialog = new NPCDialog(this.socket);
     this.skillsPanel = new SkillsPanel();
     this.worldMap = new WorldMap();
+    this.bossHealthBar = new BossHealthBar();
 
     // HUD toggle buttons
     document.getElementById("btn-inventory")?.addEventListener("click", () => {
@@ -531,10 +535,18 @@ export class Game {
       return { x: e.nextX, y: e.nextY };
     });
     this.particles.update(dt);
+    // Low-HP pulsing vignette
+    if (current.hp !== undefined && current.maxHp) {
+      this.screenEffects.setHpRatio(current.hp / current.maxHp);
+    }
     this.screenEffects.update(dt);
     this.telegraphs.update(dt);
     this.minimap.update(dt);
     this.worldMap.update(dt);
+    this.bossHealthBar.update(dt);
+
+    // Track boss entities for persistent health bar
+    this.updateBossHealthBar(state);
 
     // Lighting system
     this.lighting.setCamera(current.x, current.y, this.camera.zoom);
@@ -558,6 +570,30 @@ export class Game {
       bounds.bottom - bounds.top,
     );
     this.ambientParticles.update(dt, current.x, current.y);
+  }
+
+  private updateBossHealthBar(state: ReturnType<typeof useGameStore.getState>): void {
+    // Find the nearest boss in view
+    let bossEid: number | null = null;
+    let bossEntity: { name?: string; hp?: number; maxHp?: number } | null = null;
+    for (const [eid, entity] of state.entities) {
+      if (entity.type === EntityType.MOB && entity.name && isBossMob(entity.name)) {
+        bossEid = eid;
+        bossEntity = entity;
+        break;
+      }
+    }
+
+    if (bossEid !== null && bossEntity?.hp !== undefined && bossEntity.maxHp) {
+      if (this.bossHealthBar.bossEid !== bossEid) {
+        this.bossHealthBar.show(bossEid, bossEntity.name ?? "Boss", bossEntity.hp, bossEntity.maxHp);
+      } else {
+        this.bossHealthBar.updateHp(bossEid, bossEntity.hp, bossEntity.maxHp);
+      }
+    } else if (this.bossHealthBar.bossEid !== null) {
+      // Boss gone — hide after a brief delay
+      this.bossHealthBar.hide();
+    }
   }
 
   private setupSocket(): void {

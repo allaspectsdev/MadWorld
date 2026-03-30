@@ -233,26 +233,30 @@ export class Dispatcher {
           const dx = sourceEntity ? tx - sourceEntity.nextX : 0;
           const dy = sourceEntity ? ty - sourceEntity.nextY : 0;
           const hitIso = toIso(tx, ty);
-          this.particles.emit(hitIso.x, hitIso.y, 8, {
-            tint: msg.d.isCrit ? 0xff4444 : 0xffaa44,
-            speed: 80,
+          this.particles.emit(hitIso.x, hitIso.y, msg.d.isCrit ? 14 : 8, {
+            texType: msg.d.isCrit ? "spark" : "circle",
+            tint: msg.d.isCrit ? 0xffdd44 : 0xffaa44,
+            speed: msg.d.isCrit ? 120 : 80,
             spread: Math.PI * 0.6,
-            life: 0.4,
+            life: msg.d.isCrit ? 0.6 : 0.4,
             gravity: 100,
             dirX: dx || 0,
             dirY: dy || -1,
-            baseScale: 0.8,
+            baseScale: msg.d.isCrit ? 1.2 : 0.8,
+            spin: msg.d.isCrit ? 8 : 0,
           });
           // Extra star burst on critical hits
           if (msg.d.isCrit) {
-            this.particles.emit(hitIso.x, hitIso.y, 12, {
+            this.particles.emit(hitIso.x, hitIso.y, 15, {
               texType: "star",
-              tint: 0xff2222,
-              speed: 100,
+              tint: 0xffaa00,
+              speed: 110,
               spread: Math.PI * 2,
-              life: 0.6,
-              gravity: 50,
-              baseScale: 1.2,
+              life: 0.7,
+              gravity: 40,
+              baseScale: 1.4,
+              spin: 6,
+              scaleDecay: 1.5,
             });
           }
 
@@ -335,10 +339,10 @@ export class Dispatcher {
           // Delayed loot sparkle
           const sparkleX = bx, sparkleY = by;
           setTimeout(() => {
-            this.particles.emit(sparkleX, sparkleY, 5, {
-              texType: "star", tint: 0xffd700,
-              speed: 15, spread: Math.PI * 2, life: 1.0,
-              gravity: -15, baseScale: 0.7,
+            this.particles.emit(sparkleX, sparkleY, 8, {
+              texType: "diamond", tint: 0xffd700,
+              speed: 20, spread: Math.PI * 2, life: 1.2,
+              gravity: -12, baseScale: 0.8, spin: 3,
             });
           }, 400);
 
@@ -391,19 +395,49 @@ export class Dispatcher {
         this.showLevelUp(msg.d.skillId, msg.d.newLevel);
         this.screenEffects.flashLevelUp();
         this.audio.playSfx("level_up");
-        // Level-up sparkles
+        // Level-up sparkles — multi-wave celebration
         const lpLvl = store.localPlayer;
         if (lpLvl) {
           const lvlIso = toIso(lpLvl.x, lpLvl.y);
-          this.particles.emit(lvlIso.x, lvlIso.y, 20, {
+          // Wave 1: burst of gold stars
+          this.particles.emit(lvlIso.x, lvlIso.y, 25, {
             texType: "star",
             tint: 0xffd700,
-            speed: 30,
+            speed: 50,
             spread: Math.PI * 2,
             life: 1.5,
             gravity: -15,
-            baseScale: 0.8,
+            baseScale: 1.0,
+            spin: 4,
           });
+          // Wave 2: rising diamonds
+          setTimeout(() => {
+            this.particles.emit(lvlIso.x, lvlIso.y, 12, {
+              texType: "diamond",
+              tint: 0xffeeaa,
+              speed: 25,
+              spread: Math.PI * 2,
+              life: 2.0,
+              gravity: -20,
+              baseScale: 0.8,
+              spin: 3,
+              scaleDecay: 0.8,
+            });
+          }, 150);
+          // Wave 3: sparks fountain
+          setTimeout(() => {
+            this.particles.emit(lvlIso.x, lvlIso.y, 18, {
+              texType: "spark",
+              tint: 0xffffff,
+              speed: 70,
+              spread: Math.PI * 0.8,
+              dirY: -1,
+              life: 1.0,
+              gravity: 60,
+              baseScale: 0.6,
+              spin: 10,
+            });
+          }, 300);
         }
         break;
       }
@@ -520,7 +554,8 @@ export class Dispatcher {
         store.addChatMessage(msg.d);
         // Show chat bubble above sender
         if (msg.d.senderEid && msg.d.channel !== "system") {
-          this.chatBubbles.addBubble(msg.d.senderEid, msg.d.message);
+          const senderEntity = store.entities.get(msg.d.senderEid);
+          this.chatBubbles.addBubble(msg.d.senderEid, msg.d.message, senderEntity?.type as EntityType | undefined);
         }
         break;
       }

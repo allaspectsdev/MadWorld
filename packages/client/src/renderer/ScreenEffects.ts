@@ -11,6 +11,9 @@ export class ScreenEffects {
   private fogLayer: Graphics;
   private fogEnabled = false;
   private fogTimer = 0;
+  private lowHpPulse = 0;
+  private lowHpActive = false;
+  private levelUpRings: { elapsed: number; duration: number }[] = [];
 
   constructor(app: Application) {
     this.width = app.screen.width;
@@ -82,12 +85,21 @@ export class ScreenEffects {
     }
   }
 
+  /** Call each frame with current HP ratio (0-1). Enables low-HP pulsing red vignette. */
+  setHpRatio(ratio: number): void {
+    this.lowHpActive = ratio < 0.25 && ratio > 0;
+  }
+
   flashDamage(): void {
     this.flash(0xff0000, 0.2);
   }
 
   flashLevelUp(): void {
-    this.flash(0xffd700, 0.3);
+    this.flash(0xffd700, 0.4);
+    // Spawn expanding golden rings
+    this.levelUpRings.push({ elapsed: 0, duration: 1.2 });
+    this.levelUpRings.push({ elapsed: -0.15, duration: 1.2 });
+    this.levelUpRings.push({ elapsed: -0.3, duration: 1.2 });
   }
 
   flashLightning(): void {
@@ -117,6 +129,53 @@ export class ScreenEffects {
       } else {
         // Triangle: 0 → peak → 0
         this.overlay.alpha = t < 0.3 ? (t / 0.3) * 0.2 : (1 - t) / 0.7 * 0.2;
+      }
+    }
+
+    // Low HP pulsing red vignette
+    if (this.lowHpActive) {
+      this.lowHpPulse += dt * 3;
+      const pulse = 0.15 + Math.sin(this.lowHpPulse) * 0.08;
+      this.vignette.alpha = Math.max(this.vignette.alpha, pulse);
+      this.vignette.tint = 0xff2222;
+    } else {
+      this.lowHpPulse = 0;
+      this.vignette.tint = 0xffffff;
+      // Only reset if no other code is managing vignette
+      if (this.vignette.tint === 0xffffff) {
+        this.vignette.alpha += (0.12 - this.vignette.alpha) * Math.min(1, dt * 4);
+      }
+    }
+
+    // Level-up expanding rings
+    if (this.levelUpRings.length > 0) {
+      this.overlay.clear();
+      // Keep any active flash
+      if (this.activeEffect) {
+        this.overlay.rect(0, 0, this.width * 2, this.height * 2);
+        this.overlay.fill(this.activeEffect.color);
+      }
+
+      const cx = this.width / 2;
+      const cy = this.height / 2;
+
+      for (let i = this.levelUpRings.length - 1; i >= 0; i--) {
+        const ring = this.levelUpRings[i];
+        ring.elapsed += dt;
+        if (ring.elapsed < 0) continue; // delayed start
+        const t = ring.elapsed / ring.duration;
+        if (t >= 1) {
+          this.levelUpRings.splice(i, 1);
+          continue;
+        }
+
+        const radius = t * Math.max(this.width, this.height) * 0.6;
+        const alpha = (1 - t) * 0.25;
+        this.overlay.circle(cx, cy, radius);
+        this.overlay.stroke({ width: 3 - t * 2, color: 0xffd700, alpha });
+        // Inner brighter ring
+        this.overlay.circle(cx, cy, radius * 0.85);
+        this.overlay.stroke({ width: 1.5, color: 0xffeeaa, alpha: alpha * 0.6 });
       }
     }
 

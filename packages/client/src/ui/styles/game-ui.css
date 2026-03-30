@@ -166,6 +166,18 @@ html, body {
   from { opacity: 0; transform: translateY(4px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+@keyframes panelSlideInRight {
+  from { opacity: 0; transform: translateY(-50%) translateX(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+}
+@keyframes panelSlideInLeft {
+  from { opacity: 0; transform: translateY(-50%) translateX(-20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+}
+@keyframes panelScaleIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
 
 /* ============================================================
    Loading Screen
@@ -787,17 +799,16 @@ html, body {
 #inventory-panel {
   position: absolute;
   top: 50%; right: 56px;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(12px);
   width: 360px;
   z-index: 40;
   display: none;
   opacity: 0;
-  transition: opacity var(--transition-med);
   pointer-events: auto;
 }
 #inventory-panel.open {
   display: block;
-  opacity: 1;
+  animation: panelSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .inv-grid {
   display: grid;
@@ -969,18 +980,20 @@ html, body {
 #skills-panel {
   position: absolute;
   top: 50%; right: 56px;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(12px);
   width: 240px;
   max-height: 70vh;
   overflow-y: auto;
   z-index: 40;
   display: none;
   opacity: 0;
-  transition: opacity var(--transition-med);
   scrollbar-width: thin;
   scrollbar-color: rgba(180,160,120,0.2) transparent;
 }
-#skills-panel.open { display: block; opacity: 1; }
+#skills-panel.open {
+  display: block;
+  animation: panelSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 .skill-row {
   padding: 6px var(--panel-padding);
@@ -1026,18 +1039,20 @@ html, body {
 #quest-log {
   position: absolute;
   top: 50%; left: 10px;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(-12px);
   width: 280px;
   max-height: 60vh;
   overflow-y: auto;
   z-index: 35;
   display: none;
   opacity: 0;
-  transition: opacity var(--transition-med);
   scrollbar-width: thin;
   scrollbar-color: rgba(180,160,120,0.2) transparent;
 }
-#quest-log.open { display: block; opacity: 1; }
+#quest-log.open {
+  display: block;
+  animation: panelSlideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 .quest-entry {
   padding: 10px var(--panel-padding);
@@ -1096,8 +1111,12 @@ html, body {
   overflow-y: auto;
   z-index: 50;
   display: none;
+  opacity: 0;
 }
-#npc-dialog.open { display: block; }
+#npc-dialog.open {
+  display: block;
+  animation: panelScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 .npc-dialog-text {
   font-size: var(--font-size-base);
@@ -1183,8 +1202,12 @@ html, body {
   overflow-y: auto;
   z-index: 50;
   display: none;
+  opacity: 0;
 }
-#shop-panel.open { display: block; }
+#shop-panel.open {
+  display: block;
+  animation: panelScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 .shop-item {
   display: flex; align-items: center; justify-content: space-between;
@@ -1229,8 +1252,12 @@ html, body {
   width: 360px;
   z-index: 50;
   display: none;
+  opacity: 0;
 }
-#settings-panel.open { display: block; }
+#settings-panel.open {
+  display: block;
+  animation: panelScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
 .settings-section {
   margin-bottom: 16px;
@@ -1439,6 +1466,64 @@ html, body {
   border-radius: 4px;
   overflow: hidden;
   box-shadow: var(--shadow-panel);
+}
+
+/* ============================================================
+   Boss Health Bar
+   ============================================================ */
+#boss-health-bar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  width: min(480px, 80vw);
+  z-index: 55;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#boss-health-bar.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.boss-bar-name {
+  text-align: center;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(218, 165, 32, 0.3);
+  margin-bottom: 6px;
+}
+.boss-bar-track {
+  position: relative;
+  width: 100%;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 0, 0, 0.4);
+}
+.boss-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c0392b, #e74c3c);
+  border-radius: 2px;
+  transition: width 0.15s ease;
+  box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
+}
+.boss-bar-text {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+  letter-spacing: 0.5px;
 }
 
 /* ============================================================
