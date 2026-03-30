@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1774825763759,
+      "tag": "0000_burly_pestilence",
+      "breakpoints": true
+    }
+  ]
+}

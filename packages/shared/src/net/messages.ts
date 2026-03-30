@@ -356,6 +356,41 @@ export interface S_DiscoveryInit {
   chunks: string[];
 }
 
+// ---- Trading ----
+
+export interface S_TradeIncoming {
+  requesterEid: number;
+  requesterName: string;
+}
+
+export interface S_TradeStart {
+  partnerEid: number;
+  partnerName: string;
+}
+
+export interface S_TradeUpdate {
+  side: "mine" | "theirs";
+  slots: { slot: number; itemId: string | null; quantity: number }[];
+  confirmed: boolean;
+}
+
+export interface S_TradeComplete {
+  received: { itemId: string; quantity: number }[];
+}
+
+export interface S_TradeCancelled {
+  reason: string;
+}
+
+// ---- Emotes ----
+
+export interface S_Emote {
+  senderEid: number;
+  senderName: string;
+  emoteId: string;
+  timestamp: number;
+}
+
 // ---- Tick / Pong ----
 
 export interface S_Tick {
@@ -645,5 +680,11 @@ export type ServerMessage =
   | { op: Op.S_CHUNK_UNLOAD; d: S_ChunkUnload }
   | { op: Op.S_DISCOVERY_UPDATE; d: S_DiscoveryUpdate }
   | { op: Op.S_DISCOVERY_INIT; d: S_DiscoveryInit }
+  | { op: Op.S_TRADE_INCOMING; d: S_TradeIncoming }
+  | { op: Op.S_TRADE_START; d: S_TradeStart }
+  | { op: Op.S_TRADE_UPDATE; d: S_TradeUpdate }
+  | { op: Op.S_TRADE_COMPLETE; d: S_TradeComplete }
+  | { op: Op.S_TRADE_CANCELLED; d: S_TradeCancelled }
+  | { op: Op.S_EMOTE; d: S_Emote }
   | { op: Op.S_TICK; d: S_Tick }
   | { op: Op.S_PONG; d: S_Pong };

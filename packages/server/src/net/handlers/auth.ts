@@ -6,6 +6,7 @@ import { world } from "../../game/World.js";
 import { partyManager } from "../../game/PartyManager.js";
 import { verifyToken } from "../../auth/jwt.js";
 import { loadPlayer, savePlayer } from "../../services/PlayerService.js";
+import { tradeManager } from "../../game/TradeManager.js";
 import { initQuestState, sendQuestList, cleanupQuestState, persistQuestState } from "../../game/systems/QuestSystem.js";
 import { sendInitialDiscoveries } from "../../game/systems/DiscoverySystem.js";
 import { handleMobDeath } from "../../game/systems/CombatSystem.js";
@@ -101,6 +102,7 @@ export async function handleDisconnect(ws: GameWebSocket): Promise<void> {
   const player = ws.data.player;
   if (player) {
     player.ws = null;
+    tradeManager.onPlayerDisconnect(player);
     await persistQuestState(player).catch((err) =>
       console.error(`[Disconnect] Failed to save quests for ${player.name}:`, err));
     cleanupQuestState(player.eid);

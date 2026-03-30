@@ -35,6 +35,9 @@ export {
 } from "./constants/homestead.js";
 export { STATUS_EFFECTS, type StatusEffectDef } from "./types/statusEffect.js";
 
+// Emotes
+export { EMOTES, EMOTE_COOLDOWN_MS, type EmoteDef } from "./constants/emotes.js";
+
 // Formulas
 export * as combatFormulas from "./formulas/combat.js";
 export * as skillFormulas from "./formulas/skills.js";

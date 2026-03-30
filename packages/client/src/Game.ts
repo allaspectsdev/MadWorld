@@ -32,6 +32,9 @@ import { WorldMap } from "./ui/components/WorldMap.js";
 import { SkillsPanel } from "./ui/components/SkillsPanel.js";
 import { PathFollower, type PendingAction } from "./pathfinding/PathFollower.js";
 import { findPath, trimPathToRange } from "./pathfinding/Pathfinder.js";
+import { CharacterCreation } from "./ui/components/CharacterCreation.js";
+import { TradePanel } from "./ui/components/TradePanel.js";
+import { TradeInviteModal } from "./ui/components/TradeInviteModal.js";
 
 export class Game {
   private app: Application;
@@ -52,6 +55,8 @@ export class Game {
   private minimap: Minimap;
   private partyHUD: PartyHUD;
   private partyInviteModal: PartyInviteModal;
+  private tradePanel: TradePanel;
+  private tradeInviteModal: TradeInviteModal;
   private chatPanel: ChatPanel;
   private inventoryPanel: InventoryPanel;
   private audio: AudioManager;
@@ -118,6 +123,8 @@ export class Game {
 
     this.partyHUD = new PartyHUD();
     this.partyInviteModal = new PartyInviteModal(this.socket);
+    this.tradePanel = new TradePanel(this.socket);
+    this.tradeInviteModal = new TradeInviteModal(this.socket);
     this.chatPanel = new ChatPanel(this.socket);
     this.inventoryPanel = new InventoryPanel(this.socket);
     this.skillBar = new SkillBar();
@@ -195,6 +202,8 @@ export class Game {
     this.setupInputCallbacks();
     this.partyHUD.start();
     this.partyInviteModal.start();
+    this.tradePanel.start();
+    this.tradeInviteModal.start();
     this.questLog.start();
     this.npcDialog.start();
     this.shopPanel.start();
@@ -726,6 +735,27 @@ export class Game {
       this.socket.connect(token);
     };
 
+    const showCharacterCreation = (token: string) => {
+      document.getElementById("login-screen")!.style.display = "none";
+      const cc = new CharacterCreation(this.app, async (appearance) => {
+        try {
+          await fetch("/api/player/appearance", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ appearance }),
+          });
+        } catch {
+          // Non-critical — default appearance will be used
+        }
+        cc.hide();
+        enterGame(token);
+      });
+      cc.show();
+    };
+
     // Guest play
     const guestBtn = document.getElementById("guest-btn");
     if (guestBtn) {
@@ -744,7 +774,11 @@ export class Game {
             guestBtn.textContent = "Play as Guest";
             return;
           }
-          enterGame(data.token);
+          if (data.isNewPlayer) {
+            showCharacterCreation(data.token);
+          } else {
+            enterGame(data.token);
+          }
         } catch {
           errorDiv.textContent = "Failed to connect to server";
           guestBtn.textContent = "Play as Guest";
@@ -781,7 +815,11 @@ export class Game {
           return;
         }
 
-        enterGame(data.token);
+        if (data.isNewPlayer) {
+          showCharacterCreation(data.token);
+        } else {
+          enterGame(data.token);
+        }
       } catch {
         errorDiv.textContent = "Failed to connect to server";
         submitBtn.disabled = false;

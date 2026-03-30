@@ -79,6 +79,18 @@ export interface GameState {
   toggleQuestLog: () => void;
   setNpcDialog: (dialog: { npcName: string; dialog: string; availableQuests: string[]; turnInQuests: string[] } | null) => void;
 
+  // Trade
+  tradeIncoming: { requesterEid: number; requesterName: string } | null;
+  tradeSession: { partnerEid: number; partnerName: string } | null;
+  tradeMySlots: { slot: number; itemId: string | null; quantity: number }[];
+  tradeTheirSlots: { slot: number; itemId: string | null; quantity: number }[];
+  tradeMyConfirmed: boolean;
+  tradeTheirConfirmed: boolean;
+  setTradeIncoming: (data: { requesterEid: number; requesterName: string } | null) => void;
+  setTradeSession: (data: { partnerEid: number; partnerName: string } | null) => void;
+  updateTradeSlots: (side: "mine" | "theirs", slots: { slot: number; itemId: string | null; quantity: number }[], confirmed: boolean) => void;
+  clearTrade: () => void;
+
   // Abilities & Shop
   abilities: { slot: number; abilityId: string; cooldownMs: number }[];
   shopData: { npcName: string; items: { itemId: string; buyPrice: number; stock: number }[] } | null;
@@ -192,6 +204,20 @@ export const useGameStore = create<GameState>()((set, get) => ({
     })),
   toggleQuestLog: () => set((state) => ({ questLogOpen: !state.questLogOpen })),
   setNpcDialog: (dialog) => set({ npcDialog: dialog }),
+
+  tradeIncoming: null,
+  tradeSession: null,
+  tradeMySlots: [],
+  tradeTheirSlots: [],
+  tradeMyConfirmed: false,
+  tradeTheirConfirmed: false,
+  setTradeIncoming: (data) => set({ tradeIncoming: data }),
+  setTradeSession: (data) => set({ tradeSession: data, tradeMySlots: [], tradeTheirSlots: [], tradeMyConfirmed: false, tradeTheirConfirmed: false }),
+  updateTradeSlots: (side, slots, confirmed) => {
+    if (side === "mine") set({ tradeMySlots: slots, tradeMyConfirmed: confirmed });
+    else set({ tradeTheirSlots: slots, tradeTheirConfirmed: confirmed });
+  },
+  clearTrade: () => set({ tradeIncoming: null, tradeSession: null, tradeMySlots: [], tradeTheirSlots: [], tradeMyConfirmed: false, tradeTheirConfirmed: false }),
 
   abilities: [],
   shopData: null,

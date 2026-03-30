@@ -1,4 +1,4 @@
-import { Op, EntityType, TILE_SIZE, type ServerMessage, cartToIso } from "@madworld/shared";
+import { Op, EntityType, TILE_SIZE, type ServerMessage, cartToIso, EMOTES } from "@madworld/shared";
 
 /** Convert world-tile position to iso-pixel for particle effects. */
 function toIso(wx: number, wy: number): { x: number; y: number } {
@@ -527,6 +527,77 @@ export class Dispatcher {
 
       case Op.S_SYSTEM_MESSAGE: {
         this.showSystemMessage(msg.d.message);
+        break;
+      }
+
+      case Op.S_EMOTE: {
+        const emoteDef = EMOTES[msg.d.emoteId];
+        if (!emoteDef) break;
+
+        // Show emoji bubble above the emoting player
+        this.chatBubbles.addBubble(msg.d.senderEid, emoteDef.bubbleText);
+
+        // Spawn particles if this emote has them
+        if (emoteDef.particles) {
+          const entity = store.entities.get(msg.d.senderEid);
+          const lp = store.localPlayer;
+          let wx: number | undefined, wy: number | undefined;
+          if (entity) {
+            wx = entity.nextX; wy = entity.nextY;
+          } else if (lp && msg.d.senderEid === lp.eid) {
+            wx = lp.x; wy = lp.y;
+          }
+          if (wx !== undefined && wy !== undefined) {
+            const iso = toIso(wx, wy);
+            this.particles.emit(iso.x, iso.y, emoteDef.particles.count, {
+              texType: emoteDef.particles.texType,
+              tint: emoteDef.particles.tint,
+              speed: emoteDef.particles.speed,
+              spread: emoteDef.particles.spread,
+              life: emoteDef.particles.life,
+              gravity: emoteDef.particles.gravity,
+              baseScale: emoteDef.particles.baseScale,
+            });
+          }
+        }
+
+        // Add action text to chat log
+        store.addChatMessage({
+          channel: "system",
+          senderName: "",
+          message: `* ${msg.d.senderName} ${emoteDef.actionText}`,
+          timestamp: msg.d.timestamp,
+        });
+        break;
+      }
+
+      // --- Trade Messages ---
+      case Op.S_TRADE_INCOMING: {
+        store.setTradeIncoming({ requesterEid: msg.d.requesterEid, requesterName: msg.d.requesterName });
+        break;
+      }
+
+      case Op.S_TRADE_START: {
+        store.setTradeIncoming(null);
+        store.setTradeSession({ partnerEid: msg.d.partnerEid, partnerName: msg.d.partnerName });
+        break;
+      }
+
+      case Op.S_TRADE_UPDATE: {
+        store.updateTradeSlots(msg.d.side, msg.d.slots, msg.d.confirmed);
+        break;
+      }
+
+      case Op.S_TRADE_COMPLETE: {
+        const items = msg.d.received.map((r: { itemId: string; quantity: number }) => `${r.quantity}x ${r.itemId}`).join(", ");
+        this.showSystemMessage(items.length > 0 ? `Trade complete! Received: ${items}` : "Trade complete!");
+        store.clearTrade();
+        break;
+      }
+
+      case Op.S_TRADE_CANCELLED: {
+        this.showSystemMessage(msg.d.reason);
+        store.clearTrade();
         break;
       }
 

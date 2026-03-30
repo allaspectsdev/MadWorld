@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { db } from "../db/index.js";
 import { users, players } from "../db/schema.js";
 import { eq } from "drizzle-orm";
-import { signToken } from "./jwt.js";
+import { signToken, verifyToken } from "./jwt.js";
 import { ALL_SKILLS } from "@madworld/shared";
 import { skills } from "../db/schema.js";
 
@@ -42,7 +42,7 @@ authRoutes.post("/api/register", async (c) => {
     );
 
     const token = await signToken(user.id);
-    return c.json({ token, playerId: player.id });
+    return c.json({ token, playerId: player.id, isNewPlayer: true });
   } catch (err: any) {
     if (err.code === "23505") {
       return c.json({ error: "Email or name already taken" }, 409);
@@ -78,7 +78,7 @@ authRoutes.post("/api/guest", async (c) => {
     );
 
     const token = await signToken(user.id);
-    return c.json({ token, playerId: player.id });
+    return c.json({ token, playerId: player.id, isNewPlayer: true });
   } catch (err: any) {
     console.error("[Auth] Guest error:", err);
     return c.json({ error: "Failed to create guest account" }, 500);
@@ -128,4 +128,49 @@ authRoutes.post("/api/login", async (c) => {
 
   const token = await signToken(user.id);
   return c.json({ token, playerId: player.id });
+});
+
+authRoutes.put("/api/player/appearance", async (c) => {
+  const auth = c.req.header("Authorization");
+  if (!auth?.startsWith("Bearer ")) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const userId = await verifyToken(auth.slice(7));
+  if (!userId) {
+    return c.json({ error: "Invalid token" }, 401);
+  }
+
+  const { appearance } = await c.req.json();
+  if (!appearance || typeof appearance !== "object") {
+    return c.json({ error: "Missing appearance" }, 400);
+  }
+
+  // Validate ranges
+  const { skinColor, hairColor, hairStyle, shirtColor, bodyType } = appearance;
+  if (
+    typeof skinColor !== "number" || skinColor < 0 || skinColor > 7 ||
+    typeof hairColor !== "number" || hairColor < 0 || hairColor > 11 ||
+    typeof hairStyle !== "number" || hairStyle < 0 || hairStyle > 4 ||
+    typeof shirtColor !== "number" || shirtColor < 0 || shirtColor > 11 ||
+    typeof bodyType !== "number" || (bodyType !== 0 && bodyType !== 1)
+  ) {
+    return c.json({ error: "Invalid appearance values" }, 400);
+  }
+
+  const [player] = await db
+    .select({ id: players.id })
+    .from(players)
+    .where(eq(players.userId, userId))
+    .limit(1);
+
+  if (!player) {
+    return c.json({ error: "No character found" }, 404);
+  }
+
+  await db
+    .update(players)
+    .set({ appearance: { skinColor, hairColor, hairStyle, shirtColor, bodyType } })
+    .where(eq(players.id, player.id));
+
+  return c.json({ ok: true });
 });

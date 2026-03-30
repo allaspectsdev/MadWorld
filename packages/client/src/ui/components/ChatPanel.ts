@@ -1,4 +1,4 @@
-import { Op, type ClientMessage, type S_ChatMessage } from "@madworld/shared";
+import { Op, EntityType, type ClientMessage, type S_ChatMessage, movementFormulas } from "@madworld/shared";
 import type { Socket } from "../../net/Socket.js";
 import { useGameStore } from "../../state/GameStore.js";
 
@@ -139,10 +139,54 @@ export class ChatPanel {
 
     if (!message.trim()) return;
 
+    // Client-side /trade command
+    if (raw.toLowerCase().startsWith("/trade")) {
+      this.handleTradeCommand(raw);
+      return;
+    }
+
     this.socket.send({
       op: Op.C_CHAT_SEND,
       d: { channel, message: message.trim(), targetName },
     } as ClientMessage);
+  }
+
+  private handleTradeCommand(raw: string): void {
+    const state = useGameStore.getState();
+    const lp = state.localPlayer;
+    if (!lp) return;
+
+    const parts = raw.split(" ");
+    const targetName = parts[1]?.trim();
+
+    if (targetName) {
+      // Find player by name
+      for (const [, e] of state.entities) {
+        if (e.type === EntityType.PLAYER && e.name?.toLowerCase() === targetName.toLowerCase()) {
+          this.socket.send({ op: Op.C_TRADE_REQUEST, d: { targetEid: e.eid } } as ClientMessage);
+          return;
+        }
+      }
+      state.addChatMessage({ channel: "system", senderName: "", message: `Player "${targetName}" not found nearby.`, timestamp: Date.now() });
+    } else {
+      // Find nearest player
+      let nearestEid = -1;
+      let nearestDist = Infinity;
+      for (const [, e] of state.entities) {
+        if (e.type === EntityType.PLAYER) {
+          const d = movementFormulas.distance(lp.x, lp.y, e.nextX, e.nextY);
+          if (d < nearestDist && d <= 5) {
+            nearestDist = d;
+            nearestEid = e.eid;
+          }
+        }
+      }
+      if (nearestEid !== -1) {
+        this.socket.send({ op: Op.C_TRADE_REQUEST, d: { targetEid: nearestEid } } as ClientMessage);
+      } else {
+        state.addChatMessage({ channel: "system", senderName: "", message: "No players nearby to trade with. Use /trade <name>", timestamp: Date.now() });
+      }
+    }
   }
 
   private escapeHtml(text: string): string {

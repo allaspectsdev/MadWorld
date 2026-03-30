@@ -97,6 +97,7 @@ export enum Op {
 
   S_CHAT_MESSAGE = 0xc0,
   S_SYSTEM_MESSAGE = 0xc1,
+  S_EMOTE = 0xc2,
 
   S_TRADE_INCOMING = 0xc8,
   S_TRADE_START = 0xc9,

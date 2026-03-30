@@ -72,6 +72,7 @@ export class Player extends Entity {
 
   // Chat rate limiting
   lastChatTime: number = 0;
+  lastEmoteTime: number = 0;
 
   // Death respawn guard
   respawnPending: boolean = false;

@@ -163,6 +163,22 @@ export class InventoryPanel {
       this.contextMenu.appendChild(equipBtn);
     }
 
+    // Trade offer option (when trade session is active)
+    if (useGameStore.getState().tradeSession) {
+      const tradeBtn = document.createElement("div");
+      tradeBtn.className = "ctx-option";
+      tradeBtn.textContent = "Offer in Trade";
+      tradeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.socket.send({
+          op: Op.C_TRADE_SET_ITEM,
+          d: { slot: Date.now() % 12, inventorySlot: slotIndex, quantity: slot.quantity },
+        } as ClientMessage);
+        this.hideContextMenu();
+      });
+      this.contextMenu.appendChild(tradeBtn);
+    }
+
     const dropBtn = document.createElement("div");
     dropBtn.className = "ctx-option ctx-drop";
     dropBtn.textContent = "Drop";

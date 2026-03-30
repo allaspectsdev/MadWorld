@@ -1,4 +1,4 @@
-import { Op, type ServerMessage } from "@madworld/shared";
+import { Op, EMOTES, EMOTE_COOLDOWN_MS, type ServerMessage } from "@madworld/shared";
 import type { Player } from "../../game/entities/Player.js";
 import { world } from "../../game/World.js";
 
@@ -57,4 +57,29 @@ export function handleChatSend(player: Player, d: any): void {
       }
     }
   }
+}
+
+export function handleEmote(player: Player, emoteId: string): void {
+  const now = Date.now();
+  if (now - player.lastEmoteTime < EMOTE_COOLDOWN_MS) return;
+
+  const def = EMOTES[emoteId];
+  if (!def) return;
+
+  player.lastEmoteTime = now;
+
+  const zone = world.getZone(player.zoneId);
+  if (!zone) return;
+
+  const emoteMsg: ServerMessage = {
+    op: Op.S_EMOTE,
+    d: {
+      senderEid: player.eid,
+      senderName: player.name,
+      emoteId: def.id,
+      timestamp: now,
+    },
+  };
+
+  zone.broadcastToNearby(player.x, player.y, emoteMsg);
 }

@@ -135,6 +135,7 @@ export async function savePlayer(player: Player): Promise<void> {
       posY: player.y,
       currentHp: player.hp,
       maxHp: player.maxHp,
+      appearance: player.appearance,
       lastSavedAt: new Date(),
     })
     .where(eq(players.id, player.playerId));

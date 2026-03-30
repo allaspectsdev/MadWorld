@@ -5,7 +5,7 @@
  * only for: rate limiting, JSON parse, auth gating, and switch dispatch.
  */
 
-import { Op, type ClientMessage, encodePong } from "@madworld/shared";
+import { Op, type ClientMessage, encodePong, EMOTES } from "@madworld/shared";
 import type { ServerWebSocket } from "bun";
 import type { Player } from "../game/entities/Player.js";
 
@@ -15,7 +15,7 @@ import { handleMove, handleStop, handleGodTeleport } from "./handlers/movement.j
 import { handleAttack } from "./handlers/combat.js";
 import { handlePartyInvite, handlePartyAccept, handlePartyDecline, handlePartyLeave, handlePartyKick } from "./handlers/party.js";
 import { handleDungeonEnter } from "./handlers/dungeon.js";
-import { handleChatSend } from "./handlers/chat.js";
+import { handleChatSend, handleEmote } from "./handlers/chat.js";
 import { handlePickup, handleInvMove, handleInvDrop, handleInvUse, handleEquip, handleUnequip } from "./handlers/inventory.js";
 import { handleNpcInteract, handleQuestAccept, handleQuestTurnIn } from "./handlers/npc.js";
 import { handleUseSkill } from "./handlers/ability.js";
@@ -27,6 +27,7 @@ import { handlePlaceFurniture, handleRemoveFurniture, handleGardenPlant } from "
 import { handleGatherStart, handleGatherAssist, handleCraftStart, handleCraftContribute } from "./handlers/gathering.js";
 import { handlePetTame, handlePetSummon, handlePetRename } from "./handlers/pets.js";
 import { handleSpecChoose } from "./handlers/specialization.js";
+import { handleTradeRequest, handleTradeAccept, handleTradeCancel, handleTradeSetItem, handleTradeConfirm } from "./handlers/trade.js";
 
 // ---- Connection types & rate limiting ----
 
@@ -97,12 +98,19 @@ export async function handleMessage(ws: GameWebSocket, raw: string): Promise<voi
     // Dungeons
     case Op.C_DUNGEON_ENTER:  await handleDungeonEnter(player, msg.d); break;
 
-    // Chat (god commands handled inside)
+    // Chat (emotes for all players, god commands for gods)
     case Op.C_CHAT_SEND: {
       const rawMsg = msg.d.message;
-      if (rawMsg && typeof rawMsg === "string" && rawMsg.startsWith("/") && player.isGod) {
+      if (rawMsg && typeof rawMsg === "string" && rawMsg.startsWith("/")) {
         const message = rawMsg.replace(/<[^>]*>/g, "").trim();
-        handleGodCommand(player, message);
+        const slashCmd = message.slice(1).split(" ")[0]?.toLowerCase();
+        if (slashCmd && EMOTES[slashCmd]) {
+          handleEmote(player, slashCmd);
+        } else if (player.isGod) {
+          handleGodCommand(player, message);
+        } else {
+          handleChatSend(player, msg.d);
+        }
       } else {
         handleChatSend(player, msg.d);
       }
@@ -129,6 +137,13 @@ export async function handleMessage(ws: GameWebSocket, raw: string): Promise<voi
     // Fishing
     case Op.C_FISH_CAST:      handleFishCast(player); break;
     case Op.C_FISH_REEL:      handleFishReel(player); break;
+
+    // Trading
+    case Op.C_TRADE_REQUEST:    handleTradeRequest(player, msg.d); break;
+    case Op.C_TRADE_ACCEPT:     handleTradeAccept(player); break;
+    case Op.C_TRADE_CANCEL:     handleTradeCancel(player); break;
+    case Op.C_TRADE_SET_ITEM:   handleTradeSetItem(player, msg.d); break;
+    case Op.C_TRADE_CONFIRM:    handleTradeConfirm(player); break;
 
     // Boats
     case Op.C_BOAT_PLACE:     handleBoatPlace(player, msg.d); break;
