@@ -96,36 +96,36 @@ export class LightingManager {
     if (tod < 3) {
       // Dawn
       const t = tod / 3;
-      sunIntensity = t * 0.8;
+      sunIntensity = 0.3 + t * 1.2;
       sunColor = new THREE.Color(LightingManager.DAWN_SUN_COLOR).lerp(
         new THREE.Color(LightingManager.DAY_SUN_COLOR), t,
       );
-      ambientIntensity = 0.15 + t * 0.25;
+      ambientIntensity = 0.4 + t * 0.4;
       ambientColor = new THREE.Color(LightingManager.NIGHT_AMBIENT_COLOR).lerp(
         new THREE.Color(LightingManager.DAY_AMBIENT_COLOR), t,
       );
     } else if (tod < 12) {
-      // Day
-      sunIntensity = 1.0;
+      // Day — bright and clear
+      sunIntensity = 1.5;
       sunColor = new THREE.Color(LightingManager.DAY_SUN_COLOR);
-      ambientIntensity = 0.4;
+      ambientIntensity = 0.8;
       ambientColor = new THREE.Color(LightingManager.DAY_AMBIENT_COLOR);
     } else if (tod < 15) {
       // Dusk
       const t = (tod - 12) / 3;
-      sunIntensity = 1.0 - t * 0.8;
+      sunIntensity = 1.5 - t * 1.2;
       sunColor = new THREE.Color(LightingManager.DAY_SUN_COLOR).lerp(
         new THREE.Color(LightingManager.DAWN_SUN_COLOR), t,
       );
-      ambientIntensity = 0.4 - t * 0.25;
+      ambientIntensity = 0.8 - t * 0.4;
       ambientColor = new THREE.Color(LightingManager.DAY_AMBIENT_COLOR).lerp(
         new THREE.Color(LightingManager.NIGHT_AMBIENT_COLOR), t,
       );
     } else {
       // Night
-      sunIntensity = 0.05;
+      sunIntensity = 0.1;
       sunColor = new THREE.Color(0x334466);
-      ambientIntensity = 0.12;
+      ambientIntensity = 0.25;
       ambientColor = new THREE.Color(LightingManager.NIGHT_AMBIENT_COLOR);
     }
 

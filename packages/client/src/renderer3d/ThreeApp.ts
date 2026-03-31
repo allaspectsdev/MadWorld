@@ -58,7 +58,7 @@ export class ThreeApp {
 
     // Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x1a1a2e);
+    this.scene.background = new THREE.Color(0x87ceeb); // Sky blue
 
     // Orthographic camera for isometric view
     const aspect = window.innerWidth / window.innerHeight;
@@ -76,7 +76,7 @@ export class ThreeApp {
     this._positionCamera(0, 0);
 
     // Lighting
-    this.sun = new THREE.DirectionalLight(0xffffff, 1.0);
+    this.sun = new THREE.DirectionalLight(0xffeedd, 1.5);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(1024, 1024);
     this.sun.shadow.camera.near = 0.5;
@@ -91,7 +91,7 @@ export class ThreeApp {
     this.scene.add(this.sun);
     this.scene.add(this.sun.target);
 
-    this.ambient = new THREE.AmbientLight(0x606080, 0.4);
+    this.ambient = new THREE.AmbientLight(0xffffff, 0.8);
     this.scene.add(this.ambient);
 
     // Add scene groups in order

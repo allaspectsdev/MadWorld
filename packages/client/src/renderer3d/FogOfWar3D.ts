@@ -104,6 +104,7 @@ export class FogOfWar3D {
     this.mesh = new THREE.Mesh(geo, this.material);
     this.mesh.position.y = 5; // Above terrain and entities
     this.mesh.renderOrder = 100;
+    this.mesh.visible = false; // Hidden until discovery data is loaded
     this.app.fogGroup.add(this.mesh);
   }
 
@@ -140,6 +141,8 @@ export class FogOfWar3D {
       this.discovered.add(`${c.cx},${c.cy}`);
     }
     this.rebuildMask();
+    // Show fog only once we have discovery data
+    if (chunks.length > 0) this.mesh.visible = true;
   }
 
   private rebuildMask(): void {

@@ -43,15 +43,12 @@ export class TerrainChunk {
   readonly chunkX: number;
   readonly chunkY: number;
 
-  private static terrainMaterial: THREE.MeshStandardMaterial | null = null;
+  private static terrainMaterial: THREE.MeshLambertMaterial | null = null;
 
-  private static getTerrainMaterial(): THREE.MeshStandardMaterial {
+  private static getTerrainMaterial(): THREE.MeshLambertMaterial {
     if (!TerrainChunk.terrainMaterial) {
-      TerrainChunk.terrainMaterial = new THREE.MeshStandardMaterial({
+      TerrainChunk.terrainMaterial = new THREE.MeshLambertMaterial({
         vertexColors: true,
-        roughness: 0.85,
-        metalness: 0.0,
-        flatShading: false,
       });
     }
     return TerrainChunk.terrainMaterial;

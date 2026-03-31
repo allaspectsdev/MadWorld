@@ -93,7 +93,7 @@ export class Game3D {
   private lastDustX = 0;
   private lastDustY = 0;
   private sendTimer = 0;
-  private timeOfDay = 6;
+  private timeOfDay = 8; // Start at mid-morning for bright scene
   private static readonly AUTO_ATTACK_INTERVAL = 0.5;
 
   constructor(threeApp: ThreeApp) {
@@ -223,10 +223,29 @@ export class Game3D {
         this.pathFollower.cancel();
 
         // Load terrain from tiles for static zones
-        // (Chunk-based zones use S_CHUNK_DATA instead)
+        // Split into WORLD_CHUNK_SIZE chunks for the terrain system
         if (state.tiles.length > 0) {
-          this.terrain.addChunk(0, 0, state.tiles);
-          this.decorations.addChunk(0, 0, state.tiles);
+          const CHUNK = 32; // WORLD_CHUNK_SIZE
+          const rows = state.tiles.length;
+          const cols = state.tiles[0]?.length ?? 0;
+          const chunksY = Math.ceil(rows / CHUNK);
+          const chunksX = Math.ceil(cols / CHUNK);
+          for (let cy = 0; cy < chunksY; cy++) {
+            for (let cx = 0; cx < chunksX; cx++) {
+              const chunkTiles: number[][] = [];
+              for (let r = 0; r < CHUNK; r++) {
+                const row: number[] = [];
+                for (let c = 0; c < CHUNK; c++) {
+                  const globalR = cy * CHUNK + r;
+                  const globalC = cx * CHUNK + c;
+                  row.push(state.tiles[globalR]?.[globalC] ?? 0);
+                }
+                chunkTiles.push(row);
+              }
+              this.terrain.addChunk(cx, cy, chunkTiles);
+              this.decorations.addChunk(cx, cy, chunkTiles);
+            }
+          }
         }
 
         // Zone lights
