@@ -689,6 +689,33 @@ html, body {
   100% { opacity: 0; transform: translateY(-30px); }
 }
 
+/* Item Pickup Popup */
+.item-pickup-popup {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 12px rgba(218, 165, 32, 0.3);
+  background: linear-gradient(90deg, rgba(12,10,18,0) 0%, rgba(12,10,18,0.85) 20%, rgba(12,10,18,0.85) 80%, rgba(12,10,18,0) 100%);
+  padding: 4px 28px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 60;
+}
+.item-pickup-popup.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* XP bar glow transition */
+#xp-bar {
+  transition: width 0.4s ease, box-shadow 0.3s ease;
+}
+
 /* ============================================================
    Chat Panel
    ============================================================ */
@@ -1466,6 +1493,150 @@ html, body {
   border-radius: 4px;
   overflow: hidden;
   box-shadow: var(--shadow-panel);
+}
+
+/* ============================================================
+   Achievement Popups
+   ============================================================ */
+#achievement-popups {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.achievement-popup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(12, 10, 18, 0.95) 0%, rgba(30, 25, 15, 0.95) 100%);
+  border: 2px solid var(--color-gold);
+  border-radius: 8px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 30px rgba(218, 165, 32, 0.15), inset 0 1px 0 rgba(218, 165, 32, 0.1);
+  backdrop-filter: blur(12px);
+  min-width: 280px;
+  opacity: 0;
+  transform: translateY(-20px) scale(0.9);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.achievement-popup.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.achievement-popup.exiting {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.achievement-popup-icon {
+  font-size: 28px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(218, 165, 32, 0.2), rgba(218, 165, 32, 0.05));
+  border: 1px solid rgba(218, 165, 32, 0.3);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.achievement-popup-content {
+  flex: 1;
+}
+.achievement-popup-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 2px;
+}
+.achievement-popup-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.achievement-popup-desc {
+  font-size: 11px;
+  color: var(--ui-text-dim);
+  margin-top: 1px;
+}
+
+/* ============================================================
+   Keybind Hints Overlay
+   ============================================================ */
+#keybind-hints {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  cursor: pointer;
+}
+#keybind-hints.visible {
+  opacity: 1;
+}
+.hints-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+.hints-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 32px;
+  max-width: 500px;
+}
+.hint-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hint-key {
+  min-width: 36px;
+  height: 32px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+}
+.hint-label {
+  font-size: 13px;
+  color: var(--ui-text);
+}
+.hints-dismiss {
+  font-size: 11px;
+  color: var(--ui-text-dim);
+  margin-top: 12px;
+  animation: hintPulse 2s ease-in-out infinite;
+}
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 /* ============================================================

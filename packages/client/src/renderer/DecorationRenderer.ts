@@ -88,13 +88,18 @@ export class DecorationRenderer {
           continue;
         }
 
-        // 6. Wildflowers on plain grass tiles (no special neighbors)
-        if (type === TileType.GRASS && chance >= 0.70 && chance < 0.95) {
+        // 5b. Small rocks/shells on sand tiles (not near water)
+        if (type === TileType.SAND && !this.hasNeighbor(tiles, x, y, TileType.WATER) && chance >= 0.80 && chance < 0.92) {
+          this.placeSandRocks(x, y, seed);
+        }
+
+        // 6. Wildflowers on plain grass tiles (sparse — 8% of tiles)
+        if (type === TileType.GRASS && chance >= 0.88 && chance < 0.96) {
           this.placeWildflowers(x, y, seed);
         }
 
-        // 7. Tall grass on plain grass tiles
-        if (type === TileType.GRASS && chance >= 0.95) {
+        // 7. Tall grass on plain grass tiles (4% of tiles)
+        if (type === TileType.GRASS && chance >= 0.96) {
           this.placeTallGrass(x, y, seed);
         }
 
@@ -111,6 +116,16 @@ export class DecorationRenderer {
         // Torch stand near buildings
         if (type === TileType.COBBLESTONE && this.hasNeighbor(tiles, x, y, TileType.BUILDING_FLOOR) && chance >= 0.35 && chance < 0.50) {
           this.placeTorchStand(x, y, seed);
+        }
+
+        // 9. Tall trees on forest tiles — gives vertical 3D height
+        if (type === TileType.FOREST && chance < 0.55) {
+          this.placeTallTree(x, y, seed);
+        }
+
+        // 10. Building wall faces on building_floor tiles
+        if (type === TileType.BUILDING_FLOOR && chance < 0.30) {
+          this.placeBuildingPost(x, y, seed);
         }
       }
     }
@@ -320,33 +335,33 @@ export class DecorationRenderer {
 
   private placeWildflowers(x: number, y: number, seed: number): void {
     const g = new Graphics();
-    const flowerColors = [0xffff66, 0xff99cc, 0xffffff, 0xcc88ff, 0xffaa44];
-    const count = 2 + (seed % 3); // 2-4 flowers
+    const flowerColors = [0xffff44, 0xff88bb, 0xffffff, 0xcc77ff, 0xffaa33];
+    const count = 3 + (seed % 3); // 3-5 flowers
 
     for (let i = 0; i < count; i++) {
       const fx = 4 + this.seededRand(seed, i * 2) * 24;
       const fy = 4 + this.seededRand(seed, i * 2 + 1) * 24;
       const color = flowerColors[(seed + i) % flowerColors.length];
-      const petalR = 1.0 + this.seededRand(seed, i * 2 + 10) * 0.5;
+      const petalR = 1.8 + this.seededRand(seed, i * 2 + 10) * 1.0;
 
       // Stem
-      g.moveTo(fx, fy);
-      g.lineTo(fx, fy + 2);
-      g.stroke({ width: 0.5, color: 0x3a6a3a, alpha: 0.6 });
+      g.moveTo(fx, fy + 1);
+      g.lineTo(fx, fy + 4);
+      g.stroke({ width: 1, color: 0x3a7a3a, alpha: 0.7 });
 
-      // 4 petals
-      g.circle(fx - petalR, fy, petalR * 0.6);
-      g.fill({ color, alpha: 0.7 });
-      g.circle(fx + petalR, fy, petalR * 0.6);
-      g.fill({ color, alpha: 0.7 });
-      g.circle(fx, fy - petalR, petalR * 0.6);
-      g.fill({ color, alpha: 0.7 });
-      g.circle(fx, fy + petalR * 0.3, petalR * 0.6);
-      g.fill({ color, alpha: 0.7 });
+      // 4 petals (bigger)
+      g.circle(fx - petalR, fy, petalR * 0.7);
+      g.fill({ color, alpha: 0.8 });
+      g.circle(fx + petalR, fy, petalR * 0.7);
+      g.fill({ color, alpha: 0.8 });
+      g.circle(fx, fy - petalR, petalR * 0.7);
+      g.fill({ color, alpha: 0.8 });
+      g.circle(fx, fy + petalR * 0.4, petalR * 0.7);
+      g.fill({ color, alpha: 0.8 });
 
-      // Center
-      g.circle(fx, fy, 0.6);
-      g.fill(0xffcc00);
+      // Bright center
+      g.circle(fx, fy, 1.2);
+      g.fill(0xffdd00);
     }
 
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
@@ -387,17 +402,17 @@ export class DecorationRenderer {
 
   private placeTallGrass(x: number, y: number, seed: number): void {
     const g = new Graphics();
-    const greens = [0x3d6b4a, 0x4a7c59, 0x5a8c69];
-    const count = 4 + (seed % 3);
-    const windLean = 0.3 + this.seededRand(seed, 20) * 0.4;
+    const greens = [0x2d7a3a, 0x3a8a48, 0x4a9a58, 0x35854a];
+    const count = 5 + (seed % 3);
+    const windLean = 0.3 + this.seededRand(seed, 20) * 0.5;
     for (let i = 0; i < count; i++) {
-      const bx = 4 + this.seededRand(seed, i * 2) * 24;
-      const by = TILE_SIZE - 2;
-      const bh = 4 + this.seededRand(seed, i * 2 + 1) * 3;
+      const bx = 3 + this.seededRand(seed, i * 2) * 26;
+      const by = TILE_SIZE - 1;
+      const bh = 6 + this.seededRand(seed, i * 2 + 1) * 5;
       const color = greens[(seed + i) % greens.length];
       g.moveTo(bx, by);
       g.quadraticCurveTo(bx + windLean * bh, by - bh * 0.6, bx + windLean * bh * 1.2, by - bh);
-      g.stroke({ width: 0.8, color, alpha: 0.7 });
+      g.stroke({ width: 1.5, color, alpha: 0.8 });
     }
     const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
     const sprite = new Sprite(tex);
@@ -494,5 +509,133 @@ export class DecorationRenderer {
     const offsetX = this.seededRand(seed, 10) * 4 - 2;
     const offsetY = this.seededRand(seed, 11) * 4 - 2;
     this.placeSprite(sprite, x, y, offsetX, offsetY);
+  }
+
+  /** Small rocks and shells scattered on sand. */
+  private placeSandRocks(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const count = 2 + (seed % 3);
+    for (let i = 0; i < count; i++) {
+      const rx = 4 + this.seededRand(seed, i * 3) * 24;
+      const ry = 4 + this.seededRand(seed, i * 3 + 1) * 24;
+      const size = 1.5 + this.seededRand(seed, i * 3 + 2) * 2;
+      const isShell = this.seededRand(seed, i + 20) > 0.7;
+
+      if (isShell) {
+        // Small shell shape
+        g.arc(rx, ry, size, 0, Math.PI);
+        g.fill({ color: 0xe8d8c0, alpha: 0.6 });
+        g.arc(rx, ry, size * 0.6, 0, Math.PI);
+        g.stroke({ width: 0.5, color: 0xc8b8a0, alpha: 0.4 });
+      } else {
+        // Small rock
+        g.ellipse(rx, ry + size * 0.3, size * 0.4, size * 0.15);
+        g.fill({ color: 0x000000, alpha: 0.08 }); // shadow
+        g.roundRect(rx - size / 2, ry - size / 2, size, size * 0.8, 1);
+        g.fill(this.seededRand(seed, i + 30) > 0.5 ? 0x999088 : 0x888078);
+        g.roundRect(rx - size / 2, ry - size / 2, size * 0.5, size * 0.4, 1);
+        g.fill({ color: 0xbbaa99, alpha: 0.2 }); // highlight
+      }
+    }
+    const tex = TextureFactory.generate(g, TILE_SIZE, TILE_SIZE);
+    const sprite = new Sprite(tex);
+    this.placeSprite(sprite, x, y);
+  }
+
+  /** Tall tree with visible trunk and lush canopy. */
+  private placeTallTree(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const canopyRadius = 14 + this.seededRand(seed, 2) * 8; // 14-22px
+    const treeHeight = 40 + this.seededRand(seed, 0) * 16; // 40-56px tall
+    const texH = TILE_SIZE * 3;
+    const texW = TILE_SIZE * 2;
+    const centerX = texW / 2;
+    const trunkBase = texH - 6;
+
+    // Ground shadow (large, visible)
+    g.ellipse(centerX, trunkBase + 3, canopyRadius * 1.0, canopyRadius * 0.3);
+    g.fill({ color: 0x000000, alpha: 0.25 });
+
+    // Trunk (thick, visible)
+    const trunkWidth = 4 + this.seededRand(seed, 3) * 3;
+    const trunkTop = trunkBase - treeHeight + canopyRadius;
+    // Dark side
+    g.rect(centerX - trunkWidth / 2, trunkTop, trunkWidth, treeHeight - canopyRadius + 4);
+    g.fill(0x4a2e16);
+    // Light side highlight
+    g.rect(centerX - trunkWidth / 2, trunkTop, trunkWidth * 0.4, treeHeight - canopyRadius + 4);
+    g.fill({ color: 0x7a5a3a, alpha: 0.4 });
+
+    // Canopy — multiple overlapping circles for lush, organic shape
+    const canopyY = trunkTop - canopyRadius * 0.2;
+    const greens = [0x1a5515, 0x22661a, 0x1a4e12, 0x2a7520, 0x18480f];
+
+    // Shadow under canopy (dark ground area)
+    g.ellipse(centerX + 2, canopyY + canopyRadius * 0.6, canopyRadius * 1.1, canopyRadius * 0.5);
+    g.fill({ color: 0x0a1a06, alpha: 0.5 });
+
+    // 5-7 canopy blobs for full, bushy look
+    const blobCount = 5 + Math.floor(this.seededRand(seed, 50) * 3);
+    for (let i = 0; i < blobCount; i++) {
+      const ox = (this.seededRand(seed, 20 + i) - 0.5) * canopyRadius * 0.8;
+      const oy = (this.seededRand(seed, 30 + i) - 0.5) * canopyRadius * 0.7;
+      const cr = canopyRadius * (0.5 + this.seededRand(seed, 40 + i) * 0.5);
+      g.ellipse(centerX + ox, canopyY + oy, cr, cr * 0.8);
+      g.fill(greens[i % greens.length]);
+    }
+
+    // Bright highlight blobs on top-left (sun-lit side)
+    for (let i = 0; i < 3; i++) {
+      const hx = centerX - canopyRadius * 0.15 + (this.seededRand(seed, 60 + i) - 0.5) * canopyRadius * 0.4;
+      const hy = canopyY - canopyRadius * 0.15 + (this.seededRand(seed, 70 + i) - 0.5) * canopyRadius * 0.3;
+      const hr = canopyRadius * (0.25 + this.seededRand(seed, 80 + i) * 0.2);
+      g.ellipse(hx, hy, hr, hr * 0.8);
+      g.fill({ color: 0x44bb35, alpha: 0.25 });
+    }
+
+    // Small bright dot (sun glint)
+    g.circle(centerX - canopyRadius * 0.3, canopyY - canopyRadius * 0.3, 2);
+    g.fill({ color: 0x88ee55, alpha: 0.3 });
+
+    const tex = TextureFactory.generate(g, Math.ceil(texW), texH);
+    const sprite = new Sprite(tex);
+    sprite.anchor.set(0.5, 0.88);
+    const iso = cartToIso(x, y);
+    sprite.x = iso.x + (this.seededRand(seed, 10) - 0.5) * 10;
+    sprite.y = iso.y;
+    sprite.zIndex = isoDepth(x, y) + 0.001;
+    this.container.addChild(sprite);
+  }
+
+  /** Vertical post/pillar for building interiors — adds architectural height. */
+  private placeBuildingPost(x: number, y: number, seed: number): void {
+    const g = new Graphics();
+    const postX = 10 + this.seededRand(seed, 0) * 12;
+    const postBase = TILE_SIZE - 2;
+    const postHeight = 14 + this.seededRand(seed, 1) * 6;
+    const postWidth = 2.5;
+
+    // Shadow
+    g.ellipse(postX, postBase + 1, 3, 1);
+    g.fill({ color: 0x000000, alpha: 0.12 });
+
+    // Post body (dark wood)
+    g.rect(postX - postWidth / 2, postBase - postHeight, postWidth, postHeight);
+    g.fill(0x4a3020);
+    // Lighter face
+    g.rect(postX - postWidth / 2, postBase - postHeight, postWidth * 0.4, postHeight);
+    g.fill({ color: 0x6a5040, alpha: 0.3 });
+
+    // Cap
+    g.rect(postX - postWidth, postBase - postHeight - 1, postWidth * 2, 2);
+    g.fill(0x5a4030);
+    g.rect(postX - postWidth, postBase - postHeight - 1, postWidth * 2, 2);
+    g.stroke({ width: 0.3, color: 0x3a2015, alpha: 0.5 });
+
+    const texH = TILE_SIZE + Math.ceil(postHeight);
+    const tex = TextureFactory.generate(g, TILE_SIZE, texH);
+    const sprite = new Sprite(tex);
+    const offsetY = -postHeight * 0.4;
+    this.placeSprite(sprite, x, y, 0, offsetY);
   }
 }

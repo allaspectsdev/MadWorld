@@ -8,6 +8,7 @@ export class ScreenEffects {
   private fadeOverlay: Graphics;
   private fadeState: { phase: "in" | "hold" | "out"; elapsed: number } | null = null;
   private vignette: Sprite;
+  private depthFog: Sprite;
   private fogLayer: Graphics;
   private fogEnabled = false;
   private fogTimer = 0;
@@ -31,6 +32,12 @@ export class ScreenEffects {
     this.fogLayer.alpha = 0;
     app.stage.addChild(this.fogLayer);
 
+    // Atmospheric depth fog (top = hazy, bottom = clear)
+    this.depthFog = this.createDepthFogSprite();
+    this.depthFog.eventMode = "none";
+    this.depthFog.alpha = 0.12;
+    app.stage.addChild(this.depthFog);
+
     // Vignette overlay
     this.vignette = this.createVignetteSprite();
     this.vignette.eventMode = "none";
@@ -50,6 +57,25 @@ export class ScreenEffects {
       this.height = app.screen.height;
       this.resizeVignette();
     });
+  }
+
+  private createDepthFogSprite(): Sprite {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d")!;
+    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+    gradient.addColorStop(0, "rgba(140, 160, 200, 0.35)"); // Blue haze at top (distant)
+    gradient.addColorStop(0.4, "rgba(140, 160, 200, 0.08)");
+    gradient.addColorStop(0.7, "rgba(0, 0, 0, 0)"); // Clear at bottom (near)
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1, 256);
+    const texture = Texture.from(canvas);
+    const sprite = new Sprite(texture);
+    sprite.width = this.width;
+    sprite.height = this.height;
+    return sprite;
   }
 
   private createVignetteSprite(): Sprite {
@@ -72,6 +98,8 @@ export class ScreenEffects {
   private resizeVignette(): void {
     this.vignette.width = this.width;
     this.vignette.height = this.height;
+    this.depthFog.width = this.width;
+    this.depthFog.height = this.height;
   }
 
   setVignetteIntensity(alpha: number): void {

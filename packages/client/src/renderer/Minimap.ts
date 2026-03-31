@@ -27,6 +27,7 @@ const ZONE_LABELS: Record<string, string> = {
 
 const SIZE = 140;
 const VIEW_RADIUS = 20; // Show 40x40 tile window centered on player
+const TRAIL_LENGTH = 40; // Trail history points
 
 interface PortalInfo {
   x: number;
@@ -40,6 +41,9 @@ export class Minimap {
   private tileData: TT[][] | null = null;
   private updateTimer = 0;
   private portals: PortalInfo[] = [];
+  private trail: { x: number; y: number }[] = [];
+  private lastTrailX = 0;
+  private lastTrailY = 0;
 
   constructor() {
     const container = document.getElementById("minimap-container");
@@ -87,8 +91,6 @@ export class Minimap {
     const lp = state.localPlayer;
     if (!lp) return;
 
-    // Find portal tiles and try to determine their destination
-    // We scan for PORTAL/DUNGEON_PORTAL tiles and group them
     const visited = new Set<string>();
 
     for (let y = 0; y < tiles.length; y++) {
@@ -99,7 +101,6 @@ export class Minimap {
         if (visited.has(key)) continue;
         visited.add(key);
 
-        // Determine label based on edge position and current zone
         let label = type === TileType.DUNGEON_PORTAL ? "Dungeon" : "";
         if (type === TileType.PORTAL) {
           label = this.guessPortalLabel(x, y, tiles.length, tiles[0]?.length ?? 0, lp.zoneId);
@@ -113,7 +114,6 @@ export class Minimap {
   }
 
   private guessPortalLabel(x: number, y: number, mapH: number, mapW: number, currentZone: string): string {
-    // Portals at edges lead to specific zones based on current zone
     if (currentZone === "greendale") {
       if (y >= mapH - 2) return "Darkwood";
       if (x >= mapW - 2) return "Fields";
@@ -129,6 +129,21 @@ export class Minimap {
     this.updateTimer += dt;
     if (this.updateTimer < 0.25) return;
     this.updateTimer = 0;
+
+    // Update player trail
+    const state = useGameStore.getState();
+    const lp = state.localPlayer;
+    if (lp) {
+      const dx = lp.x - this.lastTrailX;
+      const dy = lp.y - this.lastTrailY;
+      if (dx * dx + dy * dy > 0.5) {
+        this.trail.push({ x: lp.x, y: lp.y });
+        if (this.trail.length > TRAIL_LENGTH) this.trail.shift();
+        this.lastTrailX = lp.x;
+        this.lastTrailY = lp.y;
+      }
+    }
+
     this.render();
   }
 
@@ -146,7 +161,6 @@ export class Minimap {
     const mapH = this.tileData.length;
     const mapW = this.tileData[0]?.length ?? 0;
 
-    // Center on player, show VIEW_RADIUS tiles in each direction
     const centerX = Math.floor(lp.x);
     const centerY = Math.floor(lp.y);
     const startX = centerX - VIEW_RADIUS;
@@ -169,7 +183,7 @@ export class Minimap {
       }
     }
 
-    // Fog of war — darken edges with smooth fade
+    // Fog of war
     const gradient = ctx.createRadialGradient(SIZE / 2, SIZE / 2, SIZE * 0.25, SIZE / 2, SIZE / 2, SIZE * 0.5);
     gradient.addColorStop(0, "rgba(0,0,0,0)");
     gradient.addColorStop(0.6, "rgba(0,0,0,0)");
@@ -177,6 +191,27 @@ export class Minimap {
     gradient.addColorStop(1, "rgba(0,0,0,1)");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // Player movement trail (fading line)
+    if (this.trail.length > 1) {
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = "round";
+      for (let i = 1; i < this.trail.length; i++) {
+        const prev = this.trail[i - 1];
+        const curr = this.trail[i];
+        const px1 = (prev.x - startX) * scale;
+        const py1 = (prev.y - startY) * scale;
+        const px2 = (curr.x - startX) * scale;
+        const py2 = (curr.y - startY) * scale;
+
+        const alpha = (i / this.trail.length) * 0.35;
+        ctx.strokeStyle = `rgba(68, 255, 136, ${alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(px1, py1);
+        ctx.lineTo(px2, py2);
+        ctx.stroke();
+      }
+    }
 
     // Draw entities
     for (const [, entity] of state.entities) {
@@ -192,6 +227,11 @@ export class Minimap {
       } else if (entity.type === EntityType.MOB) {
         ctx.fillStyle = "#e74c3c";
         ctx.fillRect(ex - 1, ey - 1, 2.5, 2.5);
+      } else if (entity.type === EntityType.PET) {
+        ctx.fillStyle = "#ff99cc";
+        ctx.beginPath();
+        ctx.arc(ex, ey, 1.5, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       // NPC markers (gold diamonds)
@@ -202,6 +242,28 @@ export class Minimap {
         ctx.fillStyle = "#ffd700";
         ctx.fillRect(-1.5, -1.5, 3, 3);
         ctx.restore();
+      }
+    }
+
+    // Party member dots (blue with white outline)
+    const party = state.party;
+    if (party) {
+      for (const member of party.members) {
+        if (member.eid === lp.eid) continue; // Skip self
+        if (member.worldX === undefined || member.worldY === undefined) continue;
+        const mx = (member.worldX - startX) * scale;
+        const my = (member.worldY - startY) * scale;
+        if (mx < -5 || mx > SIZE + 5 || my < -5 || my > SIZE + 5) continue;
+
+        // Pulsing blue dot
+        const pulse = Math.sin(Date.now() * 0.004 + member.eid) * 0.3 + 0.7;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.5;
+        ctx.fillStyle = `rgba(52, 152, 219, ${pulse})`;
+        ctx.beginPath();
+        ctx.arc(mx, my, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
       }
     }
 
@@ -241,6 +303,22 @@ export class Minimap {
     ctx.arc(ppx, ppy, playerRadius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+
+    // Player facing direction indicator (small triangle)
+    // (shows which way the player last moved)
+    if (this.trail.length > 1) {
+      const last = this.trail[this.trail.length - 1];
+      const prev = this.trail[this.trail.length - 2];
+      const angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+      const tipDist = playerRadius + 4;
+      ctx.fillStyle = `rgba(68, 255, 136, 0.7)`;
+      ctx.beginPath();
+      ctx.moveTo(ppx + Math.cos(angle) * tipDist, ppy + Math.sin(angle) * tipDist);
+      ctx.lineTo(ppx + Math.cos(angle + 2.5) * (tipDist - 3), ppy + Math.sin(angle + 2.5) * (tipDist - 3));
+      ctx.lineTo(ppx + Math.cos(angle - 2.5) * (tipDist - 3), ppy + Math.sin(angle - 2.5) * (tipDist - 3));
+      ctx.closePath();
+      ctx.fill();
+    }
 
     // Compass labels
     ctx.font = "bold 7px 'Segoe UI', system-ui, sans-serif";

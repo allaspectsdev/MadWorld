@@ -1010,6 +1010,974 @@ const DEFS: Record<string, MobVisual> = {
     },
   },
 
+  "Swamp Witch": {
+    width: 28, height: 36,
+    draw(g, w, h) {
+      // Dark tattered robe
+      g.moveTo(6, 16); g.lineTo(3, 34); g.lineTo(25, 34); g.lineTo(22, 16);
+      g.fill(0x2a1a2e);
+      g.moveTo(6, 16); g.lineTo(3, 34); g.lineTo(25, 34); g.lineTo(22, 16);
+      g.stroke({ width: 1, color: 0x1a0a1e, alpha: 0.6 });
+      // Robe tatter strips at bottom
+      g.moveTo(3, 34); g.lineTo(5, 36); g.lineTo(7, 33);
+      g.fill(0x2a1a2e);
+      g.moveTo(11, 34); g.lineTo(13, 36); g.lineTo(15, 33);
+      g.fill(0x2a1a2e);
+      g.moveTo(19, 34); g.lineTo(21, 36); g.lineTo(23, 33);
+      g.fill(0x2a1a2e);
+      // Green sash / belt
+      g.rect(7, 21, 14, 2);
+      g.fill(0x3a8a3a);
+      // Potion bottles on belt
+      g.roundRect(8, 19, 3, 4, 1); g.fill(0x44cc66);
+      g.roundRect(8, 19, 3, 4, 1); g.stroke({ width: 0.5, color: 0x228844 });
+      g.roundRect(17, 19, 3, 4, 1); g.fill(0xaa44cc);
+      g.roundRect(17, 19, 3, 4, 1); g.stroke({ width: 0.5, color: 0x662288 });
+      // Head (pale green-tinged skin)
+      g.circle(w / 2, 11, 5); g.fill(0xb8c8a0);
+      outline(g, w / 2 - 5, 6, 10, 10);
+      // Hooked nose
+      g.moveTo(14, 10); g.lineTo(16, 12); g.lineTo(14, 13);
+      g.fill(0xa0b890);
+      // Eyes (glowing green)
+      g.circle(11, 10, 1.5); g.fill(0x33ff33);
+      g.circle(11, 10, 0.7); g.fill(0xccffcc);
+      g.circle(16, 10, 1.5); g.fill(0x33ff33);
+      g.circle(16, 10, 0.7); g.fill(0xccffcc);
+      // Wart on nose
+      g.circle(15, 11, 0.8); g.fill(0x7a8a6a);
+      // Witch hat — wide brim
+      g.ellipse(w / 2, 7, 10, 2.5); g.fill(0x1a0a2e);
+      // Hat cone
+      g.moveTo(8, 7); g.lineTo(w / 2, -4); g.lineTo(20, 7);
+      g.fill(0x2a1a3e);
+      g.moveTo(8, 7); g.lineTo(w / 2, -4); g.lineTo(20, 7);
+      g.stroke({ width: 0.8, color: 0x1a0a2e, alpha: 0.6 });
+      // Hat buckle
+      g.rect(12, 5, 4, 2.5); g.fill(0x44aa44);
+      // Hat tip curls slightly
+      g.moveTo(w / 2, -4); g.bezierCurveTo(w / 2 + 2, -5, w / 2 + 4, -3, w / 2 + 3, -1);
+      g.stroke({ width: 1.5, color: 0x2a1a3e });
+      // Stringy gray-green hair
+      g.moveTo(7, 8); g.lineTo(5, 18); g.stroke({ width: 1.5, color: 0x5a6a4a });
+      g.moveTo(8, 9); g.lineTo(4, 20); g.stroke({ width: 1, color: 0x5a6a4a });
+      g.moveTo(21, 8); g.lineTo(23, 18); g.stroke({ width: 1.5, color: 0x5a6a4a });
+      g.moveTo(20, 9); g.lineTo(24, 20); g.stroke({ width: 1, color: 0x5a6a4a });
+      // Gnarled staff (right hand)
+      g.moveTo(24, 6); g.lineTo(25, 34);
+      g.stroke({ width: 2.5, color: 0x3a2a1e });
+      // Staff has knots
+      g.circle(24.5, 14, 1.5); g.fill(0x4a3a2e);
+      g.circle(24.5, 24, 1.2); g.fill(0x4a3a2e);
+      // Glowing green orb on staff
+      g.circle(24, 5, 3.5); g.fill({ color: 0x33ff66, alpha: 0.3 });
+      g.circle(24, 5, 2.5); g.fill(0x33ff66);
+      g.circle(24, 5, 1.2); g.fill({ color: 0xccffcc, alpha: 0.7 });
+      // Bony hands
+      g.circle(6, 22, 2); g.fill(0xb8c8a0);
+      g.circle(22, 22, 2); g.fill(0xb8c8a0);
+      // Mouth (thin, crooked smile)
+      g.moveTo(11, 14); g.bezierCurveTo(12, 15, 15, 14, 16, 13);
+      g.stroke({ width: 0.7, color: 0x5a6a4a });
+    },
+  },
+
+  "Farmer Hank": {
+    width: 26, height: 32,
+    draw(g, w, h) {
+      // Overalls (denim blue)
+      g.roundRect(7, 14, 12, 12, 2);
+      g.fill(0x4466aa);
+      g.roundRect(7, 14, 12, 12, 2);
+      g.stroke({ width: 0.8, color: 0x335588, alpha: 0.5 });
+      // Overall straps
+      g.moveTo(9, 14); g.lineTo(10, 10); g.stroke({ width: 1.5, color: 0x4466aa });
+      g.moveTo(17, 14); g.lineTo(16, 10); g.stroke({ width: 1.5, color: 0x4466aa });
+      // Undershirt (plaid red)
+      g.roundRect(8, 10, 10, 6, 2);
+      g.fill(0xcc4444);
+      // Head (tanned skin)
+      g.circle(w / 2, 7, 5.5); g.fill(0xd4a574);
+      outline(g, w / 2 - 5.5, 1.5, 11, 11);
+      // Straw hat brim
+      g.ellipse(w / 2, 4, 9, 2.5); g.fill(0xddc87a);
+      // Straw hat top
+      g.roundRect(8, 0, 10, 5, 2); g.fill(0xccb866);
+      g.roundRect(8, 0, 10, 5, 2); g.stroke({ width: 0.5, color: 0xaa9944, alpha: 0.5 });
+      // Eyes
+      g.circle(11, 7, 1); g.fill(0x334455);
+      g.circle(15, 7, 1); g.fill(0x334455);
+      // Friendly smile
+      g.moveTo(11, 9); g.bezierCurveTo(12, 11, 14, 11, 15, 9);
+      g.stroke({ width: 0.7, color: 0x8b5e3c });
+      // Arms
+      g.rect(3, 14, 4, 8); g.fill(0xd4a574);
+      g.rect(19, 14, 4, 8); g.fill(0xd4a574);
+      // Pitchfork in right hand
+      g.rect(22, 2, 2, 28); g.fill(0x5c3a1e);
+      g.moveTo(20, 2); g.lineTo(20, -2); g.stroke({ width: 1.5, color: 0x888888 });
+      g.moveTo(23, 2); g.lineTo(23, -2); g.stroke({ width: 1.5, color: 0x888888 });
+      g.moveTo(26, 2); g.lineTo(26, -2); g.stroke({ width: 1.5, color: 0x888888 });
+      g.rect(19, 1, 8, 2); g.fill(0x888888);
+      // Legs
+      g.rect(9, 26, 4, 5); g.fill(0x4466aa);
+      g.rect(13, 26, 4, 5); g.fill(0x4466aa);
+      // Boots
+      g.rect(8, 30, 5, 2); g.fill(0x5c3a1e);
+      g.rect(13, 30, 5, 2); g.fill(0x5c3a1e);
+    },
+  },
+
+  "Fisherman Wade": {
+    width: 26, height: 32,
+    draw(g, w, h) {
+      // Rain coat (yellow-green)
+      g.roundRect(6, 13, 14, 13, 3);
+      g.fill(0x7a8a44);
+      g.roundRect(6, 13, 14, 13, 3);
+      g.stroke({ width: 0.8, color: 0x5a6a2a, alpha: 0.5 });
+      // Vest over coat
+      g.roundRect(8, 14, 10, 8, 2);
+      g.fill(0x556633);
+      // Head (weathered tan skin)
+      g.circle(w / 2, 8, 5.5); g.fill(0xc49a6c);
+      outline(g, w / 2 - 5.5, 2.5, 11, 11);
+      // Bucket hat
+      g.ellipse(w / 2, 5, 8, 2); g.fill(0x6a7a44);
+      g.roundRect(8, 1, 10, 5, 3); g.fill(0x5a6a34);
+      // Scruffy beard (brown)
+      g.moveTo(9, 11); g.lineTo(w / 2, 15); g.lineTo(17, 11);
+      g.fill(0x6b4226);
+      // Eyes (squinting)
+      g.rect(10, 7, 3, 1); g.fill(0x334455);
+      g.rect(14, 7, 3, 1); g.fill(0x334455);
+      // Fishing rod (extends upward)
+      g.moveTo(3, 26); g.lineTo(3, -2);
+      g.stroke({ width: 2, color: 0x5c3a1e });
+      // Rod tip
+      g.moveTo(3, -2); g.lineTo(10, -4);
+      g.stroke({ width: 0.8, color: 0x5c3a1e });
+      // Fishing line
+      g.moveTo(10, -4); g.lineTo(12, 2);
+      g.stroke({ width: 0.5, color: 0xcccccc, alpha: 0.6 });
+      // Arms
+      g.rect(3, 15, 3, 7); g.fill(0xc49a6c);
+      g.rect(20, 15, 3, 7); g.fill(0xc49a6c);
+      // Legs (waders)
+      g.rect(8, 26, 4, 5); g.fill(0x556633);
+      g.rect(14, 26, 4, 5); g.fill(0x556633);
+      // Rubber boots
+      g.rect(7, 29, 5, 3); g.fill(0x333333);
+      g.rect(14, 29, 5, 3); g.fill(0x333333);
+    },
+  },
+
+  "Innkeeper Rosa": {
+    width: 26, height: 32,
+    draw(g, w, h) {
+      // Warm burgundy dress
+      g.moveTo(7, 14); g.lineTo(5, 30); g.lineTo(21, 30); g.lineTo(19, 14);
+      g.fill(0x8b2252);
+      g.moveTo(7, 14); g.lineTo(5, 30); g.lineTo(21, 30); g.lineTo(19, 14);
+      g.stroke({ width: 0.8, color: 0x6a1a3e, alpha: 0.5 });
+      // White apron
+      g.roundRect(9, 16, 8, 12, 2);
+      g.fill(0xeeeedd);
+      g.roundRect(9, 16, 8, 12, 2);
+      g.stroke({ width: 0.5, color: 0xccccbb, alpha: 0.4 });
+      // Head (warm skin)
+      g.circle(w / 2, 8, 5.5); g.fill(0xe8c4a0);
+      outline(g, w / 2 - 5.5, 2.5, 11, 11);
+      // Curly auburn hair
+      g.arc(w / 2, 8, 6, Math.PI, 0); g.fill(0x8b3a1e);
+      g.circle(7, 9, 2.5); g.fill(0x8b3a1e);
+      g.circle(19, 9, 2.5); g.fill(0x8b3a1e);
+      g.circle(8, 12, 2); g.fill(0x8b3a1e);
+      g.circle(18, 12, 2); g.fill(0x8b3a1e);
+      // Rosy cheeks
+      g.circle(10, 9, 1.5); g.fill({ color: 0xff6666, alpha: 0.3 });
+      g.circle(16, 9, 1.5); g.fill({ color: 0xff6666, alpha: 0.3 });
+      // Eyes
+      g.circle(11, 7, 1.2); g.fill(0x334455);
+      g.circle(15, 7, 1.2); g.fill(0x334455);
+      // Warm smile
+      g.moveTo(11, 10); g.bezierCurveTo(12, 12, 14, 12, 15, 10);
+      g.stroke({ width: 0.7, color: 0x8b4513 });
+      // Arms
+      g.rect(3, 14, 4, 8); g.fill(0xe8c4a0);
+      g.rect(19, 14, 4, 8); g.fill(0xe8c4a0);
+      // Holding a tankard (right hand)
+      g.roundRect(20, 18, 5, 6, 1); g.fill(0x8b6914);
+      g.roundRect(20, 18, 5, 6, 1); g.stroke({ width: 0.5, color: 0x5a4008 });
+      // Foam on tankard
+      g.ellipse(22.5, 18, 2.5, 1); g.fill(0xffffee);
+      // Feet
+      g.rect(7, 28, 4, 2); g.fill(0x5c3a1e);
+      g.rect(15, 28, 4, 2); g.fill(0x5c3a1e);
+    },
+  },
+
+  "Baker Martha": {
+    width: 24, height: 30,
+    draw(g, w, h) {
+      // Flour-dusted dress (light brown)
+      g.roundRect(6, 13, 12, 13, 3);
+      g.fill(0xb89070);
+      g.roundRect(6, 13, 12, 13, 3);
+      g.stroke({ width: 0.8, color: 0x987050, alpha: 0.5 });
+      // White apron with flour spots
+      g.roundRect(8, 14, 8, 11, 2);
+      g.fill(0xeee8dd);
+      g.circle(10, 18, 0.8); g.fill({ color: 0xffffff, alpha: 0.5 });
+      g.circle(14, 20, 0.6); g.fill({ color: 0xffffff, alpha: 0.5 });
+      g.circle(11, 22, 0.7); g.fill({ color: 0xffffff, alpha: 0.5 });
+      // Head
+      g.circle(w / 2, 8, 5); g.fill(0xe8c4a0);
+      outline(g, w / 2 - 5, 3, 10, 10);
+      // Hair bun with kerchief
+      g.arc(w / 2, 7, 5.5, Math.PI, 0); g.fill(0xeeeedd);
+      g.circle(w / 2, 4, 3); g.fill(0x6b3a1e);
+      // Eyes
+      g.circle(10, 7, 1); g.fill(0x334455);
+      g.circle(14, 7, 1); g.fill(0x334455);
+      // Smile
+      g.moveTo(10, 10); g.bezierCurveTo(11, 11.5, 13, 11.5, 14, 10);
+      g.stroke({ width: 0.6, color: 0x8b4513 });
+      // Rosy cheeks
+      g.circle(9, 9, 1.2); g.fill({ color: 0xff6666, alpha: 0.25 });
+      g.circle(15, 9, 1.2); g.fill({ color: 0xff6666, alpha: 0.25 });
+      // Arms
+      g.rect(3, 14, 3, 7); g.fill(0xe8c4a0);
+      g.rect(18, 14, 3, 7); g.fill(0xe8c4a0);
+      // Holding bread loaf
+      g.ellipse(3, 19, 3, 2); g.fill(0xdaa520);
+      g.ellipse(3, 19, 3, 2); g.stroke({ width: 0.5, color: 0xb8860b, alpha: 0.4 });
+      // Score marks on bread
+      g.moveTo(1.5, 18.5); g.lineTo(2.5, 19.5);
+      g.stroke({ width: 0.3, color: 0xb8860b });
+      g.moveTo(3, 18.5); g.lineTo(4, 19.5);
+      g.stroke({ width: 0.3, color: 0xb8860b });
+      // Feet
+      g.rect(7, 26, 4, 2); g.fill(0x5c3a1e);
+      g.rect(13, 26, 4, 2); g.fill(0x5c3a1e);
+    },
+  },
+
+  "Old Sage Aldric": {
+    width: 28, height: 36,
+    draw(g, w, h) {
+      // Deep purple robe
+      g.moveTo(7, 16); g.lineTo(4, 34); g.lineTo(24, 34); g.lineTo(21, 16);
+      g.fill(0x3a2266);
+      g.moveTo(7, 16); g.lineTo(4, 34); g.lineTo(24, 34); g.lineTo(21, 16);
+      g.stroke({ width: 1, color: 0x2a1450, alpha: 0.5 });
+      // Mystical rune trim at hem
+      g.rect(5, 32, 18, 2); g.fill(0x6644aa);
+      // Star symbols on robe
+      g.circle(10, 24, 1); g.fill(0x8866cc);
+      g.circle(18, 22, 1); g.fill(0x8866cc);
+      g.circle(14, 28, 1); g.fill(0x8866cc);
+      // Head (aged)
+      g.circle(w / 2, 10, 5.5); g.fill(0xdeb887);
+      outline(g, w / 2 - 5.5, 4.5, 11, 11);
+      // Long white beard
+      g.moveTo(9, 13); g.lineTo(w / 2, 26); g.lineTo(19, 13);
+      g.fill(0xdddddd);
+      g.moveTo(9, 13); g.lineTo(w / 2, 26); g.lineTo(19, 13);
+      g.stroke({ width: 0.5, color: 0xbbbbbb, alpha: 0.3 });
+      // Hood pulled back
+      g.arc(w / 2, 10, 7, Math.PI + 0.3, -0.3); g.fill(0x4a3077);
+      // Wise eyes (deep set)
+      g.circle(11, 9, 1.3); g.fill(0x1a1a44);
+      g.circle(11, 9, 0.5); g.fill(0x4488ff);
+      g.circle(17, 9, 1.3); g.fill(0x1a1a44);
+      g.circle(17, 9, 0.5); g.fill(0x4488ff);
+      // Bushy eyebrows
+      g.rect(9, 7.5, 4, 1.2); g.fill(0xcccccc);
+      g.rect(15, 7.5, 4, 1.2); g.fill(0xcccccc);
+      // Walking staff (left hand)
+      g.rect(2, 4, 2, 30); g.fill(0x5c3a1e);
+      // Crystal atop staff
+      g.moveTo(3, 4); g.lineTo(1, 1); g.lineTo(3, -2); g.lineTo(5, 1);
+      g.fill(0x8844ff);
+      g.fill({ color: 0xccaaff, alpha: 0.4 });
+      // Hands
+      g.circle(6, 22, 2); g.fill(0xdeb887);
+      g.circle(22, 22, 2); g.fill(0xdeb887);
+    },
+  },
+
+  "Street Urchin": {
+    width: 20, height: 24,
+    draw(g, w, h) {
+      // Ragged tunic (patched brown)
+      g.roundRect(5, 10, 10, 9, 2);
+      g.fill(0x7a6a4a);
+      // Patch
+      g.rect(7, 12, 3, 3); g.fill(0x5a5a3a);
+      g.rect(7, 12, 3, 3); g.stroke({ width: 0.5, color: 0x4a4a2a });
+      // Head (small, young)
+      g.circle(w / 2, 6, 4.5); g.fill(0xd4a574);
+      outline(g, w / 2 - 4.5, 1.5, 9, 9);
+      // Messy hair
+      g.arc(w / 2, 5, 5, Math.PI, 0); g.fill(0x4a3020);
+      g.moveTo(6, 3); g.lineTo(5, 1); g.lineTo(7, 3); g.fill(0x4a3020);
+      g.moveTo(12, 2); g.lineTo(13, 0); g.lineTo(14, 3); g.fill(0x4a3020);
+      // Big curious eyes
+      g.circle(8, 6, 1.5); g.fill(0xffffff);
+      g.circle(8, 6, 0.8); g.fill(0x334455);
+      g.circle(12, 6, 1.5); g.fill(0xffffff);
+      g.circle(12, 6, 0.8); g.fill(0x334455);
+      // Cheeky grin
+      g.moveTo(8, 8); g.bezierCurveTo(9, 10, 11, 10, 12, 8);
+      g.stroke({ width: 0.6, color: 0x8b5e3c });
+      // Smudge on cheek
+      g.circle(13, 7, 1); g.fill({ color: 0x5a4a3a, alpha: 0.3 });
+      // Thin arms
+      g.rect(2, 11, 3, 6); g.fill(0xd4a574);
+      g.rect(15, 11, 3, 6); g.fill(0xd4a574);
+      // Bare feet
+      g.rect(6, 19, 3, 3); g.fill(0xc49a6c);
+      g.rect(11, 19, 3, 3); g.fill(0xc49a6c);
+    },
+  },
+
+  "Wandering Bard": {
+    width: 26, height: 32,
+    draw(g, w, h) {
+      // Colorful tunic (half red, half blue — jester-like)
+      g.roundRect(7, 13, 6, 13, 2);
+      g.fill(0xcc3333);
+      g.roundRect(13, 13, 6, 13, 2);
+      g.fill(0x3355aa);
+      // Fancy collar
+      g.moveTo(7, 13); g.lineTo(9, 10); g.lineTo(13, 13);
+      g.fill(0xcc3333);
+      g.moveTo(13, 13); g.lineTo(17, 10); g.lineTo(19, 13);
+      g.fill(0x3355aa);
+      // Belt with gold buckle
+      g.rect(7, 20, 12, 2); g.fill(0x5c3a1e);
+      g.rect(11, 20, 4, 2); g.fill(0xdaa520);
+      // Head
+      g.circle(w / 2, 7, 5.5); g.fill(0xe8c4a0);
+      outline(g, w / 2 - 5.5, 1.5, 11, 11);
+      // Feathered cap
+      g.arc(w / 2, 5, 6, Math.PI, 0); g.fill(0x884422);
+      g.arc(w / 2, 5, 6, Math.PI, 0); g.stroke({ width: 0.5, color: 0x662211 });
+      // Feather
+      g.moveTo(19, 4); g.bezierCurveTo(22, 0, 24, -2, 22, -4);
+      g.stroke({ width: 1.5, color: 0xcc3333 });
+      g.moveTo(22, -4); g.bezierCurveTo(21, -3, 22, -1, 19, 4);
+      g.fill({ color: 0xcc3333, alpha: 0.3 });
+      // Charming eyes
+      g.circle(11, 6, 1.2); g.fill(0x334455);
+      g.circle(15, 6, 1.2); g.fill(0x334455);
+      // Dashing smile
+      g.moveTo(11, 9); g.bezierCurveTo(12, 11, 14, 11, 15, 9);
+      g.stroke({ width: 0.7, color: 0x8b4513 });
+      // Goatee
+      g.moveTo(12, 11); g.lineTo(w / 2, 14); g.lineTo(14, 11);
+      g.fill(0x4a3020);
+      // Arms
+      g.rect(3, 14, 4, 7); g.fill(0xe8c4a0);
+      g.rect(19, 14, 4, 7); g.fill(0xe8c4a0);
+      // Lute in left hand
+      g.ellipse(2, 20, 4, 3); g.fill(0xb8860b);
+      g.ellipse(2, 20, 4, 3); g.stroke({ width: 0.5, color: 0x8b6508 });
+      g.circle(2, 20, 1); g.fill(0x333333);
+      g.moveTo(2, 17); g.lineTo(2, 10);
+      g.stroke({ width: 1.5, color: 0x8b6508 });
+      // Lute strings
+      g.moveTo(1, 18); g.lineTo(1, 22); g.stroke({ width: 0.3, color: 0xccccaa });
+      g.moveTo(3, 18); g.lineTo(3, 22); g.stroke({ width: 0.3, color: 0xccccaa });
+      // Legs
+      g.rect(9, 26, 4, 5); g.fill(0xcc3333);
+      g.rect(13, 26, 4, 5); g.fill(0x3355aa);
+      // Boots with curl
+      g.rect(8, 29, 5, 2); g.fill(0x5c3a1e);
+      g.rect(13, 29, 5, 2); g.fill(0x5c3a1e);
+    },
+  },
+
+  "Hermit Greybeard": {
+    width: 26, height: 34,
+    draw(g, w, h) {
+      // Tattered brown robe
+      g.moveTo(7, 15); g.lineTo(5, 32); g.lineTo(21, 32); g.lineTo(19, 15);
+      g.fill(0x6a5a3a);
+      g.moveTo(7, 15); g.lineTo(5, 32); g.lineTo(21, 32); g.lineTo(19, 15);
+      g.stroke({ width: 0.8, color: 0x4a3a2a, alpha: 0.5 });
+      // Rope belt
+      g.moveTo(7, 22); g.bezierCurveTo(10, 23, 16, 23, 19, 22);
+      g.stroke({ width: 1.5, color: 0x8a7a5a });
+      // Head (weathered)
+      g.circle(w / 2, 9, 5.5); g.fill(0xc49a6c);
+      outline(g, w / 2 - 5.5, 3.5, 11, 11);
+      // Very long gray beard
+      g.moveTo(8, 12); g.lineTo(w / 2, 28); g.lineTo(18, 12);
+      g.fill(0xaaaaaa);
+      g.moveTo(8, 12); g.lineTo(w / 2, 28); g.lineTo(18, 12);
+      g.stroke({ width: 0.5, color: 0x888888, alpha: 0.3 });
+      // Wild eyebrows
+      g.moveTo(8, 7); g.lineTo(7, 5.5); g.lineTo(13, 7);
+      g.fill(0x999999);
+      g.moveTo(14, 7); g.lineTo(19, 5.5); g.lineTo(18, 7);
+      g.fill(0x999999);
+      // Deep-set eyes
+      g.circle(11, 8, 1); g.fill(0x556655);
+      g.circle(15, 8, 1); g.fill(0x556655);
+      // Hood up
+      g.arc(w / 2, 9, 7, Math.PI + 0.2, -0.2); g.fill(0x5a4a2a);
+      // Walking stick (knotty branch)
+      g.rect(22, 6, 2, 26); g.fill(0x4a3a1e);
+      g.circle(23, 10, 1.5); g.fill(0x5a4a2e);
+      g.circle(23, 18, 1); g.fill(0x5a4a2e);
+      // Hands
+      g.circle(7, 20, 2); g.fill(0xc49a6c);
+      g.circle(19, 20, 2); g.fill(0xc49a6c);
+    },
+  },
+
+  "Wounded Scout": {
+    width: 24, height: 30,
+    draw(g, w, h) {
+      // Leather armor (torn)
+      g.roundRect(6, 12, 12, 12, 2);
+      g.fill(0x6b4226);
+      g.roundRect(6, 12, 12, 12, 2);
+      g.stroke({ width: 0.8, color: 0x4a2e1a, alpha: 0.5 });
+      // Tear in armor
+      g.moveTo(14, 14); g.lineTo(16, 18); g.lineTo(15, 14);
+      g.fill(0x5a3218);
+      // Bandage on torso
+      g.rect(8, 16, 8, 2); g.fill(0xeeddcc);
+      g.rect(8, 16, 8, 2); g.stroke({ width: 0.3, color: 0xccbbaa });
+      // Blood spot on bandage
+      g.circle(12, 17, 1.5); g.fill({ color: 0xcc2222, alpha: 0.5 });
+      // Head
+      g.circle(w / 2, 7, 5); g.fill(0xdeb887);
+      outline(g, w / 2 - 5, 2, 10, 10);
+      // Bandage on head
+      g.rect(6, 4, 12, 2); g.fill(0xeeddcc);
+      g.circle(16, 5, 1.2); g.fill({ color: 0xcc2222, alpha: 0.4 });
+      // Pained expression
+      g.circle(10, 7, 1); g.fill(0x334455);
+      g.circle(14, 7, 1); g.fill(0x334455);
+      // Furrowed brows
+      g.moveTo(8, 5.5); g.lineTo(12, 6); g.stroke({ width: 0.8, color: 0x6b4226 });
+      g.moveTo(16, 6); g.lineTo(12, 5.5); g.stroke({ width: 0.8, color: 0x6b4226 });
+      // Grimace
+      g.moveTo(10, 10); g.bezierCurveTo(11, 9, 13, 9, 14, 10);
+      g.stroke({ width: 0.6, color: 0x8b5e3c });
+      // One arm in sling
+      g.rect(3, 13, 3, 7); g.fill(0xdeb887);
+      g.rect(18, 14, 3, 5); g.fill(0xeeddcc);
+      // Legs (one bent, leaning)
+      g.rect(8, 24, 4, 5); g.fill(0x5c3a1e);
+      g.rect(14, 24, 4, 4); g.fill(0x5c3a1e);
+    },
+  },
+
+  "Forest Spirit": {
+    width: 24, height: 32,
+    draw(g, w, h) {
+      // Ethereal body (translucent green)
+      g.moveTo(6, 14); g.lineTo(4, 30); g.lineTo(20, 30); g.lineTo(18, 14);
+      g.fill({ color: 0x44dd88, alpha: 0.5 });
+      // Inner glow
+      g.moveTo(8, 16); g.lineTo(7, 28); g.lineTo(17, 28); g.lineTo(16, 16);
+      g.fill({ color: 0x88ffbb, alpha: 0.3 });
+      // Leaf crown / head area
+      g.circle(w / 2, 9, 6); g.fill({ color: 0x44cc66, alpha: 0.6 });
+      g.circle(w / 2, 9, 4); g.fill({ color: 0x88ffaa, alpha: 0.4 });
+      // Leaf crown details
+      g.moveTo(6, 6); g.lineTo(4, 2); g.lineTo(8, 5); g.fill(0x33aa55);
+      g.moveTo(10, 4); g.lineTo(w / 2, 0); g.lineTo(14, 4); g.fill(0x33aa55);
+      g.moveTo(18, 6); g.lineTo(20, 2); g.lineTo(16, 5); g.fill(0x33aa55);
+      // Glowing eyes
+      g.circle(10, 9, 1.5); g.fill(0xffffff);
+      g.circle(10, 9, 0.8); g.fill(0x88ffcc);
+      g.circle(14, 9, 1.5); g.fill(0xffffff);
+      g.circle(14, 9, 0.8); g.fill(0x88ffcc);
+      // Gentle expression
+      g.moveTo(10, 12); g.bezierCurveTo(11, 13, 13, 13, 14, 12);
+      g.stroke({ width: 0.5, color: 0x33aa55, alpha: 0.6 });
+      // Floating particles around body
+      g.circle(3, 18, 1); g.fill({ color: 0xaaffcc, alpha: 0.5 });
+      g.circle(21, 14, 0.8); g.fill({ color: 0xaaffcc, alpha: 0.5 });
+      g.circle(5, 26, 0.7); g.fill({ color: 0xaaffcc, alpha: 0.4 });
+      g.circle(19, 24, 0.9); g.fill({ color: 0xaaffcc, alpha: 0.4 });
+      // Wispy arms
+      g.moveTo(6, 16); g.bezierCurveTo(2, 18, 1, 22, 3, 24);
+      g.stroke({ width: 2, color: 0x44dd88, alpha: 0.5 });
+      g.moveTo(18, 16); g.bezierCurveTo(22, 18, 23, 22, 21, 24);
+      g.stroke({ width: 2, color: 0x44dd88, alpha: 0.5 });
+      // Trailing wisps at bottom
+      g.moveTo(6, 30); g.bezierCurveTo(7, 32, 5, 32, 6, 34);
+      g.stroke({ width: 1, color: 0x44dd88, alpha: 0.3 });
+      g.moveTo(18, 30); g.bezierCurveTo(17, 32, 19, 32, 18, 34);
+      g.stroke({ width: 1, color: 0x44dd88, alpha: 0.3 });
+    },
+  },
+
+  "Traveling Merchant": {
+    width: 28, height: 32,
+    draw(g, w, h) {
+      // Rich red-and-gold tunic
+      g.roundRect(7, 14, 14, 12, 3);
+      g.fill(0xaa3333);
+      g.roundRect(7, 14, 14, 12, 3);
+      g.stroke({ width: 0.8, color: 0x882222, alpha: 0.5 });
+      // Gold trim
+      g.rect(7, 14, 14, 2); g.fill(0xdaa520);
+      g.rect(7, 24, 14, 2); g.fill(0xdaa520);
+      // Large backpack
+      g.roundRect(18, 10, 9, 16, 3); g.fill(0x8b6914);
+      g.roundRect(18, 10, 9, 16, 3); g.stroke({ width: 0.8, color: 0x5a4008 });
+      // Pack straps
+      g.moveTo(19, 12); g.lineTo(16, 14); g.stroke({ width: 1.5, color: 0x5a4008 });
+      g.moveTo(19, 14); g.lineTo(16, 16); g.stroke({ width: 1.5, color: 0x5a4008 });
+      // Wares peeking out of pack
+      g.circle(22, 12, 2); g.fill(0x44aaff);
+      g.rect(24, 14, 2, 3); g.fill(0xcc4444);
+      // Head
+      g.circle(w / 2, 8, 5.5); g.fill(0xd4a574);
+      outline(g, w / 2 - 5.5, 2.5, 11, 11);
+      // Turban
+      g.arc(w / 2, 7, 6, Math.PI, 0); g.fill(0xcc8833);
+      g.circle(w / 2, 3, 3); g.fill(0xcc8833);
+      g.circle(w / 2, 3, 2); g.fill(0xdd9944);
+      // Gem on turban
+      g.circle(w / 2, 3, 1.2); g.fill(0xff4444);
+      g.circle(w / 2, 3, 0.5); g.fill({ color: 0xffaaaa, alpha: 0.7 });
+      // Mustache
+      g.moveTo(10, 10); g.bezierCurveTo(8, 12, 9, 12, 10, 11);
+      g.fill(0x2c1b0e);
+      g.moveTo(16, 10); g.bezierCurveTo(18, 12, 17, 12, 16, 11);
+      g.fill(0x2c1b0e);
+      // Eyes
+      g.circle(11, 7, 1.2); g.fill(0x2c1b0e);
+      g.circle(15, 7, 1.2); g.fill(0x2c1b0e);
+      // Sly smile
+      g.moveTo(11, 10); g.bezierCurveTo(12, 11, 14, 11, 15, 10);
+      g.stroke({ width: 0.6, color: 0x8b5e3c });
+      // Arms
+      g.rect(3, 14, 4, 8); g.fill(0xd4a574);
+      g.rect(17, 14, 3, 8); g.fill(0xd4a574);
+      // Legs
+      g.rect(9, 26, 4, 5); g.fill(0x4a3020);
+      g.rect(15, 26, 4, 5); g.fill(0x4a3020);
+      // Pointy shoes
+      g.moveTo(8, 30); g.lineTo(6, 31); g.lineTo(13, 31); g.lineTo(13, 30);
+      g.fill(0x5c3a1e);
+      g.moveTo(14, 30); g.lineTo(14, 31); g.lineTo(21, 31); g.lineTo(20, 30);
+      g.fill(0x5c3a1e);
+    },
+  },
+
+  "Shepherd Boy": {
+    width: 22, height: 28,
+    draw(g, w, h) {
+      // Simple tunic (cream)
+      g.roundRect(5, 11, 12, 11, 2);
+      g.fill(0xddd8c4);
+      g.roundRect(5, 11, 12, 11, 2);
+      g.stroke({ width: 0.5, color: 0xbbb8a4, alpha: 0.5 });
+      // Vest (brown)
+      g.roundRect(7, 11, 8, 8, 1);
+      g.fill(0x8b6914);
+      // Head (young face)
+      g.circle(w / 2, 7, 5); g.fill(0xe8c4a0);
+      outline(g, w / 2 - 5, 2, 10, 10);
+      // Floppy brown hair
+      g.arc(w / 2, 6, 5.5, Math.PI, 0); g.fill(0x6b3a1e);
+      g.rect(5, 6, 3, 3); g.fill(0x6b3a1e);
+      // Big innocent eyes
+      g.circle(9, 7, 1.3); g.fill(0x4488aa);
+      g.circle(9, 7, 0.5); g.fill(0x111111);
+      g.circle(13, 7, 1.3); g.fill(0x4488aa);
+      g.circle(13, 7, 0.5); g.fill(0x111111);
+      // Small smile
+      g.moveTo(9, 9); g.bezierCurveTo(10, 10.5, 12, 10.5, 13, 9);
+      g.stroke({ width: 0.5, color: 0x8b5e3c });
+      // Freckles
+      g.circle(8, 8, 0.4); g.fill(0xc49a6c);
+      g.circle(14, 8, 0.4); g.fill(0xc49a6c);
+      g.circle(10, 9, 0.4); g.fill(0xc49a6c);
+      // Shepherd's crook (tall staff with curved top)
+      g.rect(18, 4, 2, 22); g.fill(0x5c3a1e);
+      g.moveTo(19, 4); g.bezierCurveTo(19, 0, 14, 0, 14, 3);
+      g.stroke({ width: 2, color: 0x5c3a1e });
+      // Arms
+      g.rect(2, 12, 3, 6); g.fill(0xe8c4a0);
+      g.rect(17, 12, 3, 6); g.fill(0xe8c4a0);
+      // Legs
+      g.rect(7, 22, 3, 5); g.fill(0x7a6a4a);
+      g.rect(12, 22, 3, 5); g.fill(0x7a6a4a);
+      // Simple shoes
+      g.rect(6, 25, 4, 2); g.fill(0x5c3a1e);
+      g.rect(12, 25, 4, 2); g.fill(0x5c3a1e);
+    },
+  },
+
+  "Bridge Keeper": {
+    width: 28, height: 34,
+    draw(g, w, h) {
+      // Heavy overcoat (dark green)
+      g.roundRect(6, 14, 16, 14, 3);
+      g.fill(0x3a5a3a);
+      g.roundRect(6, 14, 16, 14, 3);
+      g.stroke({ width: 1, color: 0x2a3a2a, alpha: 0.5 });
+      // Buttons down front
+      g.circle(14, 17, 0.8); g.fill(0x888888);
+      g.circle(14, 20, 0.8); g.fill(0x888888);
+      g.circle(14, 23, 0.8); g.fill(0x888888);
+      // Belt with large buckle
+      g.rect(6, 24, 16, 2); g.fill(0x5c3a1e);
+      g.rect(11, 23.5, 6, 3); g.fill(0xccaa44);
+      // Head (stocky)
+      g.circle(w / 2, 8, 6); g.fill(0xdeb887);
+      outline(g, w / 2 - 6, 2, 12, 12);
+      // Flat cap
+      g.arc(w / 2, 6, 7, Math.PI, 0); g.fill(0x444444);
+      g.ellipse(w / 2, 6, 8, 1.5); g.fill(0x444444);
+      // Thick sideburns
+      g.rect(7, 8, 2, 5); g.fill(0x4a3020);
+      g.rect(19, 8, 2, 5); g.fill(0x4a3020);
+      // Stern eyes
+      g.circle(11, 8, 1.2); g.fill(0x334455);
+      g.circle(17, 8, 1.2); g.fill(0x334455);
+      // Thick mustache
+      g.ellipse(w / 2, 11, 4, 1.5); g.fill(0x4a3020);
+      // Strong arms
+      g.rect(3, 15, 4, 9); g.fill(0x3a5a3a);
+      g.rect(21, 15, 4, 9); g.fill(0x3a5a3a);
+      // Lantern in left hand
+      g.roundRect(0, 20, 4, 5, 1); g.fill(0xccaa44);
+      g.roundRect(0, 20, 4, 5, 1); g.stroke({ width: 0.5, color: 0x888844 });
+      g.circle(2, 22, 1.5); g.fill({ color: 0xffdd44, alpha: 0.6 });
+      g.rect(1, 18, 2, 2); g.fill(0x888844);
+      // Legs
+      g.rect(8, 28, 5, 5); g.fill(0x444444);
+      g.rect(15, 28, 5, 5); g.fill(0x444444);
+      // Heavy boots
+      g.rect(7, 31, 6, 3); g.fill(0x333333);
+      g.rect(15, 31, 6, 3); g.fill(0x333333);
+    },
+  },
+
+  "Lost Traveler": {
+    width: 24, height: 30,
+    draw(g, w, h) {
+      // Muddy, tattered travel cloak
+      g.moveTo(6, 13); g.lineTo(4, 28); g.lineTo(20, 28); g.lineTo(18, 13);
+      g.fill(0x5a5a3a);
+      g.moveTo(6, 13); g.lineTo(4, 28); g.lineTo(20, 28); g.lineTo(18, 13);
+      g.stroke({ width: 0.8, color: 0x3a3a2a, alpha: 0.5 });
+      // Mud splatters
+      g.circle(8, 26, 1.2); g.fill({ color: 0x4a3a1e, alpha: 0.5 });
+      g.circle(16, 27, 1); g.fill({ color: 0x4a3a1e, alpha: 0.5 });
+      g.circle(12, 25, 0.8); g.fill({ color: 0x4a3a1e, alpha: 0.4 });
+      // Head (exhausted)
+      g.circle(w / 2, 8, 5); g.fill(0xdeb887);
+      outline(g, w / 2 - 5, 3, 10, 10);
+      // Disheveled hair
+      g.arc(w / 2, 7, 5.5, Math.PI, 0); g.fill(0x5a3a1e);
+      g.moveTo(6, 5); g.lineTo(5, 3); g.lineTo(8, 5); g.fill(0x5a3a1e);
+      g.moveTo(16, 4); g.lineTo(18, 2); g.lineTo(17, 5); g.fill(0x5a3a1e);
+      // Tired eyes (bags underneath)
+      g.circle(10, 8, 1); g.fill(0x334455);
+      g.arc(10, 9, 1.5, 0, Math.PI); g.fill({ color: 0x6a5a5a, alpha: 0.3 });
+      g.circle(14, 8, 1); g.fill(0x334455);
+      g.arc(14, 9, 1.5, 0, Math.PI); g.fill({ color: 0x6a5a5a, alpha: 0.3 });
+      // Worried mouth
+      g.moveTo(10, 11); g.bezierCurveTo(11, 10, 13, 10, 14, 11);
+      g.stroke({ width: 0.6, color: 0x8b5e3c });
+      // Arms
+      g.rect(3, 14, 3, 7); g.fill(0xdeb887);
+      g.rect(18, 14, 3, 7); g.fill(0xdeb887);
+      // Torn backpack
+      g.roundRect(17, 11, 6, 10, 2); g.fill(0x6a5a3a);
+      g.roundRect(17, 11, 6, 10, 2); g.stroke({ width: 0.5, color: 0x4a3a2a });
+      // Legs (muddy)
+      g.rect(7, 24, 4, 5); g.fill(0x5a4a2a);
+      g.rect(13, 24, 4, 5); g.fill(0x5a4a2a);
+    },
+  },
+
+  "Scout Ember": {
+    width: 24, height: 32,
+    draw(g, w, h) {
+      // Red-orange leather armor
+      g.roundRect(6, 13, 12, 12, 2);
+      g.fill(0xcc5533);
+      g.roundRect(6, 13, 12, 12, 2);
+      g.stroke({ width: 0.8, color: 0xaa3322, alpha: 0.5 });
+      // Shoulder pads
+      g.ellipse(6, 14, 3, 2); g.fill(0xaa4422);
+      g.ellipse(18, 14, 3, 2); g.fill(0xaa4422);
+      // Head
+      g.circle(w / 2, 8, 5); g.fill(0xd4a574);
+      outline(g, w / 2 - 5, 3, 10, 10);
+      // Short fiery red hair
+      g.arc(w / 2, 7, 5.5, Math.PI, 0); g.fill(0xcc3311);
+      g.moveTo(7, 4); g.lineTo(6, 1); g.lineTo(9, 4); g.fill(0xcc3311);
+      g.moveTo(14, 3); g.lineTo(15, 0); g.lineTo(17, 4); g.fill(0xcc3311);
+      // Determined eyes
+      g.circle(10, 7, 1.2); g.fill(0xcc6622);
+      g.circle(14, 7, 1.2); g.fill(0xcc6622);
+      g.circle(10, 7, 0.5); g.fill(0x111111);
+      g.circle(14, 7, 0.5); g.fill(0x111111);
+      // Scar on cheek
+      g.moveTo(15, 8); g.lineTo(17, 10);
+      g.stroke({ width: 0.5, color: 0xaa7766 });
+      // Confident expression
+      g.moveTo(10, 10); g.lineTo(14, 10);
+      g.stroke({ width: 0.6, color: 0x8b5e3c });
+      // Arms
+      g.rect(3, 14, 3, 8); g.fill(0xd4a574);
+      g.rect(18, 14, 3, 8); g.fill(0xd4a574);
+      // Bow on back
+      g.moveTo(19, 8); g.bezierCurveTo(23, 12, 23, 22, 19, 26);
+      g.stroke({ width: 1.5, color: 0x5c3a1e });
+      g.moveTo(19, 8); g.lineTo(19, 26);
+      g.stroke({ width: 0.5, color: 0xccccaa });
+      // Quiver
+      g.roundRect(16, 8, 3, 12, 1); g.fill(0x6b4226);
+      // Arrow tips peeking out
+      g.moveTo(17, 7); g.lineTo(17.5, 5); g.lineTo(18, 7);
+      g.fill(0xaaaaaa);
+      // Legs
+      g.rect(8, 25, 4, 5); g.fill(0x5c3a1e);
+      g.rect(12, 25, 4, 5); g.fill(0x5c3a1e);
+      // Boots
+      g.rect(7, 29, 5, 2); g.fill(0x444444);
+      g.rect(12, 29, 5, 2); g.fill(0x444444);
+    },
+  },
+
+  "Lava Researcher": {
+    width: 26, height: 32,
+    draw(g, w, h) {
+      // Heat-resistant robe (dark gray with orange accents)
+      g.roundRect(6, 14, 14, 13, 3);
+      g.fill(0x444444);
+      g.roundRect(6, 14, 14, 13, 3);
+      g.stroke({ width: 0.8, color: 0x333333, alpha: 0.5 });
+      // Orange trim
+      g.rect(6, 25, 14, 2); g.fill(0xdd6622);
+      // Head
+      g.circle(w / 2, 8, 5.5); g.fill(0xdeb887);
+      outline(g, w / 2 - 5.5, 2.5, 11, 11);
+      // Goggles pushed up on forehead
+      g.rect(8, 3, 10, 3); g.fill(0x333333);
+      g.circle(10, 4.5, 2.5); g.fill(0x666666);
+      g.circle(10, 4.5, 1.8); g.fill({ color: 0xff8844, alpha: 0.4 });
+      g.circle(16, 4.5, 2.5); g.fill(0x666666);
+      g.circle(16, 4.5, 1.8); g.fill({ color: 0xff8844, alpha: 0.4 });
+      // Eyes (excited/curious)
+      g.circle(10, 8, 1.3); g.fill(0x334455);
+      g.circle(16, 8, 1.3); g.fill(0x334455);
+      // Small smile of fascination
+      g.moveTo(11, 10); g.bezierCurveTo(12, 11.5, 14, 11.5, 15, 10);
+      g.stroke({ width: 0.5, color: 0x8b5e3c });
+      // Notebook in left hand
+      g.roundRect(0, 18, 5, 7, 1); g.fill(0x6b4226);
+      g.roundRect(0, 18, 5, 7, 1); g.stroke({ width: 0.5, color: 0x4a2e1a });
+      g.rect(1, 20, 3, 0.5); g.fill(0xeeddcc);
+      g.rect(1, 22, 3, 0.5); g.fill(0xeeddcc);
+      // Arms
+      g.rect(3, 14, 3, 8); g.fill(0xdeb887);
+      g.rect(20, 14, 3, 8); g.fill(0xdeb887);
+      // Glowing sample in right hand
+      g.circle(22, 20, 3); g.fill({ color: 0xff6600, alpha: 0.4 });
+      g.circle(22, 20, 2); g.fill(0xff8833);
+      g.circle(22, 20, 1); g.fill({ color: 0xffcc66, alpha: 0.7 });
+      // Legs
+      g.rect(8, 27, 4, 5); g.fill(0x555555);
+      g.rect(14, 27, 4, 5); g.fill(0x555555);
+      // Heat-proof boots
+      g.rect(7, 30, 5, 2); g.fill(0x666666);
+      g.rect(14, 30, 5, 2); g.fill(0x666666);
+    },
+  },
+
+  "Scorched Survivor": {
+    width: 24, height: 30,
+    draw(g, w, h) {
+      // Burned and torn clothing
+      g.roundRect(6, 12, 12, 12, 2);
+      g.fill(0x3a3a3a);
+      // Burn marks / holes
+      g.circle(9, 16, 1.5); g.fill(0x2a1a0a);
+      g.circle(14, 18, 1); g.fill(0x2a1a0a);
+      // Soot-stained skin visible through tears
+      g.circle(10, 20, 1); g.fill(0xc49a6c);
+      // Head (soot-covered)
+      g.circle(w / 2, 7, 5); g.fill(0xc49a6c);
+      outline(g, w / 2 - 5, 2, 10, 10);
+      // Singed hair (patchy)
+      g.arc(w / 2, 6, 5, Math.PI + 0.5, -0.5); g.fill(0x3a2a1e);
+      // Soot smudges on face
+      g.circle(8, 8, 1.5); g.fill({ color: 0x222222, alpha: 0.3 });
+      g.circle(15, 6, 1); g.fill({ color: 0x222222, alpha: 0.25 });
+      // Haunted eyes
+      g.circle(10, 7, 1.2); g.fill(0xffffff);
+      g.circle(10, 7, 0.6); g.fill(0x334455);
+      g.circle(14, 7, 1.2); g.fill(0xffffff);
+      g.circle(14, 7, 0.6); g.fill(0x334455);
+      // Bandaged arm
+      g.rect(3, 13, 3, 7); g.fill(0xeeddcc);
+      g.rect(3, 14, 3, 1); g.fill({ color: 0xcc4444, alpha: 0.3 });
+      g.rect(18, 13, 3, 7); g.fill(0xc49a6c);
+      // Legs
+      g.rect(8, 24, 4, 5); g.fill(0x3a3a3a);
+      g.rect(12, 24, 4, 5); g.fill(0x3a3a3a);
+      // Worn boots
+      g.rect(7, 27, 5, 2); g.fill(0x2a2a2a);
+      g.rect(12, 27, 5, 2); g.fill(0x2a2a2a);
+    },
+  },
+
+  "Ranger Frost": {
+    width: 26, height: 34,
+    draw(g, w, h) {
+      // Fur-lined winter armor (ice blue + white)
+      g.roundRect(6, 14, 14, 14, 3);
+      g.fill(0x556688);
+      g.roundRect(6, 14, 14, 14, 3);
+      g.stroke({ width: 0.8, color: 0x445577, alpha: 0.5 });
+      // Fur trim at collar
+      g.ellipse(w / 2, 14, 8, 2); g.fill(0xeeeedd);
+      g.ellipse(w / 2, 14, 8, 2); g.stroke({ width: 0.3, color: 0xccccbb });
+      // Head
+      g.circle(w / 2, 8, 5.5); g.fill(0xdeb887);
+      outline(g, w / 2 - 5.5, 2.5, 11, 11);
+      // Winter hood (white fur trim)
+      g.arc(w / 2, 8, 7, Math.PI + 0.3, -0.3); g.fill(0x445577);
+      g.arc(w / 2, 8, 7, Math.PI + 0.3, -0.3);
+      g.stroke({ width: 2, color: 0xeeeedd });
+      // Ice-blue eyes
+      g.circle(11, 8, 1.3); g.fill(0x88bbee);
+      g.circle(11, 8, 0.5); g.fill(0x111111);
+      g.circle(15, 8, 1.3); g.fill(0x88bbee);
+      g.circle(15, 8, 0.5); g.fill(0x111111);
+      // Stern set jaw
+      g.moveTo(11, 11); g.lineTo(15, 11);
+      g.stroke({ width: 0.7, color: 0x8b5e3c });
+      // Sword at side
+      g.rect(22, 10, 2, 20); g.fill(0x888888);
+      g.rect(22, 10, 2, 20); g.stroke({ width: 0.3, color: 0x555555 });
+      // Sword guard
+      g.rect(20, 16, 6, 2); g.fill(0xaaaaaa);
+      // Sword grip
+      g.rect(22, 18, 2, 5); g.fill(0x5c3a1e);
+      // Arms (gloved)
+      g.rect(3, 15, 4, 9); g.fill(0x556688);
+      g.rect(19, 15, 4, 9); g.fill(0x556688);
+      // Legs (armored)
+      g.rect(8, 28, 5, 5); g.fill(0x445566);
+      g.rect(13, 28, 5, 5); g.fill(0x445566);
+      // Fur-lined boots
+      g.rect(7, 31, 6, 3); g.fill(0x444444);
+      g.rect(7, 31, 6, 1); g.fill(0xeeeedd);
+      g.rect(13, 31, 6, 3); g.fill(0x444444);
+      g.rect(13, 31, 6, 1); g.fill(0xeeeedd);
+    },
+  },
+
+  "Ice Scholar": {
+    width: 24, height: 32,
+    draw(g, w, h) {
+      // White and blue scholar robe
+      g.moveTo(6, 14); g.lineTo(4, 30); g.lineTo(20, 30); g.lineTo(18, 14);
+      g.fill(0xddddee);
+      g.moveTo(6, 14); g.lineTo(4, 30); g.lineTo(20, 30); g.lineTo(18, 14);
+      g.stroke({ width: 0.8, color: 0xbbbbcc, alpha: 0.5 });
+      // Blue rune patterns on robe
+      g.circle(8, 22, 1.2); g.fill({ color: 0x4488cc, alpha: 0.6 });
+      g.circle(16, 20, 1); g.fill({ color: 0x4488cc, alpha: 0.6 });
+      g.circle(12, 26, 1.2); g.fill({ color: 0x4488cc, alpha: 0.6 });
+      // Head
+      g.circle(w / 2, 8, 5); g.fill(0xdeb887);
+      outline(g, w / 2 - 5, 3, 10, 10);
+      // Spectacles
+      g.circle(10, 7, 2); g.stroke({ width: 0.8, color: 0x888888 });
+      g.circle(14, 7, 2); g.stroke({ width: 0.8, color: 0x888888 });
+      g.rect(12, 7, 1, 0.5); g.fill(0x888888);
+      // Blue lens tint
+      g.circle(10, 7, 1.5); g.fill({ color: 0x88bbff, alpha: 0.2 });
+      g.circle(14, 7, 1.5); g.fill({ color: 0x88bbff, alpha: 0.2 });
+      // Eyes behind glasses
+      g.circle(10, 7, 0.8); g.fill(0x334455);
+      g.circle(14, 7, 0.8); g.fill(0x334455);
+      // Neat gray hair
+      g.arc(w / 2, 7, 5.5, Math.PI, 0); g.fill(0x999999);
+      // Scroll in left hand
+      g.roundRect(0, 16, 5, 10, 2); g.fill(0xeeddcc);
+      g.roundRect(0, 16, 5, 10, 2); g.stroke({ width: 0.5, color: 0xccbbaa });
+      g.ellipse(2.5, 16, 2.5, 1); g.fill(0xeeddcc);
+      g.ellipse(2.5, 26, 2.5, 1); g.fill(0xeeddcc);
+      // Ice crystal in right hand
+      g.moveTo(21, 16); g.lineTo(19, 20); g.lineTo(21, 24); g.lineTo(23, 20);
+      g.fill({ color: 0x88ccff, alpha: 0.6 });
+      g.moveTo(21, 16); g.lineTo(19, 20); g.lineTo(21, 24); g.lineTo(23, 20);
+      g.stroke({ width: 0.5, color: 0xaaddff });
+      g.circle(21, 20, 1); g.fill({ color: 0xffffff, alpha: 0.5 });
+      // Arms
+      g.rect(3, 14, 3, 7); g.fill(0xdeb887);
+      g.rect(18, 14, 3, 7); g.fill(0xdeb887);
+      // Feet
+      g.rect(6, 28, 4, 2); g.fill(0x556677);
+      g.rect(14, 28, 4, 2); g.fill(0x556677);
+    },
+  },
+
+  "Stranded Explorer": {
+    width: 24, height: 30,
+    draw(g, w, h) {
+      // Torn expedition gear (dark blue)
+      g.roundRect(6, 12, 12, 12, 2);
+      g.fill(0x334466);
+      g.roundRect(6, 12, 12, 12, 2);
+      g.stroke({ width: 0.8, color: 0x223355, alpha: 0.5 });
+      // Ice/frost on gear
+      g.circle(8, 14, 1); g.fill({ color: 0xccddff, alpha: 0.5 });
+      g.circle(15, 16, 0.8); g.fill({ color: 0xccddff, alpha: 0.4 });
+      g.circle(10, 22, 0.7); g.fill({ color: 0xccddff, alpha: 0.4 });
+      // Head (frostbitten cheeks)
+      g.circle(w / 2, 7, 5); g.fill(0xdeb887);
+      outline(g, w / 2 - 5, 2, 10, 10);
+      // Frostbite on cheeks
+      g.circle(8, 8, 1.5); g.fill({ color: 0xcc6666, alpha: 0.3 });
+      g.circle(16, 8, 1.5); g.fill({ color: 0xcc6666, alpha: 0.3 });
+      // Wool cap (pulled down)
+      g.arc(w / 2, 6, 5.5, Math.PI, 0); g.fill(0x884422);
+      g.rect(6, 5, 12, 2); g.fill(0x884422);
+      // Pom-pom on cap
+      g.circle(w / 2, 2, 2); g.fill(0xeeeedd);
+      // Desperate eyes
+      g.circle(10, 7, 1.2); g.fill(0xffffff);
+      g.circle(10, 7, 0.6); g.fill(0x334455);
+      g.circle(14, 7, 1.2); g.fill(0xffffff);
+      g.circle(14, 7, 0.6); g.fill(0x334455);
+      // Shivering mouth
+      g.moveTo(10, 10); g.bezierCurveTo(11, 11, 13, 11, 14, 10);
+      g.stroke({ width: 0.5, color: 0x8b5e3c });
+      // Arms (shivering, crossed)
+      g.rect(4, 13, 3, 7); g.fill(0x334466);
+      g.rect(17, 13, 3, 7); g.fill(0x334466);
+      // Legs
+      g.rect(8, 24, 4, 5); g.fill(0x334466);
+      g.rect(12, 24, 4, 5); g.fill(0x334466);
+      // Snow-covered boots
+      g.rect(7, 27, 5, 3); g.fill(0x444444);
+      g.rect(7, 27, 5, 1); g.fill({ color: 0xeeeeff, alpha: 0.5 });
+      g.rect(12, 27, 5, 3); g.fill(0x444444);
+      g.rect(12, 27, 5, 1); g.fill({ color: 0xeeeeff, alpha: 0.5 });
+    },
+  },
+
   // ── Ground Item sprite ──
 
   GroundItem: {

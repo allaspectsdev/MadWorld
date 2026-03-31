@@ -23,32 +23,54 @@ export interface AbilityDef {
 export const ABILITIES: Record<string, AbilityDef> = {
   power_strike: {
     id: "power_strike", name: "Power Strike", slot: 2,
-    cooldownTicks: 80, skillRequired: "melee" as SkillName, levelRequired: 1,
+    cooldownTicks: 60, skillRequired: "melee" as SkillName, levelRequired: 1,
     targetType: "enemy", range: 2.5,
     description: "A powerful blow dealing double damage. Cannot miss.",
     damageMultiplier: 2.0, guaranteedHit: true,
   },
   shield_bash: {
     id: "shield_bash", name: "Shield Bash", slot: 3,
-    cooldownTicks: 120, skillRequired: "defense" as SkillName, levelRequired: 5,
+    cooldownTicks: 100, skillRequired: "defense" as SkillName, levelRequired: 3,
     targetType: "enemy", range: 2.0,
     description: "Bash with your shield, dealing damage and stunning for 2 seconds.",
     damageMultiplier: 1.5, statusEffect: "stun",
   },
   heal: {
     id: "heal", name: "Heal", slot: 4,
-    cooldownTicks: 200, skillRequired: "defense" as SkillName, levelRequired: 3,
+    cooldownTicks: 150, skillRequired: "defense" as SkillName, levelRequired: 1,
     targetType: "self",
     description: "Restore 30% of your maximum health.",
     healPercent: 0.3,
   },
   sprint: {
     id: "sprint", name: "Sprint", slot: 5,
-    cooldownTicks: 150, skillRequired: "agility" as SkillName, levelRequired: 1,
+    cooldownTicks: 120, skillRequired: "agility" as SkillName, levelRequired: 1,
     targetType: "self",
     description: "Double your movement speed for 3 seconds.",
     statusEffect: "speed_boost",
   },
+  whirlwind: {
+    id: "whirlwind", name: "Whirlwind", slot: 6,
+    cooldownTicks: 80, skillRequired: "melee" as SkillName, levelRequired: 5,
+    targetType: "enemy", range: 3.0,
+    description: "Spin attack hitting all nearby enemies for 1.8x damage.",
+    damageMultiplier: 1.8, guaranteedHit: true,
+  },
+  life_drain: {
+    id: "life_drain", name: "Life Drain", slot: 7,
+    cooldownTicks: 100, skillRequired: "melee" as SkillName, levelRequired: 8,
+    targetType: "enemy", range: 2.5,
+    description: "Dark strike that heals you for half the damage dealt.",
+    damageMultiplier: 1.5,
+  },
+  dodge_roll: {
+    id: "dodge_roll", name: "Dodge Roll", slot: 8,
+    cooldownTicks: 50, skillRequired: "agility" as SkillName, levelRequired: 3,
+    targetType: "self",
+    description: "Dash 3 tiles in your facing direction. Brief invulnerability.",
+    dashDistance: 3, invulnerableTicks: 5,
+  },
+  // Legacy abilities still available if unlocked by server
   poison_strike: {
     id: "poison_strike", name: "Poison Strike", slot: 6,
     cooldownTicks: 100, skillRequired: "melee" as SkillName, levelRequired: 8,
@@ -58,16 +80,9 @@ export const ABILITIES: Record<string, AbilityDef> = {
   },
   war_cry: {
     id: "war_cry", name: "War Cry", slot: 7,
-    cooldownTicks: 250, skillRequired: "melee" as SkillName, levelRequired: 12,
+    cooldownTicks: 200, skillRequired: "melee" as SkillName, levelRequired: 12,
     targetType: "self",
     description: "Boost damage by 25% for 5 seconds. Affects nearby party members.",
     statusEffect: "damage_boost", partyBuff: true,
-  },
-  dodge_roll: {
-    id: "dodge_roll", name: "Dodge Roll", slot: 8,
-    cooldownTicks: 60, skillRequired: "agility" as SkillName, levelRequired: 5,
-    targetType: "self",
-    description: "Dash 3 tiles in your facing direction. Brief invulnerability.",
-    dashDistance: 3, invulnerableTicks: 5,
   },
 };

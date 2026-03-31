@@ -9,9 +9,11 @@ export interface AnimState {
   hasSprites: boolean;
 }
 
-const IDLE_BOB_SPEED = 1.5;
-const IDLE_BOB_AMOUNT = 0.8;
-const IDLE_SWAY = 0.4;
+const IDLE_BOB_SPEED = 1.8;
+const IDLE_BOB_AMOUNT = 0.6;
+const IDLE_SWAY = 0.3;
+const IDLE_BREATHE_SPEED = 2.2;
+const IDLE_BREATHE_AMOUNT = 0.012; // subtle scale pulse
 const ATTACK_DURATION = 0.35;
 const DEATH_DURATION = 0.5;
 
@@ -72,7 +74,11 @@ export function updateAnimation(
     case "idle": {
       const bob = Math.sin(state.timer * IDLE_BOB_SPEED) * IDLE_BOB_AMOUNT;
       const sway = Math.sin(state.timer * 0.8) * IDLE_SWAY;
-      return { offsetY: bob, offsetX: sway, scaleX: 1, scaleY: 1, alpha: 1, rotation: 0 };
+      // Breathing: subtle chest-expand cycle
+      const breathe = Math.sin(state.timer * IDLE_BREATHE_SPEED);
+      const scaleX = 1 + breathe * IDLE_BREATHE_AMOUNT;
+      const scaleY = 1 - breathe * IDLE_BREATHE_AMOUNT * 0.5; // inverse for chest expand
+      return { offsetY: bob, offsetX: sway, scaleX, scaleY, alpha: 1, rotation: 0 };
     }
     case "walk": {
       // Squash-stretch to simulate leg movement

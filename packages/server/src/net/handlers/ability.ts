@@ -84,6 +84,17 @@ export function handleUseSkill(player: Player, d: any): void {
         applyStatusEffect(target.eid, abilityDef.statusEffect, player.eid, zone);
       }
 
+      // Life Drain: heal player for half damage dealt
+      if (abilityDef.id === "life_drain" && damage > 0) {
+        const healAmount = Math.floor(damage * 0.5);
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        player.dirty = true;
+        zone.broadcastToNearby(player.x, player.y, {
+          op: Op.S_DAMAGE,
+          d: { sourceEid: player.eid, targetEid: player.eid, amount: -healAmount, isCrit: false, targetHpAfter: player.hp },
+        } satisfies ServerMessage);
+      }
+
       if (target.hp <= 0) {
         handleMobDeath(target, player, zone);
       }

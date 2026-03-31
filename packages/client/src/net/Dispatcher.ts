@@ -1,4 +1,4 @@
-import { Op, EntityType, TILE_SIZE, type ServerMessage, cartToIso, EMOTES } from "@madworld/shared";
+import { Op, EntityType, TILE_SIZE, type ServerMessage, cartToIso, EMOTES, xpForLevel, levelForXp } from "@madworld/shared";
 
 /** Convert world-tile position to iso-pixel for particle effects. */
 function toIso(wx: number, wy: number): { x: number; y: number } {
@@ -14,6 +14,7 @@ import type { Minimap } from "../renderer/Minimap.js";
 import type { AudioManager } from "../audio/AudioManager.js";
 import type { Camera } from "../renderer/Camera.js";
 import type { ChatBubbleRenderer } from "../renderer/ChatBubbleRenderer.js";
+import type { AchievementTracker } from "../ui/components/AchievementTracker.js";
 import { isBossMob } from "../renderer/MobSpriteDefinitions.js";
 
 export class Dispatcher {
@@ -26,6 +27,7 @@ export class Dispatcher {
   private audio: AudioManager;
   private camera: Camera;
   private chatBubbles: ChatBubbleRenderer;
+  private achieve: AchievementTracker;
   private onZoneChange: (() => void) | null = null;
   private onEntityDeath: ((eid: number) => void) | null = null;
 
@@ -39,6 +41,7 @@ export class Dispatcher {
     audio: AudioManager,
     camera: Camera,
     chatBubbles: ChatBubbleRenderer,
+    achievements: AchievementTracker,
   ) {
     this.hitSplats = hitSplats;
     this.entityRenderer = entityRenderer;
@@ -49,6 +52,7 @@ export class Dispatcher {
     this.audio = audio;
     this.camera = camera;
     this.chatBubbles = chatBubbles;
+    this.achieve = achievements;
   }
 
   setOnZoneChange(fn: () => void): void {
@@ -245,6 +249,9 @@ export class Dispatcher {
             baseScale: msg.d.isCrit ? 1.2 : 0.8,
             spin: msg.d.isCrit ? 8 : 0,
           });
+          // Achievement: track crits
+          if (msg.d.isCrit) this.achieve.onCriticalHit();
+
           // Extra star burst on critical hits
           if (msg.d.isCrit) {
             this.particles.emit(hitIso.x, hitIso.y, 15, {
@@ -286,6 +293,10 @@ export class Dispatcher {
         const deadEntity = store.entities.get(msg.d.eid);
         if (deadEntity) {
           const isBoss = deadEntity.type === EntityType.MOB && isBossMob(deadEntity.name ?? "");
+          // Achievement: track mob kills
+          if (deadEntity.type === EntityType.MOB) {
+            this.achieve.onMobKill(deadEntity.name ?? "", isBoss);
+          }
           const deathIso = toIso(deadEntity.nextX, deadEntity.nextY);
           const bx = deathIso.x;
           const by = deathIso.y;
@@ -368,6 +379,7 @@ export class Dispatcher {
           const overlay = document.getElementById("death-overlay");
           if (overlay) overlay.classList.remove("active");
           this.updateHUD();
+          this.achieve.onRespawn();
           // Respawn visual effects
           this.screenEffects.flash(0xffffff, 0.4);
           const respIso = toIso(msg.d.x, msg.d.y);
@@ -388,11 +400,13 @@ export class Dispatcher {
       case Op.S_XP_GAIN: {
         this.showXpPopup(msg.d.skillId, msg.d.xp);
         store.setSkillXp(msg.d.skillId, msg.d.totalXp);
+        this.updateXpBar(msg.d.skillId, msg.d.totalXp);
         break;
       }
 
       case Op.S_LEVEL_UP: {
         this.showLevelUp(msg.d.skillId, msg.d.newLevel);
+        this.achieve.onLevelUp(msg.d.skillId, msg.d.newLevel);
         this.screenEffects.flashLevelUp();
         this.audio.playSfx("level_up");
         // Level-up sparkles — multi-wave celebration
@@ -458,6 +472,7 @@ export class Dispatcher {
           members: msg.d.members,
           leadEid: msg.d.leadEid,
         });
+        if (msg.d.members.length > 1) this.achieve.onPartyJoin();
         break;
       }
 
@@ -475,6 +490,7 @@ export class Dispatcher {
       // --- Dungeon Messages ---
       case Op.S_DUNGEON_ENTER: {
         store.setInDungeon(true, msg.d.dungeonName);
+        this.achieve.onEnterDungeon();
         break;
       }
 
@@ -540,13 +556,45 @@ export class Dispatcher {
 
       // --- Inventory / Equipment ---
       case Op.S_INV_UPDATE: {
+        // Detect new items for pickup effect
+        const oldSlots = store.inventory;
         store.setInventory(msg.d.slots);
         this.audio.playSfx("item_pickup");
+
+        // Item pickup sparkle at player position
+        const lpInv = store.localPlayer;
+        if (lpInv) {
+          const invIso = toIso(lpInv.x, lpInv.y);
+          this.particles.emit(invIso.x, invIso.y - 10, 6, {
+            texType: "diamond",
+            tint: 0xffd700,
+            speed: 25,
+            spread: Math.PI * 2,
+            life: 0.8,
+            gravity: -20,
+            baseScale: 0.6,
+            spin: 3,
+            scaleDecay: 1.0,
+          });
+
+          // Find what was added and show floating text
+          for (const slot of msg.d.slots) {
+            if (!slot || !slot.itemId) continue;
+            const oldSlot = oldSlots.find((s: any) => s?.index === slot.index);
+            if (!oldSlot || oldSlot.itemId !== slot.itemId || (oldSlot.quantity ?? 1) < (slot.quantity ?? 1)) {
+              const itemName = slot.itemId.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+              const qty = slot.quantity && slot.quantity > 1 ? `+${slot.quantity - (oldSlot?.quantity ?? 0)}` : "+1";
+              this.showItemPickup(`${qty} ${itemName}`);
+              break; // Only show one popup per update
+            }
+          }
+        }
         break;
       }
 
       case Op.S_EQUIP_UPDATE: {
         store.setEquipment(msg.d.slot, msg.d.itemId);
+        if (msg.d.itemId) this.achieve.onEquip();
         break;
       }
 
@@ -649,21 +697,23 @@ export class Dispatcher {
           const castIso = toIso(lpCast.x, lpCast.y);
           const px = castIso.x;
           const py = castIso.y;
-          const ABILITY_VFX: Record<string, { tint: number; texType: "circle" | "glow" | "star" | "trail"; count: number; speed: number; spread: number; life: number; gravity: number }> = {
-            power_strike: { tint: 0xff6644, texType: "star", count: 10, speed: 60, spread: Math.PI, life: 0.4, gravity: 40 },
+          const ABILITY_VFX: Record<string, { tint: number; texType: "circle" | "glow" | "star" | "trail" | "spark" | "diamond"; count: number; speed: number; spread: number; life: number; gravity: number; spin?: number }> = {
+            power_strike: { tint: 0xff6644, texType: "star", count: 12, speed: 70, spread: Math.PI, life: 0.4, gravity: 40 },
             shield_bash: { tint: 0xffdd44, texType: "circle", count: 8, speed: 40, spread: Math.PI * 0.8, life: 0.3, gravity: 40 },
-            heal: { tint: 0x44ff88, texType: "glow", count: 15, speed: 30, spread: Math.PI * 2, life: 0.8, gravity: -30 },
+            heal: { tint: 0x44ff88, texType: "glow", count: 18, speed: 30, spread: Math.PI * 2, life: 0.8, gravity: -30 },
             sprint: { tint: 0x44aaff, texType: "trail", count: 8, speed: 50, spread: Math.PI * 0.5, life: 0.3, gravity: 40 },
+            whirlwind: { tint: 0xaaddff, texType: "trail", count: 20, speed: 90, spread: Math.PI * 2, life: 0.5, gravity: 0, spin: 8 },
+            life_drain: { tint: 0xaa44ff, texType: "glow", count: 14, speed: 40, spread: Math.PI * 2, life: 0.7, gravity: -20 },
             poison_strike: { tint: 0x44ff44, texType: "circle", count: 10, speed: 50, spread: Math.PI, life: 0.5, gravity: 40 },
             war_cry: { tint: 0xffaa00, texType: "star", count: 20, speed: 80, spread: Math.PI * 2, life: 0.6, gravity: 0 },
-            dodge_roll: { tint: 0xccccff, texType: "trail", count: 6, speed: 70, spread: Math.PI * 0.4, life: 0.25, gravity: 40 },
+            dodge_roll: { tint: 0xccccff, texType: "trail", count: 8, speed: 70, spread: Math.PI * 0.4, life: 0.25, gravity: 40 },
           };
           const vfx = ABILITY_VFX[msg.d.abilityId];
           if (vfx) {
             this.particles.emit(px, py, vfx.count, {
               texType: vfx.texType, tint: vfx.tint, speed: vfx.speed,
               spread: vfx.spread, life: vfx.life, gravity: vfx.gravity,
-              dirY: -1, baseScale: 1.0,
+              dirY: -1, baseScale: 1.0, spin: vfx.spin,
             });
           }
         }
@@ -720,6 +770,7 @@ export class Dispatcher {
 
       case Op.S_FISH_RESULT: {
         if (msg.d.success) {
+          this.achieve.onFishCaught();
           this.showSystemMessage(`Caught a fish! (+${msg.d.xp ?? 0} fishing XP)`);
         } else {
           this.showSystemMessage("The fish got away...");
@@ -752,6 +803,7 @@ export class Dispatcher {
 
       case Op.S_DISCOVERY_UPDATE: {
         store.addDiscoveredChunks(msg.d.chunks);
+        this.achieve.onDiscovery(store.discoveredChunks.size);
         if (msg.d.xp && msg.d.xp > 0) {
           this.showSystemMessage(`Explored new territory! +${msg.d.xp} XP`);
         }
@@ -846,5 +898,47 @@ export class Dispatcher {
     popup.style.top = "40px";
     document.getElementById("ui-root")?.appendChild(popup);
     setTimeout(() => popup.remove(), 3000);
+  }
+
+  private updateXpBar(skillId: string, totalXp: number): void {
+    // Show the most recently gained skill's XP in the HUD bar
+    const level = levelForXp(totalXp);
+    const currentLevelXp = xpForLevel(level);
+    const nextLevelXp = xpForLevel(level + 1);
+    const xpInLevel = totalXp - currentLevelXp;
+    const xpNeeded = nextLevelXp - currentLevelXp;
+    const ratio = xpNeeded > 0 ? Math.min(xpInLevel / xpNeeded, 1) : 1;
+
+    const xpBar = document.getElementById("xp-bar");
+    const xpText = document.getElementById("xp-text");
+    if (xpBar) {
+      xpBar.style.width = `${ratio * 100}%`;
+      // Glow pulse on gain
+      xpBar.style.boxShadow = "0 0 8px rgba(142, 68, 173, 0.6)";
+      setTimeout(() => { xpBar.style.boxShadow = ""; }, 600);
+    }
+    if (xpText) {
+      const name = skillId.charAt(0).toUpperCase() + skillId.slice(1);
+      xpText.textContent = `${name} ${xpInLevel} / ${xpNeeded}`;
+    }
+  }
+
+  private itemPickupStack = 0;
+
+  private showItemPickup(text: string): void {
+    const popup = document.createElement("div");
+    popup.className = "item-pickup-popup";
+    popup.textContent = text;
+    popup.style.top = `${120 + this.itemPickupStack * 28}px`;
+    this.itemPickupStack++;
+    document.getElementById("ui-root")?.appendChild(popup);
+    requestAnimationFrame(() => popup.classList.add("visible"));
+    setTimeout(() => {
+      popup.classList.remove("visible");
+      setTimeout(() => {
+        popup.remove();
+        this.itemPickupStack = Math.max(0, this.itemPickupStack - 1);
+      }, 400);
+    }, 2000);
   }
 }

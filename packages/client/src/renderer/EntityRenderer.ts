@@ -42,7 +42,7 @@ interface EntitySprite {
 
 const nameStyle = new TextStyle({
   fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-  fontSize: 11,
+  fontSize: 13,
   fontWeight: "bold",
   fill: 0xffffff,
   stroke: { color: 0x000000, width: 3 },
@@ -50,15 +50,15 @@ const nameStyle = new TextStyle({
 
 const npcNameStyle = new TextStyle({
   fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-  fontSize: 12,
+  fontSize: 14,
   fontWeight: "bold",
   fill: 0xffd700,
-  stroke: { color: 0x000000, width: 3 },
+  stroke: { color: 0x000000, width: 4 },
 });
 
 const localNameStyle = new TextStyle({
   fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-  fontSize: 12,
+  fontSize: 13,
   fontWeight: "bold",
   fill: 0x88ffaa,
   stroke: { color: 0x000000, width: 3 },
@@ -87,6 +87,45 @@ export class EntityRenderer {
   private globalTimer = 0;
   private targetEid: number | null = null;
   private hoverEid: number | null = null;
+
+  // Sun-based shadow parameters (updated by Game each frame)
+  private sunAngle = Math.PI * 0.25; // direction shadow projects
+  private sunStretch = 1.0; // how long shadows are (0.5 = noon, 2.0 = dawn/dusk)
+  private sunAlpha = 0.3; // shadow darkness (0 = night, 0.3 = day)
+
+  /** Call each frame with time of day (0-24) to update shadow projection */
+  setSunTime(timeOfDay: number): void {
+    if (timeOfDay >= 15) {
+      // Night: faint shadows from moon
+      this.sunAlpha = 0.08;
+      this.sunStretch = 0.6;
+      this.sunAngle = Math.PI * 0.3;
+    } else if (timeOfDay < 3) {
+      // Dawn: long shadows from east
+      const t = timeOfDay / 3;
+      this.sunStretch = 2.5 - t * 1.5; // 2.5 → 1.0
+      this.sunAngle = Math.PI * (0.7 - t * 0.4); // sweeps from right to center
+      this.sunAlpha = 0.15 + t * 0.15;
+    } else if (timeOfDay < 7.5) {
+      // Morning: shadows shrink
+      const t = (timeOfDay - 3) / 4.5;
+      this.sunStretch = 1.0 - t * 0.4; // 1.0 → 0.6
+      this.sunAngle = Math.PI * (0.3 - t * 0.1);
+      this.sunAlpha = 0.3;
+    } else if (timeOfDay < 12) {
+      // Afternoon: shadows grow again from other side
+      const t = (timeOfDay - 7.5) / 4.5;
+      this.sunStretch = 0.6 + t * 0.4; // 0.6 → 1.0
+      this.sunAngle = Math.PI * (0.2 + t * 0.2);
+      this.sunAlpha = 0.3;
+    } else {
+      // Dusk: long shadows
+      const t = (timeOfDay - 12) / 3;
+      this.sunStretch = 1.0 + t * 1.5; // 1.0 → 2.5
+      this.sunAngle = Math.PI * (0.4 + t * 0.3);
+      this.sunAlpha = 0.3 - t * 0.2;
+    }
+  }
 
   setLocalPlayer(eid: number): void {
     this.localPlayerEid = eid;
@@ -171,8 +210,15 @@ export class EntityRenderer {
     sprite.container.x = px;
     sprite.container.y = py;
 
-    // Shadow stays at feet (doesn't bob)
-    sprite.shadow.y = ISO_TILE_H * 0.5 - anim.offsetY;
+    // Dynamic shadow — stretches/shifts based on sun position
+    const shadowBaseY = ISO_TILE_H * 0.5;
+    sprite.shadow.y = shadowBaseY - anim.offsetY;
+    sprite.shadow.x = Math.cos(this.sunAngle) * this.sunStretch * 4;
+    sprite.shadow.scale.set(
+      1 + this.sunStretch * 0.3,
+      0.8 + this.sunStretch * 0.5,
+    );
+    sprite.shadow.alpha = this.sunAlpha;
 
     // Boss/God aura pulse
     if (sprite.aura && (sprite.isBoss || sprite.isGod)) {
@@ -249,7 +295,7 @@ export class EntityRenderer {
       const ratio = Math.max(0, data.hp / data.maxHp);
       sprite.hpBar.clear();
       if (ratio > 0) {
-        sprite.hpBar.roundRect(-15, sprite.hpY, 30 * ratio, 5, 2);
+        sprite.hpBar.roundRect(-20, sprite.hpY, 40 * ratio, 6, 3);
         sprite.hpBar.fill(ratio > 0.5 ? 0x2ecc71 : ratio > 0.25 ? 0xf39c12 : 0xe74c3c);
       }
     }
@@ -297,7 +343,15 @@ export class EntityRenderer {
     const localIso = cartToIso(x, y);
     sprite.container.x = localIso.x + anim.offsetX;
     sprite.container.y = localIso.y + anim.offsetY;
+
+    // Dynamic shadow for local player
     sprite.shadow.y = ISO_TILE_H * 0.5 - anim.offsetY;
+    sprite.shadow.x = Math.cos(this.sunAngle) * this.sunStretch * 4;
+    sprite.shadow.scale.set(
+      1 + this.sunStretch * 0.3,
+      0.8 + this.sunStretch * 0.5,
+    );
+    sprite.shadow.alpha = this.sunAlpha;
 
     if (sprite.arrow) {
       sprite.arrow.y = -TILE_SIZE * 0.7 + Math.sin(this.globalTimer * 3) * 2;
@@ -436,28 +490,28 @@ export class EntityRenderer {
     let glowRing: Graphics | undefined;
     if (isLocal) {
       glowRing = new Graphics();
-      glowRing.ellipse(0, TILE_SIZE * 0.3, 10, 4);
-      glowRing.fill({ color: 0x44ff88, alpha: 0.15 });
-      glowRing.ellipse(0, TILE_SIZE * 0.3, 8, 3);
-      glowRing.fill({ color: 0x88ffaa, alpha: 0.1 });
+      glowRing.ellipse(0, TILE_SIZE * 0.4, 16, 6);
+      glowRing.fill({ color: 0x44ff88, alpha: 0.12 });
+      glowRing.ellipse(0, TILE_SIZE * 0.4, 12, 4);
+      glowRing.fill({ color: 0x88ffaa, alpha: 0.08 });
       glowRing.zIndex = -1;
       cont.addChild(glowRing);
     }
 
     const isNpc = type === EntityType.NPC;
 
-    // Shadow (sized to roughly match the entity's footprint)
+    // Shadow (sized to match the larger entity sprites)
     const shadow = new Graphics();
-    const shadowScale = boss ? 1.3 : 1.0;
+    const shadowScale = boss ? 1.6 : 1.2;
     if (isNpc) {
       // Warm golden glow for NPCs
-      shadow.ellipse(0, TILE_SIZE * 0.4, TILE_SIZE * 0.4, TILE_SIZE * 0.14);
+      shadow.ellipse(0, TILE_SIZE * 0.5, TILE_SIZE * 0.55, TILE_SIZE * 0.2);
       shadow.fill({ color: 0xffd700, alpha: 0.15 });
-      shadow.ellipse(0, TILE_SIZE * 0.4, TILE_SIZE * 0.3, TILE_SIZE * 0.1);
+      shadow.ellipse(0, TILE_SIZE * 0.5, TILE_SIZE * 0.4, TILE_SIZE * 0.14);
       shadow.fill({ color: 0xffaa00, alpha: 0.1 });
     } else {
-      shadow.ellipse(0, TILE_SIZE * 0.4, TILE_SIZE * 0.35 * shadowScale, TILE_SIZE * 0.12 * shadowScale);
-      shadow.fill({ color: 0x000000, alpha: 0.3 });
+      shadow.ellipse(0, TILE_SIZE * 0.5, TILE_SIZE * 0.45 * shadowScale, TILE_SIZE * 0.16 * shadowScale);
+      shadow.fill({ color: 0x000000, alpha: 0.25 });
     }
     shadow.zIndex = -1;
     cont.addChild(shadow);
@@ -471,28 +525,31 @@ export class EntityRenderer {
     const mainSprite = new Sprite(texture);
     mainSprite.anchor.set(0.5, 0.5);
 
-    // Determine display size based on entity type
+    // Determine display size based on entity type (large, readable sprites)
     if (type === EntityType.PLAYER) {
       if (isGod) {
-        mainSprite.width = TILE_SIZE * 1.25;
-        mainSprite.height = TILE_SIZE * 1.55;
+        mainSprite.width = TILE_SIZE * 2.2;
+        mainSprite.height = TILE_SIZE * 2.8;
       } else {
-        mainSprite.width = TILE_SIZE * 0.9;
-        mainSprite.height = TILE_SIZE * 1.15;
+        mainSprite.width = TILE_SIZE * 1.8;
+        mainSprite.height = TILE_SIZE * 2.3;
       }
     } else if (type === EntityType.MOB) {
       const size = getMobSize(name);
-      const scale = boss ? 1.4 : 1.0;
+      const scale = boss ? 2.5 : 1.8;
       const maxDim = Math.max(size.w, size.h);
       const fitScale = (TILE_SIZE / maxDim) * scale;
       mainSprite.width = size.w * fitScale;
       mainSprite.height = size.h * fitScale;
     } else if (type === EntityType.PET) {
-      mainSprite.width = TILE_SIZE * 0.7;
-      mainSprite.height = TILE_SIZE * 0.7;
+      mainSprite.width = TILE_SIZE * 1.3;
+      mainSprite.height = TILE_SIZE * 1.3;
+    } else if (isNpc) {
+      mainSprite.width = TILE_SIZE * 1.6;
+      mainSprite.height = TILE_SIZE * 2.0;
     } else {
-      mainSprite.width = TILE_SIZE * 0.8;
-      mainSprite.height = TILE_SIZE * 0.8;
+      mainSprite.width = TILE_SIZE * 1.4;
+      mainSprite.height = TILE_SIZE * 1.4;
     }
 
     cont.addChild(mainSprite);
@@ -658,16 +715,17 @@ export class EntityRenderer {
 
     // HP bar for mobs and other players (not NPCs)
     if (type === EntityType.MOB || (!isLocal && type === EntityType.PLAYER)) {
-      const hpY = topY - 2;
+      const hpY = topY - 4;
+      const hpW = 40;
       const hpBg = new Graphics();
-      hpBg.roundRect(-15, hpY, 30, 5, 2);
+      hpBg.roundRect(-hpW / 2, hpY, hpW, 6, 3);
       hpBg.fill(0x1a1a1a);
-      hpBg.roundRect(-15, hpY, 30, 5, 2);
+      hpBg.roundRect(-hpW / 2, hpY, hpW, 6, 3);
       hpBg.stroke({ width: 0.5, color: 0x333333 });
       cont.addChild(hpBg);
 
       const hpBar = new Graphics();
-      hpBar.roundRect(-15, hpY, 30, 5, 2);
+      hpBar.roundRect(-hpW / 2, hpY, hpW, 6, 3);
       hpBar.fill(0x2ecc71);
       cont.addChild(hpBar);
 

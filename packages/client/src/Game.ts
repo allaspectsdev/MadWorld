@@ -31,6 +31,8 @@ import { SettingsPanel } from "./ui/components/SettingsPanel.js";
 import { WorldMap } from "./ui/components/WorldMap.js";
 import { SkillsPanel } from "./ui/components/SkillsPanel.js";
 import { BossHealthBar } from "./ui/components/BossHealthBar.js";
+import { AchievementTracker } from "./ui/components/AchievementTracker.js";
+import { KeybindHints } from "./ui/components/KeybindHints.js";
 import { isBossMob } from "./renderer/MobSpriteDefinitions.js";
 import { PathFollower, type PendingAction } from "./pathfinding/PathFollower.js";
 import { findPath, trimPathToRange } from "./pathfinding/Pathfinder.js";
@@ -72,6 +74,8 @@ export class Game {
   private colorGrading: ColorMatrixFilter;
   private sky: SkyRenderer;
   private bossHealthBar: BossHealthBar;
+  private achievements: AchievementTracker;
+  private keybindHints: KeybindHints;
 
   private isRegistering = false;
   private currentTarget: number | null = null;
@@ -103,6 +107,7 @@ export class Game {
     this.decorations = new DecorationRenderer();
     this.minimap = new Minimap();
     this.audio = new AudioManager();
+    this.achievements = new AchievementTracker();
     this.dispatcher = new Dispatcher(
       this.hitSplats,
       this.entities,
@@ -113,6 +118,7 @@ export class Game {
       this.audio,
       this.camera,
       this.chatBubbles,
+      this.achievements,
     );
 
     initDeviceDetection();
@@ -138,6 +144,7 @@ export class Game {
     this.skillsPanel = new SkillsPanel();
     this.worldMap = new WorldMap();
     this.bossHealthBar = new BossHealthBar();
+    this.keybindHints = new KeybindHints();
 
     // HUD toggle buttons
     document.getElementById("btn-inventory")?.addEventListener("click", () => {
@@ -551,8 +558,11 @@ export class Game {
     // Lighting system
     this.lighting.setCamera(current.x, current.y, this.camera.zoom);
     this.lighting.update(dt, current.x, current.y);
-    this.sky.update(dt, this.lighting.getTimeOfDay(), current.x, current.y);
+    const timeOfDay = this.lighting.getTimeOfDay();
+    this.sky.update(dt, timeOfDay, current.x, current.y);
     this.ambientParticles.isNight = this.lighting.isNight();
+    this.entities.setSunTime(timeOfDay);
+    this.tilemap.setSunDirection(timeOfDay);
 
     // Skill bar cooldown ticking
     this.skillBar.update(dt);
@@ -769,6 +779,8 @@ export class Game {
       document.getElementById("skill-bar")!.style.display = "flex";
       this.audio.resume();
       this.socket.connect(token);
+      // Show tutorial hints for new players
+      setTimeout(() => this.keybindHints.show(), 1500);
     };
 
     const showCharacterCreation = (token: string) => {
