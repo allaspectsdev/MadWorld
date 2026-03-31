@@ -363,7 +363,8 @@ export class EntityRenderer3D {
       crown = new THREE.Sprite(crownMat);
       crown.scale.set(0.8, 0.5, 1);
       crown.center.set(0.5, 0); // Bottom-center anchor
-      crown.position.y = baseScale.y - 0.15; // On top of head
+      // The head is at ~83% of sprite height in the texture (head drawn at y≈8 on 46px canvas)
+      crown.position.y = baseScale.y * 0.82;
       group.add(crown);
     }
 
@@ -445,7 +446,7 @@ export class EntityRenderer3D {
   ): { x: number; y: number } {
     switch (entity.type) {
       case EntityType.PLAYER:
-        return isGod ? { x: 2.5, y: 3.2 } : { x: 1.8, y: 2.3 };
+        return isGod ? { x: 2.0, y: 2.6 } : { x: 1.8, y: 2.3 };
       case EntityType.MOB: {
         const size = getMobSize(entity.name ?? "");
         const baseScale = isBoss ? 3.0 : 1.8;
