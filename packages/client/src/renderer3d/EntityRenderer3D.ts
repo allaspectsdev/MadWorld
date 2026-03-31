@@ -142,7 +142,7 @@ export class EntityRenderer3D {
     );
     e.sprite.position.set(
       anim.offsetX * 0.03, // Scale down offsets from pixel space to world units
-      baseScale.y / 2 + anim.offsetY * 0.03,
+      0.05 + anim.offsetY * 0.03,
       0,
     );
     e.sprite.material.opacity = anim.alpha;
@@ -162,12 +162,11 @@ export class EntityRenderer3D {
     e.shadow.position.set(sunX, 0.02, sunZ);
     (e.shadow.material as THREE.MeshBasicMaterial).opacity = 0.25 + Math.sin(this.sunAngle * Math.PI) * 0.1;
 
-    // HP bar
+    // HP bar — hide for full-health non-players
     if (e.hpBar && entity.hp !== undefined && entity.maxHp !== undefined) {
       e.hpBar.update(entity.hp, entity.maxHp);
-      // Hide HP bar if full health (for mobs/pets)
       const isFullHp = entity.hp >= entity.maxHp;
-      e.hpBar.object.visible = !isFullHp || e.entityType === EntityType.PLAYER;
+      e.hpBar.object.visible = !isFullHp || e.isLocal;
     }
 
     // Target ring
@@ -300,7 +299,8 @@ export class EntityRenderer3D {
     const sprite = new THREE.Sprite(spriteMat);
     const baseScale = this.getEntityScale(entity, isBoss, isGod);
     sprite.scale.set(baseScale.x, baseScale.y, 1);
-    sprite.position.y = baseScale.y / 2; // Bottom of sprite at ground level
+    sprite.center.set(0.5, 0); // Anchor at bottom-center so feet touch ground
+    sprite.position.y = 0.05; // Slightly above ground to avoid z-fighting
     group.add(sprite);
 
     // Shadow
@@ -308,6 +308,10 @@ export class EntityRenderer3D {
     shadow.position.y = 0.02;
     shadow.renderOrder = -1;
     group.add(shadow);
+
+    // Position labels relative to entity height
+    const labelY = baseScale.y + 0.3;
+    const hpBarY = baseScale.y + 0.05;
 
     // Name label (CSS2D)
     const nameLabel = createNameLabel(
@@ -317,12 +321,14 @@ export class EntityRenderer3D {
       isGod,
       entity.level,
     );
+    nameLabel.position.set(0, labelY, 0);
     group.add(nameLabel);
 
     // HP bar
     let hpBar: HPBarOverlay | null = null;
     if (entity.type !== EntityType.GROUND_ITEM) {
       hpBar = createHPBar();
+      hpBar.object.position.set(0, hpBarY, 0);
       group.add(hpBar.object);
       if (entity.hp !== undefined && entity.maxHp !== undefined) {
         hpBar.update(entity.hp, entity.maxHp);
@@ -333,6 +339,7 @@ export class EntityRenderer3D {
     let questMarker: THREE.Object3D | null = null;
     if (entity.type === EntityType.NPC) {
       questMarker = createQuestMarker();
+      questMarker.position.set(0, labelY + 0.4, 0);
       group.add(questMarker);
     }
 

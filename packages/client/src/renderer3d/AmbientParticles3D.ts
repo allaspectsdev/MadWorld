@@ -52,9 +52,9 @@ export class AmbientParticles3D {
     // Fireflies (night only)
     if (this.isNight) {
       this.fireflyTimer += dt;
-      if (this.fireflyTimer > 0.15) {
+      if (this.fireflyTimer > 0.4) {
         this.fireflyTimer = 0;
-        if (Math.random() < 0.35) {
+        if (Math.random() < 0.2) {
           const count = 1 + Math.floor(Math.random() * 2);
           const offX = (Math.random() - 0.5) * 32;
           const offZ = (Math.random() - 0.5) * 32;
@@ -78,9 +78,9 @@ export class AmbientParticles3D {
     // Dust motes (daytime, not dungeon)
     if (!this.isNight && this.zoneType !== "dungeon") {
       this.dustTimer += dt;
-      if (this.dustTimer > 0.3) {
+      if (this.dustTimer > 0.8) {
         this.dustTimer = 0;
-        if (Math.random() < 0.25) {
+        if (Math.random() < 0.15) {
           const offX = (Math.random() - 0.5) * 20;
           const offZ = (Math.random() - 0.5) * 20;
           const tint = this.zoneType === "forest" ? 0xddffaa : 0xffffee;
@@ -103,7 +103,7 @@ export class AmbientParticles3D {
 
     // Zone-specific particles
     this.zoneTimer += dt;
-    if (this.zoneTimer > 0.4) {
+    if (this.zoneTimer > 1.0) {
       this.zoneTimer = 0;
       this.emitZoneParticles();
     }

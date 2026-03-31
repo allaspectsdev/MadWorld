@@ -47,7 +47,7 @@ export function createNameLabel(
   }
 
   const label = new CSS2DObject(div);
-  label.position.set(0, 2.2, 0); // Above the entity sprite
+  label.position.set(0, 0, 0); // Will be positioned per-entity in EntityRenderer3D
   return label;
 }
 
@@ -78,7 +78,7 @@ export function createHPBar(): HPBarOverlay {
   container.appendChild(fill);
 
   const obj = new CSS2DObject(container);
-  obj.position.set(0, 1.8, 0);
+  obj.position.set(0, 0, 0); // Will be positioned per-entity
 
   return {
     object: obj,
