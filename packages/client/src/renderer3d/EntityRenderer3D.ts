@@ -41,7 +41,7 @@ let sharedShadowMat: THREE.MeshBasicMaterial | null = null;
 
 function getShadowGeo(): THREE.CircleGeometry {
   if (!sharedShadowGeo) {
-    sharedShadowGeo = new THREE.CircleGeometry(0.5, 16);
+    sharedShadowGeo = new THREE.CircleGeometry(0.35, 12);
     sharedShadowGeo.rotateX(-Math.PI / 2);
   }
   return sharedShadowGeo;
@@ -52,7 +52,7 @@ function getShadowMat(): THREE.MeshBasicMaterial {
     sharedShadowMat = new THREE.MeshBasicMaterial({
       color: 0x000000,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.2,
       depthWrite: false,
     });
   }

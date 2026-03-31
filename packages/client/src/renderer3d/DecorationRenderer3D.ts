@@ -100,72 +100,39 @@ export class DecorationRenderer3D {
     row: number,
     col: number,
   ): void {
-    // Tall trees on FOREST tiles
-    if (tile === TileType.FOREST && r < 0.55) {
-      this.addSprite(group, this.treeTexture!, wx, wz, 2.5 + seededRandom(hash + 1) * 1.5, 0x2a5a2a);
+    // Tall trees on FOREST tiles (sparse — only 20%)
+    if (tile === TileType.FOREST && r < 0.20) {
+      this.addSprite(group, this.treeTexture!, wx, wz, 3.0 + seededRandom(hash + 1) * 1.5, 0xffffff);
       return;
     }
 
-    // Wildflowers on GRASS
-    if (tile === TileType.GRASS && r > 0.88) {
+    // Wildflowers on GRASS (sparse — only 5% of tiles, 1-2 per tile)
+    if (tile === TileType.GRASS && r > 0.95) {
       const colors = [0xffdd44, 0xff88aa, 0xffffff, 0xcc66ff, 0xff9944];
-      const count = 2 + Math.floor(seededRandom(hash + 2) * 3);
+      const count = 1 + Math.floor(seededRandom(hash + 2) * 2);
       for (let i = 0; i < count; i++) {
-        const offX = (seededRandom(hash + i * 3 + 10) - 0.5) * 0.8;
-        const offZ = (seededRandom(hash + i * 3 + 11) - 0.5) * 0.8;
+        const offX = (seededRandom(hash + i * 3 + 10) - 0.5) * 0.7;
+        const offZ = (seededRandom(hash + i * 3 + 11) - 0.5) * 0.7;
         const color = colors[Math.floor(seededRandom(hash + i * 3 + 12) * colors.length)];
-        this.addSprite(group, this.flowerTexture!, wx + offX, wz + offZ, 0.3 + seededRandom(hash + i) * 0.15, color);
+        this.addSprite(group, this.flowerTexture!, wx + offX, wz + offZ, 0.2, color);
       }
       return;
     }
 
-    // Tall grass on GRASS
-    if (tile === TileType.GRASS && r > 0.75) {
-      const count = 3 + Math.floor(seededRandom(hash + 5) * 4);
-      for (let i = 0; i < count; i++) {
-        const offX = (seededRandom(hash + i * 7 + 20) - 0.5) * 0.9;
-        const offZ = (seededRandom(hash + i * 7 + 21) - 0.5) * 0.9;
-        this.addSprite(group, this.flowerTexture!, wx + offX, wz + offZ, 0.4, 0x3a8a3a);
-      }
-      return;
-    }
-
-    // Rocks near mountains
-    if (tile === TileType.GRASS && r < 0.4) {
+    // Rocks near mountains (sparse)
+    if (tile === TileType.GRASS && r < 0.15) {
       const hasNeighborMtn = this.hasNeighbor(tiles, row, col, TileType.MOUNTAIN);
       if (hasNeighborMtn) {
-        const count = 1 + Math.floor(seededRandom(hash + 3) * 2);
-        for (let i = 0; i < count; i++) {
-          const offX = (seededRandom(hash + i * 5 + 30) - 0.5) * 0.6;
-          const offZ = (seededRandom(hash + i * 5 + 31) - 0.5) * 0.6;
-          this.addSprite(group, this.rockTexture!, wx + offX, wz + offZ, 0.3 + seededRandom(hash + i * 5) * 0.2, 0x888888);
-        }
-      }
-    }
-
-    // Mushrooms near forest
-    if (tile === TileType.GRASS && r > 0.55 && r < 0.75) {
-      const hasForest = this.hasNeighbor(tiles, row, col, TileType.FOREST);
-      if (hasForest) {
-        this.addSprite(group, this.flowerTexture!, wx, wz, 0.25, 0xcc6633);
+        this.addSprite(group, this.rockTexture!, wx, wz, 0.4, 0xaaaaaa);
       }
     }
 
     // Lily pads on water near land
-    if (tile === TileType.WATER && r < 0.35) {
+    if (tile === TileType.WATER && r < 0.15) {
       const hasLand = this.hasNeighbor(tiles, row, col, TileType.GRASS) ||
                       this.hasNeighbor(tiles, row, col, TileType.SAND);
       if (hasLand) {
-        this.addFlatSprite(group, wx, wz, 0.4, 0x2a8a2a);
-      }
-    }
-
-    // Torch stands on cobblestone
-    if (tile === TileType.COBBLESTONE && r < 0.35) {
-      const hasBldg = this.hasNeighbor(tiles, row, col, TileType.BUILDING_FLOOR);
-      if (hasBldg) {
-        this.addSprite(group, this.rockTexture!, wx, wz, 0.8, 0x5c3a1e);
-        // Could add a point light here in Phase 4
+        this.addFlatSprite(group, wx, wz, 0.3, 0x2a8a2a);
       }
     }
   }
@@ -231,15 +198,15 @@ export class DecorationRenderer3D {
     const ctx = canvas.getContext("2d")!;
 
     // Trunk
-    ctx.fillStyle = "#5c3a1e";
-    ctx.fillRect(28, 35, 8, 29);
-    // Dark side
-    ctx.fillStyle = "#4a2e16";
-    ctx.fillRect(28, 35, 3, 29);
+    ctx.fillStyle = "#8b6914";
+    ctx.fillRect(28, 38, 8, 26);
+    // Light side
+    ctx.fillStyle = "#a07820";
+    ctx.fillRect(32, 38, 4, 26);
 
-    // Canopy (overlapping circles)
-    const greens = ["#2a5a1a", "#336622", "#1e4a15", "#2e6620", "#3a7a2a"];
-    for (let i = 0; i < 6; i++) {
+    // Canopy (overlapping circles — bright greens)
+    const greens = ["#4a9a3a", "#55aa44", "#3d8832", "#4daa40", "#5abb4a"];
+    for (let i = 0; i < 7; i++) {
       ctx.fillStyle = greens[i % greens.length];
       const cx = 32 + (Math.sin(i * 1.5) * 12);
       const cy = 20 + (Math.cos(i * 1.2) * 8);
@@ -249,15 +216,25 @@ export class DecorationRenderer3D {
       ctx.fill();
     }
 
-    // Highlight blob
-    ctx.fillStyle = "rgba(100,180,80,0.25)";
+    // Highlight blobs (sun-lit side)
+    ctx.fillStyle = "rgba(140,220,100,0.4)";
     ctx.beginPath();
-    ctx.arc(26, 14, 8, 0, Math.PI * 2);
+    ctx.arc(24, 14, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(180,240,120,0.3)";
+    ctx.beginPath();
+    ctx.arc(28, 10, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Shadow on bottom-right
+    ctx.fillStyle = "rgba(20,50,10,0.25)";
+    ctx.beginPath();
+    ctx.arc(38, 28, 10, 0, Math.PI * 2);
     ctx.fill();
 
     const tex = new THREE.CanvasTexture(canvas);
-    tex.magFilter = THREE.NearestFilter;
-    tex.minFilter = THREE.NearestFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.minFilter = THREE.LinearFilter;
     return tex;
   }
 

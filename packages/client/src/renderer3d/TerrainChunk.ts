@@ -8,9 +8,9 @@ const TERRAIN_COLOR: Partial<Record<number, [number, number, number]>> = {
   [TileType.GRASS]:          [58/255, 138/255, 69/255],
   [TileType.DIRT]:           [138/255, 104/255, 66/255],
   [TileType.COBBLESTONE]:    [120/255, 115/255, 110/255],
-  [TileType.WATER]:          [26/255, 85/255, 136/255],
+  [TileType.WATER]:          [50/255, 120/255, 180/255],
   [TileType.SAND]:           [194/255, 178/255, 128/255],
-  [TileType.FOREST]:         [26/255, 51/255, 24/255],
+  [TileType.FOREST]:         [35/255, 70/255, 32/255],
   [TileType.MOUNTAIN]:       [88/255, 88/255, 88/255],
   [TileType.BRIDGE]:         [139/255, 105/255, 20/255],
   [TileType.BUILDING_FLOOR]: [130/255, 100/255, 65/255],
@@ -121,12 +121,10 @@ export class TerrainChunk {
     this.mesh.receiveShadow = true;
     this.mesh.castShadow = false;
 
-    // Create water mesh if this chunk has water tiles
-    if (hasWater) {
-      this.waterMesh = createWaterMesh(waterTiles, chunkX, chunkY, size);
-    } else {
-      this.waterMesh = null;
-    }
+    // Water is rendered via vertex colors on the terrain mesh for now.
+    // The full water shader (createWaterMesh) can be re-enabled once
+    // it's been updated to only generate geometry for water tiles.
+    this.waterMesh = null;
   }
 
   dispose(): void {

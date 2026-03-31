@@ -104,8 +104,21 @@ export class FogOfWar3D {
     this.mesh = new THREE.Mesh(geo, this.material);
     this.mesh.position.y = 5; // Above terrain and entities
     this.mesh.renderOrder = 100;
-    this.mesh.visible = false; // Hidden until discovery data is loaded
-    this.app.fogGroup.add(this.mesh);
+    this.mesh.visible = false; // Disabled by default — enable via enableFog()
+    // Don't add to scene by default — fog is opt-in
+    // this.app.fogGroup.add(this.mesh);
+  }
+
+  /** Enable fog of war rendering (for admin toggle) */
+  enableFog(enabled: boolean): void {
+    if (enabled && !this.mesh.parent) {
+      this.app.fogGroup.add(this.mesh);
+      this.mesh.visible = true;
+      this.rebuildMask();
+    } else if (!enabled) {
+      this.mesh.visible = false;
+      if (this.mesh.parent) this.app.fogGroup.remove(this.mesh);
+    }
   }
 
   /** Set the center of the fog mask (player chunk position) */
