@@ -1,39 +1,34 @@
-import { Application } from "pixi.js";
-import { TextureFactory } from "./renderer/TextureFactory.js";
+import { initSpriteBakery } from "./renderer3d/SpriteBakery.js";
 import { generateTileTextures } from "./renderer/TileTextures.js";
-import { Game } from "./Game.js";
-import { loadSpriteSheets, spriteSheetAnims } from "./renderer/SpriteSheetLoader.js";
+import { ThreeApp } from "./renderer3d/ThreeApp.js";
+import { Game3D } from "./renderer3d/Game3D.js";
 import { LoadingScreen } from "./ui/components/LoadingScreen.js";
 
 async function main() {
   const loading = new LoadingScreen();
   loading.setProgress(10, "Initializing...");
 
-  const app = new Application();
-  await app.init({
-    resizeTo: window,
-    backgroundColor: 0x1a1a2e,
-    antialias: false,
-    resolution: 1,
-  });
-
+  // Create the Three.js canvas
+  const canvas = document.createElement("canvas");
+  canvas.id = "game-canvas";
   const gameDiv = document.getElementById("game")!;
-  gameDiv.insertBefore(app.canvas, gameDiv.firstChild);
+  gameDiv.insertBefore(canvas, gameDiv.firstChild);
+
+  loading.setProgress(20, "Setting up renderer...");
+
+  // Initialize the Three.js application
+  const threeApp = new ThreeApp(canvas);
 
   loading.setProgress(30, "Generating textures...");
 
-  // Initialize procedural texture pipeline
-  TextureFactory.init(app);
+  // Initialize hidden PixiJS sprite bakery + generate tile textures
+  await initSpriteBakery();
   generateTileTextures();
 
-  loading.setProgress(50, "Loading sprites...");
-  const sheets = await loadSpriteSheets();
-  for (const [key, anims] of sheets) {
-    spriteSheetAnims.set(key, anims);
-  }
+  loading.setProgress(70, "Starting game...");
 
-  loading.setProgress(80, "Starting game...");
-  const game = new Game(app);
+  // Create and start the game
+  const game = new Game3D(threeApp);
   game.start();
 
   loading.setProgress(100, "Ready!");
