@@ -100,9 +100,15 @@ export class DecorationRenderer3D {
     row: number,
     col: number,
   ): void {
-    // Tall trees on FOREST tiles (sparse — only 20%)
-    if (tile === TileType.FOREST && r < 0.20) {
-      this.addSprite(group, this.treeTexture!, wx, wz, 3.0 + seededRandom(hash + 1) * 1.5, 0xffffff);
+    // Tall trees on FOREST tiles (sparse — only 15%)
+    if (tile === TileType.FOREST && r < 0.15) {
+      const treeScale = 2.0 + seededRandom(hash + 1) * 2.0;
+      // Vary the green tint slightly per tree
+      const greenVar = Math.floor(seededRandom(hash + 7) * 40);
+      const tint = (0xbb + greenVar) << 8 | (0xff) << 16 | (0xbb + greenVar);
+      const offX = (seededRandom(hash + 8) - 0.5) * 0.4;
+      const offZ = (seededRandom(hash + 9) - 0.5) * 0.4;
+      this.addSprite(group, this.treeTexture!, wx + offX, wz + offZ, treeScale, tint);
       return;
     }
 

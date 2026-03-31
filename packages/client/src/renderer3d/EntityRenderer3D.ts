@@ -26,11 +26,13 @@ interface Entity3D {
   hpBar: HPBarOverlay | null;
   questMarker: THREE.Object3D | null;
   targetRing: THREE.Mesh | null;
+  crown: THREE.Sprite | null;
   animState: AnimState;
   isLocal: boolean;
   isBoss: boolean;
   isGod: boolean;
   entityType: EntityType;
+  spriteHeight: number;
   lastX: number;
   lastY: number;
 }
@@ -349,6 +351,22 @@ export class EntityRenderer3D {
       (shadow.material as THREE.MeshBasicMaterial).opacity = 0.2;
     }
 
+    // God player crown
+    let crown: THREE.Sprite | null = null;
+    if (isGod && entity.type === EntityType.PLAYER) {
+      const crownTex = EntityRenderer3D.getCrownTexture();
+      const crownMat = new THREE.SpriteMaterial({
+        map: crownTex,
+        transparent: true,
+        depthWrite: false,
+      });
+      crown = new THREE.Sprite(crownMat);
+      crown.scale.set(0.8, 0.5, 1);
+      crown.center.set(0.5, 0); // Bottom-center anchor
+      crown.position.y = baseScale.y - 0.15; // On top of head
+      group.add(crown);
+    }
+
     // Add to scene
     group.position.set(entity.x, 0, entity.y);
     this.app.entityGroup.add(group);
@@ -361,17 +379,63 @@ export class EntityRenderer3D {
       hpBar,
       questMarker,
       targetRing: null,
+      crown,
       animState: createAnimState(),
       isLocal,
       isBoss,
       isGod,
       entityType: entity.type,
+      spriteHeight: baseScale.y,
       lastX: entity.x,
       lastY: entity.y,
     };
 
     this.entities.set(entity.eid, e);
     return e;
+  }
+
+  private static crownTexture: THREE.CanvasTexture | null = null;
+  private static getCrownTexture(): THREE.CanvasTexture {
+    if (EntityRenderer3D.crownTexture) return EntityRenderer3D.crownTexture;
+    const size = 32;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    // Golden crown base
+    ctx.fillStyle = "#ffd700";
+    ctx.fillRect(4, 16, 24, 8);
+    // 5 crown points
+    for (let i = 0; i < 5; i++) {
+      const x = 4 + i * 5;
+      ctx.beginPath();
+      ctx.moveTo(x, 16);
+      ctx.lineTo(x + 2.5, 6);
+      ctx.lineTo(x + 5, 16);
+      ctx.fill();
+    }
+    // Red center gem
+    ctx.fillStyle = "#ff0000";
+    ctx.beginPath();
+    ctx.arc(16, 12, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Blue side gems
+    ctx.fillStyle = "#4488ff";
+    ctx.beginPath();
+    ctx.arc(9, 13, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(23, 13, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Gold border
+    ctx.strokeStyle = "#cc9900";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(4, 16, 24, 8);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    EntityRenderer3D.crownTexture = tex;
+    return tex;
   }
 
   private getEntityScale(
